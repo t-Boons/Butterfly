@@ -64,7 +64,7 @@ namespace Butterfly
 		DX12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy(); // Because ImGUI takes slot 0;
 
 
-		SetCompositeBufferResolution(m_window->Width(), m_window->Height());
+		SetCompositeBufferResolutionIfChanged(m_window->Width(), m_window->Height());
 
 		WindowResizeEvent ev;
 		ev.Width = m_window->Width();
@@ -85,6 +85,11 @@ namespace Butterfly
 		BF_PROFILE_FRAME("MainThread");
 		m_spectatorCam.Tick(m_input, m_window->DeltaTime());
 		ShouldShutDown = m_window->ShouldClose();
+
+		if (m_input.IsKeyDown(BFB_F))
+		{
+			m_imguiEnabled = !m_imguiEnabled;
+		}
 	}
 
 	void App::Render()
@@ -110,12 +115,23 @@ namespace Butterfly
 
 		graph->Execute();
 
-		ImGuiRender(graph.get());
+		if (m_imguiEnabled)
+		{
+			ImGuiRender(graph.get());
+		}
 
 
 		{
 			BF_PROFILE_EVENT("SwapBuffers")
-			m_window->Context().DisplayTexture(*m_blackBoard->Get<BFTexture>("Screen").Resource());
+		    if (m_imguiEnabled)
+		    {
+		    	m_window->Context().DisplayTexture(*m_blackBoard->Get<BFTexture>("Screen").Resource());
+		    }
+			else
+			{
+				SetCompositeBufferResolutionIfChanged(m_window->Width(), m_window->Height());
+				m_window->Context().DisplayTexture(*CompositeTexture->Resource());
+			}
 
 			m_input.Poll();
 			m_window->Update();
@@ -142,14 +158,7 @@ namespace Butterfly
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::Begin("Texture Window", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
 		ImVec2 newSize = ImGui::GetContentRegionAvail();
-		
-		if (newSize.x != m_oldWindowSize.x || newSize.y != m_oldWindowSize.y)
-		{
-			SetCompositeBufferResolution((uint32_t)newSize.x, (uint32_t)newSize.y);
-		}
-		
-		m_oldWindowSize = { newSize.x, newSize.y };
-
+		SetCompositeBufferResolutionIfChanged((uint32_t)newSize.x, (uint32_t)newSize.y);
 		BFTexture& tex = *CompositeTexture;
 		ImTextureID textureID = (ImTextureID)(uintptr_t)DX12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(tex.SRV().View()).ptr;
 
@@ -280,8 +289,16 @@ namespace Butterfly
 		m_blackBoard->RegisterOrReplace<BFTexture>(newComposite, "Screen");
 	}
 
-	void App::SetCompositeBufferResolution(uint32_t width, uint32_t height)
+	void App::SetCompositeBufferResolutionIfChanged(uint32_t width, uint32_t height)
 	{
+		if (CompositeTexture)
+		{
+			if (CompositeTexture->Width() == width && CompositeTexture->Height() == height)
+			{
+				return;
+			}
+		}
+
 		m_graphResources->Flush();
 
 		BFTextureDesc desc;

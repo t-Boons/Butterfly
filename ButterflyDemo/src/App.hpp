@@ -17,7 +17,7 @@ namespace Butterfly
 		void ShutDown();
 		void ImGuiRender(const Graph* graph);
 		void OnResize(const Butterfly::WindowResizeEvent& ev);
-		void SetCompositeBufferResolution(uint32_t width, uint32_t height);
+		void SetCompositeBufferResolutionIfChanged(uint32_t width, uint32_t height);
 
 		bool ShouldShutDown = false;
 
