@@ -41,6 +41,9 @@ namespace Butterfly
 		const BFRenderTargetView& RTV() const;
 		const BFShaderResourceView& SRV() const;
 
+		uint32_t Width() const { return m_desc.Width; }
+		uint32_t Height() const { return m_desc.Height; }
+
 		DX12Resource* Resource() { return m_resource; }
 
 	private:

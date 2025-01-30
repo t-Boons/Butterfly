@@ -12,7 +12,7 @@ namespace GraphExamples
 	class ForwardSponza : public GraphExample
 	{
 	public:
-		virtual void Init(Butterfly::Blackboard* blackBoard, Butterfly::Window* window) override;
+		virtual void Init() override;
 		void Record(Butterfly::GraphBuilder& builder, const Butterfly::Camera& camera) override;
 
 	private:

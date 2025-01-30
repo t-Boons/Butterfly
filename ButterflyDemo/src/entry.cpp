@@ -8,6 +8,7 @@ int main()
 	while (!app->ShouldShutDown)
 	{
 		app->Tick();
+		app->Render();
 	}
 	app->ShutDown();
 	delete app;

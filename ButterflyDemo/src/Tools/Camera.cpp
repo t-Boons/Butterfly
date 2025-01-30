@@ -2,15 +2,16 @@
 
 namespace Butterfly
 {
-	Camera::Camera(float fov, float aspectRatio, float zNear, float zFar)
-		: m_fov(fov), m_aspectRatio(aspectRatio), m_near(zNear), m_far(zFar)
+	Camera::Camera(const CameraProjection& projection)
 	{
-		SetProjection(m_fov, m_aspectRatio, m_near, m_far);
+		SetProjection(projection);
 	}
 
-	void Camera::SetProjection(float fov, float aspectRatio, float zNear, float zFar)
+	void Camera::SetProjection(const CameraProjection& projection)
 	{
-		m_projectionMatrix = glm::perspective(fov, aspectRatio, zNear, zFar);
+		m_projection = projection;
+		m_projectionMatrix = glm::perspective(projection.Fov, projection.AspectRatio, projection.ZNear, projection.ZFar);
+		UpdateMatrices();
 	}
 
 	void Camera::SetPosition(const glm::vec3& position)

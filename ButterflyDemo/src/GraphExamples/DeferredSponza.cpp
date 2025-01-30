@@ -9,10 +9,8 @@ using namespace Butterfly;
 
 namespace GraphExamples
 {
-	void DeferredSponza::Init(Butterfly::Blackboard* blackBoard, Butterfly::Window* window)
+	void DeferredSponza::Init()
 	{
-		GraphExample::Init(blackBoard, window);
-
 		m_uniforms = ScopePtr<BFUniformBuffer>(new BFUniformBuffer(512, "UniformBuffer"));
 		m_sponza = SponzaModel::Get();
 	}
@@ -33,11 +31,11 @@ namespace GraphExamples
 		};
 
 		UniformData uniformData;
-		uniformData.ViewProjection = camera.ViewProjection();
+		uniformData.ViewProjection = camera.ViewProjectionMatrix();
 		uniformData.Model = m_sponza->ModelMatrix;
-		uniformData.InverseView = glm::inverse(camera.View());
-		uniformData.InverseProjection = glm::inverse(camera.Projection());
-		uniformData.Resolution = { m_window->Width(), m_window->Height() };
+		uniformData.InverseView = glm::inverse(camera.ViewMatrix());
+		uniformData.InverseProjection = glm::inverse(camera.ProjectionMatrix());
+		uniformData.Resolution = { App::CompositeTexture->Width(), App::CompositeTexture->Height() };
 		m_uniforms->Write(&uniformData, sizeof(uniformData));
 
 		struct GBufferNormalsAndDepth
@@ -51,15 +49,15 @@ namespace GraphExamples
 
 			BFTextureDesc desc;
 			desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-			desc.Width = m_window->Width();
-			desc.Height = m_window->Height();
+			desc.Width = App::CompositeTexture->Width();
+			desc.Height = App::CompositeTexture->Height();
 			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
 			params->OutputTexture = builder.CreateTransientTexture({ desc, "Output Normals" });
 
 			BFTextureDesc desc2;
 			desc2.Format = DXGI_FORMAT_D32_FLOAT;
-			desc2.Width = m_window->Width();
-			desc2.Height = m_window->Height();
+			desc2.Width = App::CompositeTexture->Width();
+			desc2.Height = App::CompositeTexture->Height();
 			desc2.Flags = BFTextureDesc::DepthStencilable;
 
 
@@ -80,7 +78,7 @@ namespace GraphExamples
 					GraphicsCommands::ClearDepthStencil(list, *params.DepthStencil->Resource());
 					GraphicsCommands::ClearRenderTarget(list, rt);
 
-					GraphicsCommands::SetFullscreenViewportAndRect(list, m_window->Width(), m_window->Height());
+					GraphicsCommands::SetFullscreenViewportAndRect(list, App::CompositeTexture->Width(), App::CompositeTexture->Height());
 
 					BFPipelineBuilder psoBuilder;
 					psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
@@ -130,16 +128,16 @@ namespace GraphExamples
 
 			BFTextureDesc desc;
 			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			desc.Width = m_window->Width();
-			desc.Height = m_window->Height();
+			desc.Width = App::CompositeTexture->Width();
+			desc.Height = App::CompositeTexture->Height();
 			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
 
 			params->OutputTexture = builder.CreateTransientTexture({ desc, "Output Albedo" });
 
 			BFTextureDesc desc2;
 			desc2.Format = DXGI_FORMAT_D32_FLOAT;
-			desc2.Width = m_window->Width();
-			desc2.Height = m_window->Height();
+			desc2.Width = App::CompositeTexture->Width();
+			desc2.Height = App::CompositeTexture->Height();
 			desc2.Flags = BFTextureDesc::DepthStencilable;
 			params->DepthStencil = builder.CreateTransientTexture({ desc2, "DepthStencil Albedo" });
 
@@ -158,7 +156,7 @@ namespace GraphExamples
 					GraphicsCommands::ClearDepthStencil(list, *params.DepthStencil->Resource());
 					GraphicsCommands::ClearRenderTarget(list, rt);
 
-					GraphicsCommands::SetFullscreenViewportAndRect(list, m_window->Width(), m_window->Height());
+					GraphicsCommands::SetFullscreenViewportAndRect(list, App::CompositeTexture->Width(), App::CompositeTexture->Height());
 
 
 					BFPipelineBuilder psoBuilder;
@@ -223,14 +221,14 @@ namespace GraphExamples
 					BF_PROFILE_EVENT();
 
 					//BFTexture& rt = *params.OutputTexture->Resource();
-					BFTexture& rt = m_blackBoard->Get<BFTexture>("Composite");
+					BFTexture& rt = *App::CompositeTexture;
 
 					// Default Init stuff.
 					list.List()->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 					GraphicsCommands::SetRenderTargets(list, { &rt }, nullptr);
 					GraphicsCommands::ClearRenderTarget(list, rt);
-					GraphicsCommands::SetFullscreenViewportAndRect(list, m_window->Width(), m_window->Height());
+					GraphicsCommands::SetFullscreenViewportAndRect(list, App::CompositeTexture->Width(), App::CompositeTexture->Height());
 
 					BFPipelineBuilder psoBuilder;
 					psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);

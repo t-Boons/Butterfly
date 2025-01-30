@@ -13,7 +13,14 @@ namespace Butterfly
         ResourceType& Get(const std::string& key) const;
 
         template <typename ResourceType>
+        bool TryGet(const std::string& key, ResourceType*& out) const;
+
+        template <typename ResourceType>
         void Replace(ResourceType* value, const std::string& key);
+
+        template <typename ResourceType>
+        void RegisterOrReplace(ResourceType* value, const std::string& key);
+
 
         void Erase(const std::string& key);
 
@@ -70,6 +77,18 @@ namespace Butterfly
         return *errorDummy;
     }
 
+    template <typename ResourceType>
+    inline bool Blackboard::TryGet(const std::string& key, ResourceType*& out) const
+    {
+        if (!HasValue(key))
+        {
+            return false;
+        }
+
+        out = &Get<ResourceType>(key);
+        return true;
+    }
+
 
     inline void Blackboard::Erase(const std::string& key)
     {
@@ -86,6 +105,19 @@ namespace Butterfly
 
         CheckMsg(HasValue(key), "Blackboard does not have value with key: %s", key.c_str());
         m_data[key] = value;
+    }
+
+    template <typename ResourceType>
+    inline void Blackboard::RegisterOrReplace(ResourceType* value, const std::string& key)
+    {
+        if (HasValue(key))
+        {
+            Replace<ResourceType>(value, key);
+        }
+        else
+        {
+            Register<ResourceType>(value, key);
+        }
     }
 
     inline bool Blackboard::HasValue(const std::string& name) const

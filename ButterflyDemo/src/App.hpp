@@ -13,19 +13,25 @@ namespace Butterfly
 	public:
 		void Init();
 		void Tick();
+		void Render();
 		void ShutDown();
 		void ImGuiRender(const Graph* graph);
 		void OnResize(const Butterfly::WindowResizeEvent& ev);
+		void SetCompositeBufferResolution(uint32_t width, uint32_t height);
 
 		bool ShouldShutDown = false;
 
 		inline static Window* StaticWindow;
+		inline static BFTexture* CompositeTexture = nullptr;
 	private:
 		Input m_input;
 		ScopePtr<Window> m_window;
 		RefPtr<DX12CommandList> m_cmdList;
 
 		ImGUIRenderer m_imGUi;
+		glm::vec2 m_oldWindowSize;
+
+		BFTexture* m_screenTexture;
 
 		bool m_imguiEnabled = true;
 

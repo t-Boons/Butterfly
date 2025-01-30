@@ -4,10 +4,8 @@
 
 namespace GraphExamples
 {
-	void ForwardSponza::Init(Butterfly::Blackboard* blackBoard, Butterfly::Window* window)
+	void ForwardSponza::Init()
 	{
-		GraphExample::Init(blackBoard, window);
-
 		m_uniforms = ScopePtr<BFUniformBuffer>(new BFUniformBuffer(256, "UniformBuffer"));
 		m_sponza = SponzaModel::Get();
 	}
@@ -24,7 +22,7 @@ namespace GraphExamples
 		};
 
 		UniformData uniformData;
-		uniformData.ViewProjection = camera.ViewProjection();
+		uniformData.ViewProjection = camera.ViewProjectionMatrix();
 		uniformData.Model = m_sponza->ModelMatrix;
 
 		m_uniforms->Write(&uniformData, sizeof(uniformData));
@@ -39,8 +37,8 @@ namespace GraphExamples
 
 		BFTextureDesc desc2;
 		desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		desc2.Width = m_window->Width();
-		desc2.Height = m_window->Height();
+		desc2.Width = App::CompositeTexture->Width();
+		desc2.Height = App::CompositeTexture->Height();
 		desc2.Flags = BFTextureDesc::DepthStencilable;
 		params->DepthStencil = builder.CreateTransientTexture({ desc2, "DepthStencil Positions" });
 
@@ -49,7 +47,7 @@ namespace GraphExamples
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Forward Sponza pass");
 
-				BFTexture& rt = m_blackBoard->Get<BFTexture>("Composite");
+				BFTexture& rt = *App::CompositeTexture;
 
 				// Default Init stuff.
 				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -59,7 +57,7 @@ namespace GraphExamples
 				GraphicsCommands::ClearDepthStencil(list, *params.DepthStencil->Resource());
 				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.15f, 1.0f });
 
-				GraphicsCommands::SetFullscreenViewportAndRect(list, m_window->Width(), m_window->Height());
+				GraphicsCommands::SetFullscreenViewportAndRect(list, App::CompositeTexture->Width(), App::CompositeTexture->Height());
 
 				BFPipelineBuilder psoBuilder;
 				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);

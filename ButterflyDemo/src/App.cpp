@@ -63,26 +63,14 @@ namespace Butterfly
 
 		DX12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy(); // Because ImGUI takes slot 0;
 
-		{
-			// Create composite texture.
-			BFTextureDesc desc;
-			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			desc.Width = m_window->Width();
-			desc.Height = m_window->Height();
-			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
-			auto* composite = BFTexture::CreateTextureForGPU(desc, "Composite RenderTarget");
-			m_blackBoard->Register<BFTexture>(composite, "Composite");
-		}
-		{
-			BFTextureDesc desc;
-			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			desc.Width = m_window->Width();
-			desc.Height = m_window->Height();
-			desc.Flags = BFTextureDesc::RenderTargettable;
-			auto* composite = BFTexture::CreateTextureForGPU(desc, "IMGUIComposite RenderTarget");
-			m_blackBoard->Register<BFTexture>(composite, "IMGUIComposite");
-		}
-		
+
+		SetCompositeBufferResolution(m_window->Width(), m_window->Height());
+
+		WindowResizeEvent ev;
+		ev.Width = m_window->Width();
+		ev.Height = m_window->Height();
+		OnResize(ev);
+
 		// Create command list.
 		auto genericCmdList = Graphics->CreateCommandList(QueueType::Direct);
 		m_cmdList = std::dynamic_pointer_cast<DX12CommandList>(genericCmdList);
@@ -95,12 +83,15 @@ namespace Butterfly
 	void App::Tick()
 	{
 		BF_PROFILE_FRAME("MainThread");
-
+		m_spectatorCam.Tick(m_input, m_window->DeltaTime());
 		ShouldShutDown = m_window->ShouldClose();
+	}
 
+	void App::Render()
+	{
 		m_cmdList->BeginGPUMarker("Initial screen clear.");
 
-		GraphicsCommands::ClearRenderTarget(*m_cmdList, m_blackBoard->Get<BFTexture>("Composite"), { 0.0, 0.05f, 0.1f, 1.0f });
+		GraphicsCommands::ClearRenderTarget(*m_cmdList, *CompositeTexture, { 0.0, 0.05f, 0.1f, 1.0f });
 		m_cmdList->EndGPUMarker();
 		m_cmdList->Close();
 		DX12API()->Queue(QueueType::Direct)->Execute(*m_cmdList);
@@ -108,8 +99,6 @@ namespace Butterfly
 		m_cmdList->Reset();
 
 		GraphBuilder builder(*m_graphResources);
-
-		m_spectatorCam.Tick(m_input, m_window->DeltaTime());
 
 		if (m_graphExample)
 		{
@@ -121,22 +110,12 @@ namespace Butterfly
 
 		graph->Execute();
 
-		if (m_imguiEnabled)
-		{
-			ImGuiRender(graph.get());
-		}
+		ImGuiRender(graph.get());
 
 
 		{
 			BF_PROFILE_EVENT("SwapBuffers")
-			if (m_imguiEnabled)
-			{
-				m_window->Context().DisplayTexture(*m_blackBoard->Get<BFTexture>("IMGUIComposite").Resource());
-			}
-			else
-			{
-				m_window->Context().DisplayTexture(*m_blackBoard->Get<BFTexture>("Composite").Resource());
-			}
+			m_window->Context().DisplayTexture(*m_blackBoard->Get<BFTexture>("Screen").Resource());
 
 			m_input.Poll();
 			m_window->Update();
@@ -159,17 +138,25 @@ namespace Butterfly
 		// IMGUI DEBUG DATA.
 		m_imGUi.BeginFrame();
 
-
-		ImGui::Begin("Texture Window");
+		ImGui::DockSpaceOverViewport();
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+		ImGui::Begin("Texture Window", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
+		ImVec2 newSize = ImGui::GetContentRegionAvail();
 		
-		BFTexture& tex = m_blackBoard->Get<BFTexture>("Composite");
+		if (newSize.x != m_oldWindowSize.x || newSize.y != m_oldWindowSize.y)
+		{
+			SetCompositeBufferResolution((uint32_t)newSize.x, (uint32_t)newSize.y);
+		}
+		
+		m_oldWindowSize = { newSize.x, newSize.y };
+
+		BFTexture& tex = *CompositeTexture;
 		ImTextureID textureID = (ImTextureID)(uintptr_t)DX12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(tex.SRV().View()).ptr;
 
-		// Display the image
-		ImGui::Image(textureID, ImVec2(512, 512));
+		ImGui::Image(textureID, newSize);
 		
 		ImGui::End();
-
+		ImGui::PopStyleVar();
 
 
 
@@ -193,7 +180,7 @@ namespace Butterfly
 					if (m_currentDemo == "DeferredSponza")
 					{
 						m_graphExample = ScopePtr<GraphExamples::DeferredSponza>(new GraphExamples::DeferredSponza());
-						m_graphExample->Init(m_blackBoard.get(), m_window.get());
+						m_graphExample->Init();
 					}
 
 					if (m_currentDemo == "ForwardSponza")
@@ -203,7 +190,7 @@ namespace Butterfly
 
 					if (m_graphExample)
 					{
-						m_graphExample->Init(m_blackBoard.get(), m_window.get());
+						m_graphExample->Init();
 					}
 				}
 			}
@@ -265,7 +252,7 @@ namespace Butterfly
 		ImGui::End();
 
 		tex.Resource()->Transition(*m_cmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
-		m_imGUi.EndFrame(*m_cmdList, m_blackBoard->Get<BFTexture>("IMGUIComposite"));
+		m_imGUi.EndFrame(*m_cmdList, m_blackBoard->Get<BFTexture>("Screen"));
 		
 		m_cmdList->EndGPUMarker();
 		m_cmdList->Close();
@@ -278,17 +265,41 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		m_graphResources->Flush();
-
 		BFTextureDesc desc;
 		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		desc.Width = ev.Width;
 		desc.Height = ev.Height;
 		desc.Flags = BFTextureDesc::RenderTargettable;
-		
-		BFTexture* composite = &m_blackBoard->Get<BFTexture>("Composite");
-		FREE(composite);
-		BFTexture* newComposite = BFTexture::CreateTextureForGPU(desc, "Composite RenderTarget");
-		m_blackBoard->Replace<BFTexture>(newComposite, "Composite");
+		BFTexture* newComposite = BFTexture::CreateTextureForGPU(desc, "Screen RenderTarget");
+
+		BFTexture* out;
+		if (m_blackBoard->TryGet<BFTexture>("Screen", out))
+		{
+			FREE(out);
+		}
+		m_blackBoard->RegisterOrReplace<BFTexture>(newComposite, "Screen");
+	}
+
+	void App::SetCompositeBufferResolution(uint32_t width, uint32_t height)
+	{
+		m_graphResources->Flush();
+
+		BFTextureDesc desc;
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.Width = width;
+		desc.Height = height;
+		desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
+		auto* composite = BFTexture::CreateTextureForGPU(desc, "Composite RenderTarget");
+
+		if (CompositeTexture)
+		{
+			FREE(CompositeTexture);
+		}
+		CompositeTexture = composite;
+
+		float aspectRatio = (float)width / (float)height;
+		CameraProjection projection = m_spectatorCam.GetCamera()->Projection();
+		projection.AspectRatio = aspectRatio;
+		m_spectatorCam.GetCamera()->SetProjection(projection);
 	}
 }
