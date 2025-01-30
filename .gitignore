@@ -1,0 +1,12 @@
+
+Butterfly/bin/
+
+Butterfly/bin-int/
+
+*.user
+
+ButterflyDemo/bin/
+
+ButterflyDemo/bin-int/
+
+*.vs
