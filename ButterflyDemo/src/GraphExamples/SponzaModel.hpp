@@ -170,7 +170,6 @@ namespace GraphExamples
 
 
 			std::vector<PointLight> lights;
-			srand(time(0));
 			for (int x = -16; x < 16; x++) for (int y = 0; y < 8; y++) for (float z = -1.5; z < 1.5f; z += 0.75f) // 1024 lights
 			{
 				PointLight p;
@@ -180,7 +179,7 @@ namespace GraphExamples
 				p.radius = std::sqrt(p.intensity / 0.01f) * 1.2f;
 				lights.push_back(p);
 			}
-			numLights = lights.size();
+			numLights = (int)lights.size();
 			
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 			srvDesc.Format = DXGI_FORMAT_UNKNOWN;

@@ -40,7 +40,7 @@ namespace GraphExamples
 		desc2.Width = App::CompositeTexture->Width();
 		desc2.Height = App::CompositeTexture->Height();
 		desc2.Flags = BFTextureDesc::DepthStencilable;
-		params->DepthStencil = builder.CreateTransientTexture({ desc2, "DepthStencil Positions" });
+		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Positions", desc2);
 
 		builder.AddPass<ForwardRenderer>("Forward Sponza pass",
 			[&](const ForwardRenderer& params, DX12CommandList& list)

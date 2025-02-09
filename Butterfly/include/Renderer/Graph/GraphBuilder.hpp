@@ -26,7 +26,8 @@ namespace Butterfly
 		template<typename ParamStruct>
 		[[nodiscard]] ParamStruct* AllocParameters();
 			
-		[[nodiscard]] BFRGTexture* CreateTransientTexture(const BFRGTextureInitializer& initializer);
+		template<typename Args>
+		[[nodiscard]] BFRGTexture* CreateTransientTexture(const std::string& key, Args&& args);
 
 		template<typename ParamStruct>
 		bool HasPassType() const;
@@ -65,10 +66,10 @@ namespace Butterfly
 		}
 	}
 
-
-	inline BFRGTexture* GraphBuilder::CreateTransientTexture(const BFRGTextureInitializer& initializer)
+	template<typename Args>
+	inline BFRGTexture* GraphBuilder::CreateTransientTexture(const std::string& key, Args&& args)
 	{
-		return &m_graph->ResourceInitializer.GetOrCreateTexture(initializer);
+		return &m_graph->ResourceInitializer.GetOrCreateTexture<BFRGTexture>(key, args);
 	}
 
 

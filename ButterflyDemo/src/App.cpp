@@ -26,17 +26,6 @@ namespace Butterfly
 
 	void App::Init()
 	{
-		glm::vec3 normal = glm::vec3{ 1.0f, 0.0001f, 1.0f } + 1.0f;
-		glm::vec3 normal2 = glm::vec3{ 1.0f, 0.0001f, -1.0f } + 1.0f;
-
-		float z1 = glm::sqrt(2.0 - (normal.x * normal.x) - (normal.y * normal.y));
-		glm::vec3 normal0 = glm::normalize(glm::vec3(normal.x, normal.y, z1));
-
-		float z2 = glm::sqrt(2.0 - (normal.x * normal.x) - (normal.y * normal.y));
-		glm::vec3 normal1 = glm::normalize(glm::vec3(normal2.x, normal2.y, z2));
-
-
-
 		BF_PROFILE_EVENT()
 
 		bool useDebug = true;
@@ -279,7 +268,8 @@ namespace Butterfly
 		desc.Width = ev.Width;
 		desc.Height = ev.Height;
 		desc.Flags = BFTextureDesc::RenderTargettable;
-		BFTexture* newComposite = BFTexture::CreateTextureForGPU(desc, "Screen RenderTarget");
+		desc.DebugName = "Screen RenderTarget";
+		BFTexture* newComposite = BFTexture::CreateTextureForGPU(desc);
 
 		BFTexture* out;
 		if (m_blackBoard->TryGet<BFTexture>("Screen", out))
@@ -306,7 +296,8 @@ namespace Butterfly
 		desc.Width = width;
 		desc.Height = height;
 		desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
-		auto* composite = BFTexture::CreateTextureForGPU(desc, "Composite RenderTarget");
+		desc.DebugName = "Composite RenderTarget";
+		auto* composite = BFTexture::CreateTextureForGPU(desc);
 
 		if (CompositeTexture)
 		{

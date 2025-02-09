@@ -144,7 +144,6 @@
     <ClCompile Include="src\Renderer\D3D12\Resource_DX12.cpp" />
     <ClCompile Include="src\Renderer\GraphicsAPI.cpp" />
     <ClCompile Include="src\Renderer\Graph\Graph.cpp" />
-    <ClCompile Include="src\Renderer\Graph\GraphTransientResourceCache.cpp" />
     <ClCompile Include="src\Renderer\Graph\GraphTypes.cpp" />
     <ClCompile Include="src\Renderer\ModelLoading\MikkTSpaceWrapper.cpp" />
     <ClCompile Include="src\Renderer\ModelLoading\ModelImporter.cpp" />

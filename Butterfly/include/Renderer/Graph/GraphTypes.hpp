@@ -46,7 +46,10 @@ namespace Butterfly
 		~BFRGTexture();
 
 	protected:
-		BFRGTexture(const BFRGTextureInitializer& initializer);
+		BFRGTexture(const BFTextureDesc& desc)
+		{
+			m_resource = BFTexture::CreateTextureForGPU(desc);
+		}
 
 		BFTexture* m_resource;
 	};

@@ -52,7 +52,7 @@ namespace GraphExamples
 			desc.Width = App::CompositeTexture->Width();
 			desc.Height = App::CompositeTexture->Height();
 			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
-			params->OutputTexture = builder.CreateTransientTexture({ desc, "Output Normals" });
+			params->OutputTexture = builder.CreateTransientTexture("Output Normals", desc);
 
 			BFTextureDesc desc2;
 			desc2.Format = DXGI_FORMAT_D32_FLOAT;
@@ -61,7 +61,7 @@ namespace GraphExamples
 			desc2.Flags = BFTextureDesc::DepthStencilable;
 
 
-			params->DepthStencil = builder.CreateTransientTexture({ desc2, "DepthStencil Normals" });
+			params->DepthStencil = builder.CreateTransientTexture("DepthStencil Normals", desc2);
 
 			builder.AddPass<GBufferNormalsAndDepth>("GBufferNormals pass",
 				[&](const GBufferNormalsAndDepth& params, DX12CommandList& list)
@@ -132,14 +132,14 @@ namespace GraphExamples
 			desc.Height = App::CompositeTexture->Height();
 			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
 
-			params->OutputTexture = builder.CreateTransientTexture({ desc, "Output Albedo" });
+			params->OutputTexture = builder.CreateTransientTexture("Output Albedo", desc);
 
 			BFTextureDesc desc2;
 			desc2.Format = DXGI_FORMAT_D32_FLOAT;
 			desc2.Width = App::CompositeTexture->Width();
 			desc2.Height = App::CompositeTexture->Height();
 			desc2.Flags = BFTextureDesc::DepthStencilable;
-			params->DepthStencil = builder.CreateTransientTexture({ desc2, "DepthStencil Albedo" });
+			params->DepthStencil = builder.CreateTransientTexture("DepthStencil Albedo", desc2);
 
 			builder.AddPass<GBufferAlbedo>("GBufferAlbedo pass",
 				[&](const GBufferAlbedo& params, DX12CommandList& list)

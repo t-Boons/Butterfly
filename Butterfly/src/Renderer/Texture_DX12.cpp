@@ -114,7 +114,7 @@ namespace Butterfly
 		return newTexture;
 	}
 
-	BFTexture* BFTexture::CreateTextureForGPU(const BFTextureDesc& desc, const std::string& resourceTag)
+	BFTexture* BFTexture::CreateTextureForGPU(const BFTextureDesc& desc)
 	{
 		BF_PROFILE_EVENT();
 
@@ -133,7 +133,7 @@ namespace Butterfly
 				.RenderTarget(desc.Format, desc.Width, desc.Height)
 				.ClearColor(col, desc.Format)
 				.InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET)
-				.SetName(resourceTag)
+				.SetName(desc.DebugName)
 				.Create();
 
 			newTexture->CreateViews(desc);
@@ -147,7 +147,7 @@ namespace Butterfly
 				.DepthStencil(desc.Format, desc.Width, desc.Height)
 				.ClearDepth(desc.Format)
 				.InitialState(D3D12_RESOURCE_STATE_DEPTH_READ)
-				.SetName(resourceTag)
+				.SetName(desc.DebugName)
 				.Create();
 
 			newTexture->CreateViews(desc);
@@ -160,7 +160,7 @@ namespace Butterfly
 				.HeapType(D3D12_HEAP_TYPE_DEFAULT)
 				.Texture2D(desc.Format, desc.Width, desc.Height)
 				.InitialState(D3D12_RESOURCE_STATE_GENERIC_READ)
-				.SetName(resourceTag)
+				.SetName(desc.DebugName)
 				.Create();
 
 			newTexture->CreateViews(desc);
