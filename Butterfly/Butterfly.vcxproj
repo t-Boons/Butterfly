@@ -133,7 +133,7 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
     </ClCompile>
-    <ClCompile Include="src\Renderer\Buffer_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12Buffer.cpp" />
     <ClCompile Include="src\Renderer\D3D12\CommandList_D3D12.cpp" />
     <ClCompile Include="src\Renderer\D3D12\CommandQueue_D3D12.cpp" />
     <ClCompile Include="src\Renderer\D3D12\Context_D3D12.cpp" />

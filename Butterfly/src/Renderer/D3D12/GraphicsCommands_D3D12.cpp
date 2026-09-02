@@ -1,11 +1,11 @@
-#include "Renderer/D3D12/GraphicsCommands_D3D12.hpp"
-#include "Renderer/D3D12/Resource_D3D12.hpp"
-#include "Renderer/D3D12/View_D3D12.hpp"
-#include "Renderer/D3D12/GraphicsAPI_D3D12.hpp"
-#include "Renderer/D3D12/DescriptorAllocator_D3D12.hpp"
-#include "Renderer/D3D12/CommandList_D3D12.hpp"
-#include "Renderer/Texture_D3D12.hpp"
-#include "Renderer/Buffer_D3D12.hpp"
+#include "Renderer/D3D12/GraphicsCommands_DX12.hpp"
+#include "Renderer/D3D12/Resource_DX12.hpp"
+#include "Renderer/D3D12/View_DX12.hpp"
+#include "Renderer/D3D12/GraphicsAPI_DX12.hpp"
+#include "Renderer/D3D12/DescriptorAllocator_DX12.hpp"
+#include "Renderer/D3D12/CommandList_DX12.hpp"
+#include "Renderer/Texture_DX12.hpp"
+#include "Renderer/Buffer_DX12.hpp"
 
 namespace Butterfly
 {

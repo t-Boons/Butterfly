@@ -1,5 +1,5 @@
-#include "Renderer/D3D12/CommandList_D3D12.hpp"
-#include "Renderer/D3D12/GraphicsAPI_D3D12.hpp"
+#include "Renderer/D3D12/CommandList_DX12.hpp"
+#include "Renderer/D3D12/GraphicsAPI_DX12.hpp"
 
 namespace Butterfly
 {
