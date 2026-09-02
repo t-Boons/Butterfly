@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Common.hpp"
-#include "Renderer/Texture_DX12.hpp"
+#include "Renderer/D3D12Texture.hpp"
 
 namespace Butterfly
 {

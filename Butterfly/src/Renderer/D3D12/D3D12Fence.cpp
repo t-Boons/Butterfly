@@ -1,6 +1,6 @@
-#include "Renderer/D3D12/Fence_DX12.hpp"
-#include "Renderer/D3D12/CommandQueue_DX12.hpp"
-#include "Renderer/D3D12/GraphicsAPI_DX12.hpp"
+#include "Renderer/D3D12/D3D12Fence.hpp"
+#include "Renderer/D3D12/D3D12CommandQueue.hpp"
+#include "Renderer/D3D12/D3D12GraphicsAPI.hpp"
 
 namespace Butterfly
 {

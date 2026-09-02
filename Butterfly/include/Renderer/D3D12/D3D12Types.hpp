@@ -1,5 +1,5 @@
 #pragma once
-#include "Common_D3D12.hpp"
+#include "D3D12Common.hpp"
 #include "Renderer/Types.hpp"
 
 namespace Butterfly

@@ -1,7 +1,7 @@
 #pragma once
-#include "Common_D3D12.hpp"
+#include "D3D12Common.hpp"
 #include "Renderer/GraphicsAPI.hpp"
-#include "Types_D3D12.hpp"
+#include "D3D12Types.hpp"
 
 namespace Butterfly
 {

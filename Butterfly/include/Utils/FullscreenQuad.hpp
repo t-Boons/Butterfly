@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/Buffer_DX12.hpp"
+#include "Renderer/D3D12Buffer.hpp"
 #include "Profiler.hpp"
 
 namespace Butterfly

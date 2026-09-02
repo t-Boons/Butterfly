@@ -1,5 +1,5 @@
 #include "Renderer/Graph/GraphTypes.hpp"
-#include "Renderer/Texture_DX12.hpp"
+#include "Renderer/D3D12Texture.hpp"
 
 namespace Butterfly
 {

@@ -4,7 +4,7 @@
 #include <glfw/glfw3native.h>
 
 #include "Core/Common.hpp"
-#include "Renderer/D3D12/Context_DX12.hpp"
+#include "Renderer/D3D12/D3D12Context.hpp"
 #include "EventDispatcher.hpp"
 
 namespace Butterfly

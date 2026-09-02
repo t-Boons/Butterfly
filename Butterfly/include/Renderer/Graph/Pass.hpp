@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Common.hpp"
-#include "Renderer/D3D12/CommandList_D3D12.hpp"
+#include "Renderer/D3D12/D3D12CommandList.hpp"
 
 namespace Butterfly
 {

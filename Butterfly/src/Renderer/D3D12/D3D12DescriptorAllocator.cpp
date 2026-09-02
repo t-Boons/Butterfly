@@ -1,6 +1,6 @@
-#include "Renderer/D3D12/DescriptorAllocator_DX12.hpp"
-#include "Renderer/D3D12/Resource_DX12.hpp"
-#include "Renderer/D3D12/GraphicsAPI_DX12.hpp"
+#include "Renderer/D3D12/D3D12DescriptorAllocator.hpp"
+#include "Renderer/D3D12/D3D12Resource.hpp"
+#include "Renderer/D3D12/D3D12GraphicsAPI.hpp"
 
 namespace Butterfly
 {

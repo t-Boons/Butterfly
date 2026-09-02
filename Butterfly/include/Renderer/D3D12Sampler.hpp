@@ -1,5 +1,5 @@
 #pragma once
-#include "D3D12/Common_DX12.hpp"
+#include "D3D12/D3D12Common.hpp"
 #include "Resource.hpp"
 
 namespace Butterfly
