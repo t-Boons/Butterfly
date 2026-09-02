@@ -202,13 +202,13 @@ namespace Butterfly
 			});
 	
 
-		auto graph = ScopePtr<const Graph>(builder.Create());
+		auto graph = builder.Create();
 
 		graph->Execute();
 
 		if (m_imguiEnabled)
 		{
-			ImGuiRender(graph.get());
+			ImGuiRender(graph);
 		}
 
 
@@ -227,6 +227,8 @@ namespace Butterfly
 			m_input.Poll();
 			m_window->Update();
 		}
+
+		delete graph;
 	}
 
 	void App::ShutDown()

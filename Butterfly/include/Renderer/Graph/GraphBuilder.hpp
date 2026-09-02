@@ -137,57 +137,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		SortPasses();
-		CalculateFencePoints();
-
 		m_hasBeenCreated = true;
 		return m_graph;
-	}
-
-	inline void GraphBuilder::SortPasses()
-	{
-		BF_PROFILE_EVENT();
-
-		const uint32_t numPasses = static_cast<uint32_t>(m_graph->Passes.size());
-
-		// Prepare for topological sort.
-		std::vector<std::vector<int>> passes;
-		passes.reserve(numPasses);
-		for (int i = 0; i < static_cast<int>(numPasses); i++)
-		{
-			if (m_graph->Passes[i]->m_dependencies.empty()) continue;
-			std::vector<int> deps;
-			for (int j = 0; j < m_graph->Passes[i]->m_dependencies.size(); j++)
-			{
-				passes.push_back({ m_graph->PassTypes[m_graph->Passes[i]->m_dependencies[j]], i });
-			}
-		}
-
-		// Do topological sort.
-		auto sortedIndices = Utils::TopologicalSortKahn(numPasses, passes);
-
-		m_graph->SortedPasses.reserve(numPasses);
-		for (uint32_t i = 0; i < numPasses; i++)
-		{
-			m_graph->SortedPasses.push_back(m_graph->Passes[sortedIndices[i]]);
-		}
-	}
-
-	inline void GraphBuilder::CalculateFencePoints()
-	{
-		BF_PROFILE_EVENT();
-
-		// Record fence points;
-		const uint32_t numPasses = static_cast<uint32_t>(m_graph->SortedPasses.size());
-		for (uint32_t i = 0; i < numPasses; i++)
-		{
-			if (!m_graph->SortedPasses[i]->m_dependencies.empty())
-			{
-				m_graph->PassFenceIndices.push_back(i - 1);
-			}
-		}
-
-		// Add a fence point at the end so the graph since it is always neccesary.
-		m_graph->PassFenceIndices.push_back(numPasses - 1);
 	}
 }

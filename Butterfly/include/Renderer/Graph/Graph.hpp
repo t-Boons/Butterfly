@@ -15,10 +15,6 @@ namespace Butterfly
 
 		std::vector<const PassBase*> PassDependencies(const PassBase* pass) const;
 
-
-		std::vector<PassBase*> SortedPasses;
-		std::vector<uint32_t> PassFenceIndices;
-
 		std::vector<PassBase*> Passes;
 		std::unordered_map<std::type_index, int> PassTypes;
 

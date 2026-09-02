@@ -1,0 +1,54 @@
+add_subdirectory(lib/d3dx12)
+add_subdirectory(lib/dxc)
+add_subdirectory(lib/entt)
+add_subdirectory(lib/GLFW)
+add_subdirectory(lib/glm)
+add_subdirectory(lib/imgui)
+add_subdirectory(lib/MikkTSpace)
+add_subdirectory(lib/optick)
+add_subdirectory(lib/tinygltf)
+
+add_library(Butterfly STATIC
+    src/Core/Window.cpp
+    src/Renderer/GraphicsAPI.cpp
+    src/Renderer/D3D12Buffer.cpp
+    src/Renderer/D3D12Sampler.cpp
+    src/Renderer/D3D12Texture.cpp
+    src/Renderer/D3D12/D3D12CommandList.cpp
+    src/Renderer/D3D12/D3D12CommandQueue.cpp
+    src/Renderer/D3D12/D3D12Context.cpp
+    src/Renderer/D3D12/D3D12DescriptorAllocator.cpp
+    src/Renderer/D3D12/D3D12Fence.cpp
+    src/Renderer/D3D12/D3D12GraphicsAPI.cpp
+    src/Renderer/D3D12/D3D12GraphicsCommands.cpp
+    src/Renderer/D3D12/D3D12Pipeline.cpp
+    src/Renderer/D3D12/D3D12Resource.cpp
+    src/Renderer/D3D12/D3D12Shader.cpp
+    src/Renderer/D3D12/D3D12ShaderVariables.cpp
+    src/Renderer/D3D12/D3D12View.cpp
+    src/Renderer/Graph/Graph.cpp
+    src/Renderer/Graph/GraphTypes.cpp
+    src/Renderer/ModelLoading/MikkTSpaceWrapper.cpp
+    src/Renderer/ModelLoading/ModelImporter.cpp
+    src/Renderer/ModelLoading/TinyGLTFLoader.cpp
+    src/Renderer/ModelLoading/GLTF/ModelImporterGLTF.cpp
+)
+
+target_include_directories(Butterfly
+    PUBLIC
+        include)
+
+target_link_libraries(Butterfly
+    PUBLIC
+        d3dx12
+        dxc
+        entt
+        glfw
+        glm
+        imgui
+        mikktspace
+        optick
+        tinygltf
+    PRIVATE
+        d3d12
+        dxgi)

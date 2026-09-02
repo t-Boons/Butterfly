@@ -18,62 +18,35 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		for (uint32_t i = 0; i < static_cast<uint32_t>(SortedPasses.size()); i++)
+		for (uint32_t i = 0; i < static_cast<uint32_t>(Passes.size()); i++)
 		{
-			delete SortedPasses[i];
+			delete Passes[i];
 		}
-		SortedPasses.clear();
 	}
 
 	void Graph::Execute() const
 	{
 		BF_PROFILE_EVENT();
-		const uint32_t numPasses = static_cast<uint32_t>(SortedPasses.size());
+		const uint32_t numPasses = static_cast<uint32_t>(Passes.size());
 
-		const auto cache = CommandListCache();
-		std::vector<D3D12CommandListHandle*> handles;
-		handles.reserve(numPasses);
+		D3D12CommandList list;
 
-		for (uint32_t i = 0; i < numPasses; i++)
-		{
-			auto newList = cache->GetNewList();
-			handles.push_back(newList);
-		}
-		
 		std::vector<ID3D12CommandList*> cmdListQueue;
 		cmdListQueue.reserve(numPasses);
 		
 		uint32_t j = 0;
 		for (uint32_t i = 0; i < numPasses; ++i)
 		{
-			D3D12CommandList& list = handles[i]->List();
-			list.BeginGPUMarker("RenderPass -> " + SortedPasses[i]->Name());
+			list.BeginGPUMarker("RenderPass -> " + Passes[i]->Name());
 			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(list);
-			SortedPasses[i]->Execute(list);
+			Passes[i]->Execute(list);
 			list.EndGPUMarker();
-			list.Close();
-
-			cmdListQueue.push_back(list.List());
-
-			if (i == PassFenceIndices[j])
-			{
-				D3D12API()->Queue(QueueType::Direct)->Execute(static_cast<uint32_t>(cmdListQueue.size()), cmdListQueue.data());
-
-				// Wait till previous work is executed.
-				D3D12API()->Queue(QueueType::Direct)->WaitForFence();
-
-				cmdListQueue.clear();
-				j++;
-			}
 		}
+
+		list.Close();
+		D3D12API()->Queue(QueueType::Direct)->Execute(list);
 
 		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
-
-		for (uint32_t i = 0; i < numPasses; ++i)
-		{
-			handles[i]->List().Reset();
-			delete handles[i];
-		}
 
 		ResourceInitializer.UpdateLifetimes();
 	}
