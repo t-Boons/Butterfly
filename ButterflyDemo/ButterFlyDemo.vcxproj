@@ -29,26 +29,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -160,7 +160,6 @@ xcopy "$(ProjectDir)assets" "$(OutDir)assets"/S /E /I /Y</Command>
     <ClCompile Include="src\App.cpp" />
     <ClCompile Include="src\Tools\Camera.cpp" />
     <ClCompile Include="src\entry.cpp" />
-    <ClCompile Include="src\GraphExamples\DeferredSponza.cpp" />
     <ClCompile Include="src\GraphExamples\ForwardSponza.cpp" />
     <ClCompile Include="src\Input\Input.cpp" />
     <ClCompile Include="src\Tools\SpectatorCamera.cpp" />
@@ -174,7 +173,6 @@ xcopy "$(ProjectDir)assets" "$(OutDir)assets"/S /E /I /Y</Command>
     <ClInclude Include="src\App.hpp" />
     <ClInclude Include="src\GraphExamples\SponzaModel.hpp" />
     <ClInclude Include="src\Tools\Camera.hpp" />
-    <ClInclude Include="src\GraphExamples\DeferredSponza.hpp" />
     <ClInclude Include="src\GraphExamples\ForwardSponza.hpp" />
     <ClInclude Include="src\GraphExamples\GraphExamples.hpp" />
     <ClInclude Include="src\Tools\ImGUIRenderer.hpp" />

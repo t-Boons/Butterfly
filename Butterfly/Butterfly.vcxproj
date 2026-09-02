@@ -21,13 +21,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -113,7 +113,7 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
     </ClCompile>
-    <ClCompile Include="lib\imgui\imgui_impl_dx12.cpp">
+    <ClCompile Include="lib\imgui\imgui_impl_d3d12.cpp">
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
     </ClCompile>
@@ -133,15 +133,19 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
     </ClCompile>
-    <ClCompile Include="src\Renderer\D3D12\CommandQueue_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\Fence_DX12.cpp" />
-    <ClCompile Include="src\Renderer\Buffer_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\CommandList_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\Context_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\DescriptorAllocator_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\GraphicsAPI_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\GraphicsCommands_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\Resource_DX12.cpp" />
+    <ClCompile Include="src\Renderer\Buffer_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\CommandList_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\CommandQueue_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\Context_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\DescriptorAllocator_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\Fence_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\GraphicsAPI_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\GraphicsCommands_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\Pipeline_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\Resource_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\ShaderVariables_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\Shader_D3D12.cpp" />
+    <ClCompile Include="src\Renderer\D3D12\View_D3D12.cpp" />
     <ClCompile Include="src\Renderer\GraphicsAPI.cpp" />
     <ClCompile Include="src\Renderer\Graph\Graph.cpp" />
     <ClCompile Include="src\Renderer\Graph\GraphTypes.cpp" />
@@ -149,17 +153,29 @@
     <ClCompile Include="src\Renderer\ModelLoading\ModelImporter.cpp" />
     <ClCompile Include="src\Renderer\ModelLoading\GLTF\ModelImporterGLTF.cpp" />
     <ClCompile Include="src\Renderer\ModelLoading\TinyGLTFLoader.cpp" />
-    <ClCompile Include="src\Renderer\Sampler_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\Pipeline_DX12.cpp" />
-    <ClCompile Include="src\Renderer\Texture_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\ShaderVariables_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\Shader_DX12.cpp" />
-    <ClCompile Include="src\Renderer\D3D12\View_DX12.cpp" />
+    <ClCompile Include="src\Renderer\Sampler_D3D12.cpp" />
     <ClCompile Include="src\Core\Window.cpp" />
+    <ClCompile Include="src\Renderer\Texture_D3D12.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Renderer\Buffer_D3D12.hpp" />
     <ClInclude Include="include\Renderer\CommandList.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\CommandQueue_DX12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\CommandList_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\CommandQueue_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\Common_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\Context_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\DescriptorAllocator_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\Fence_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\GraphicsAPI_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\GraphicsCommands_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\Pipeline_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\Resource_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\ShaderVariables_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\Shader_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\Types_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\D3D12\View_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\Sampler_D3D12.hpp" />
+    <ClInclude Include="include\Renderer\Texture_D3D12.hpp" />
     <ClInclude Include="lib\glm\common.hpp" />
     <ClInclude Include="lib\glm\detail\compute_common.hpp" />
     <ClInclude Include="lib\glm\detail\compute_vector_relational.hpp" />
@@ -449,7 +465,7 @@
     <ClInclude Include="lib\glm\vector_relational.hpp" />
     <ClInclude Include="lib\imgui\imconfig.h" />
     <ClInclude Include="lib\imgui\imgui.h" />
-    <ClInclude Include="lib\imgui\imgui_impl_dx12.h" />
+    <ClInclude Include="lib\imgui\imgui_impl_d3d12.h" />
     <ClInclude Include="lib\imgui\imgui_impl_glfw.h" />
     <ClInclude Include="lib\imgui\imgui_internal.h" />
     <ClInclude Include="lib\imgui\imstb_rectpack.h" />
@@ -458,17 +474,9 @@
     <ClInclude Include="lib\MikkTSpace\mikktspace.h" />
     <ClInclude Include="lib\optick\include\optick.config.h" />
     <ClInclude Include="lib\optick\include\optick.h" />
-    <ClInclude Include="include\Renderer\D3D12\Types_DX12.hpp" />
     <ClInclude Include="include\Renderer\GraphicsAPI.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\Fence_DX12.hpp" />
-    <ClInclude Include="include\Renderer\Buffer_DX12.hpp" />
     <ClInclude Include="include\Butterfly.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\CommandList_DX12.hpp" />
     <ClInclude Include="include\Core\Common.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\Common_DX12.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\Context_DX12.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\GraphicsAPI_DX12.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\GraphicsCommands_DX12.hpp" />
     <ClInclude Include="include\Core\EventDispatcher.hpp" />
     <ClInclude Include="include\Renderer\Types.hpp" />
     <ClInclude Include="include\Renderer\Graph\Blackboard.hpp" />
@@ -479,17 +487,8 @@
     <ClInclude Include="include\Utils\Utils.hpp" />
     <ClInclude Include="include\Renderer\Graph\Pass.hpp" />
     <ClInclude Include="include\Renderer\Resource.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\Pipeline_DX12.hpp" />
-    <ClInclude Include="include\Renderer\Graph\Graph.hpp" />
-    <ClInclude Include="include\Renderer\Sampler_DX12.hpp" />
-    <ClInclude Include="include\Renderer\Texture_DX12.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\DescriptorAllocator_DX12.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\Resource_DX12.hpp" />
     <ClInclude Include="include\Utils\Profiler.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\ShaderVariables_DX12.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\Shader_DX12.hpp" />
     <ClInclude Include="include\Utils\Log.hpp" />
-    <ClInclude Include="include\Renderer\D3D12\View_DX12.hpp" />
     <ClInclude Include="include\Core\Window.hpp" />
     <ClInclude Include="lib\tinygltf\json.hpp" />
     <ClInclude Include="lib\tinygltf\stb_image.h" />

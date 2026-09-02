@@ -1,5 +1,4 @@
 #include "App.hpp"
-#include "GraphExamples/DeferredSponza.hpp"
 #include "GraphExamples/ForwardSponza.hpp"
 #include <numeric>
 
@@ -174,12 +173,6 @@ namespace Butterfly
 					if (is_selected) ImGui::SetItemDefaultFocus();
 
 					m_graphExample.reset();
-
-					if (m_currentDemo == "DeferredSponza")
-					{
-						m_graphExample = ScopePtr<GraphExamples::DeferredSponza>(new GraphExamples::DeferredSponza());
-						m_graphExample->Init();
-					}
 
 					if (m_currentDemo == "ForwardSponza")
 					{

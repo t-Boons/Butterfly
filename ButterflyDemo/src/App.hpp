@@ -41,7 +41,7 @@ namespace Butterfly
 
 
 		ScopePtr<GraphExamples::GraphExample> m_graphExample;
-		const std::string_view m_demos[3] = { "None", "DeferredSponza", "ForwardSponza"};
+		const std::string_view m_demos[2] = { "None", "ForwardSponza"};
 		std::string m_currentDemo;
 		SpectatorCamera m_spectatorCam;
 	};

@@ -2,7 +2,7 @@
 #include "Butterfly.hpp"
 #include "GLFW/glfw3.h"
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_dx12.h"
+#include "imgui/imgui_impl_d3d12.h"
 #include "imgui/imgui_impl_glfw.h"
 
 class ImGUIRenderer
