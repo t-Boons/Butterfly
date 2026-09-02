@@ -13,7 +13,7 @@ namespace Butterfly
 		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 		queueDesc.Type = type;
 		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-		ThrowIfFailed(DX12API()->Device()->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_queue)));
+		ThrowIfFailed(D3D12API()->Device()->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_queue)));
 		m_queue->SetName(Utils::StringToWString(resourceTag).c_str());
 
 		Log::Info("DX12 command queue created: %s", resourceTag.c_str());

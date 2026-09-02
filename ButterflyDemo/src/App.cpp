@@ -49,7 +49,7 @@ namespace Butterfly
 		m_graphResources = ScopePtr<GraphTransientResourceCache>(new GraphTransientResourceCache());
 		m_blackBoard = ScopePtr<Blackboard>(new Blackboard());
 
-		DX12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy(); // Because ImGUI takes slot 0;
+		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy(); // Because ImGUI takes slot 0;
 
 
 		SetCompositeBufferResolutionIfChanged(m_window->Width(), m_window->Height());
@@ -87,8 +87,8 @@ namespace Butterfly
 		GraphicsCommands::ClearRenderTarget(*m_cmdList, *CompositeTexture, { 0.0, 0.05f, 0.1f, 1.0f });
 		m_cmdList->EndGPUMarker();
 		m_cmdList->Close();
-		DX12API()->Queue(QueueType::Direct)->Execute(*m_cmdList);
-		DX12API()->Queue(QueueType::Direct)->WaitForFence();
+		D3D12API()->Queue(QueueType::Direct)->Execute(*m_cmdList);
+		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 		m_cmdList->Reset();
 
 		GraphBuilder builder(*m_graphResources);
@@ -148,7 +148,7 @@ namespace Butterfly
 		ImVec2 newSize = ImGui::GetContentRegionAvail();
 		SetCompositeBufferResolutionIfChanged((uint32_t)newSize.x, (uint32_t)newSize.y);
 		BFTexture& tex = *CompositeTexture;
-		ImTextureID textureID = (ImTextureID)(uintptr_t)DX12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(tex.SRV().View()).ptr;
+		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(tex.SRV().View()).ptr;
 
 		ImGui::Image(textureID, newSize);
 		
@@ -247,8 +247,8 @@ namespace Butterfly
 		
 		m_cmdList->EndGPUMarker();
 		m_cmdList->Close();
-		DX12API()->Queue(QueueType::Direct)->Execute(*m_cmdList);
-		DX12API()->Queue(QueueType::Direct)->WaitForFence();
+		D3D12API()->Queue(QueueType::Direct)->Execute(*m_cmdList);
+		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 		m_cmdList->Reset();
 	}
 

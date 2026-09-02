@@ -69,7 +69,7 @@ namespace Butterfly
 			}
 
 			// Create the DX12 resource.
-			ThrowIfFailed(DX12API()->Device()->CreateCommittedResource(
+			ThrowIfFailed(D3D12API()->Device()->CreateCommittedResource(
 				&HeapProperties,
 				D3D12_HEAP_FLAG_NONE,
 				&BufferDescription,

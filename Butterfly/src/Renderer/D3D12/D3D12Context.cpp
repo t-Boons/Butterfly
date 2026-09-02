@@ -71,7 +71,7 @@ namespace Butterfly
 		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 		IDXGISwapChain1* tempSwapChain;
-		ThrowIfFailed(DX12API()->Factory()->CreateSwapChainForHwnd(DX12API()->Queue(QueueType::Direct)->D3D12Queue(), m_hwnd, &swapChainDesc, nullptr, nullptr, &tempSwapChain));
+		ThrowIfFailed(D3D12API()->Factory()->CreateSwapChainForHwnd(D3D12API()->Queue(QueueType::Direct)->D3D12Queue(), m_hwnd, &swapChainDesc, nullptr, nullptr, &tempSwapChain));
 		m_swapChain = reinterpret_cast<IDXGISwapChain4*>(tempSwapChain);
 
 		for (uint32_t i = 0; i < BUFFER_COUNT; ++i)
@@ -158,7 +158,7 @@ namespace Butterfly
 			list.Close();
 		}
 
-		DX12API()->Queue(QueueType::Direct)->Execute(list);
+		D3D12API()->Queue(QueueType::Direct)->Execute(list);
 
 
 		uint32_t flags = DXGI_PRESENT_ALLOW_TEARING;
@@ -171,6 +171,6 @@ namespace Butterfly
 		}
 
 		ThrowIfFailed(m_swapChain->Present(syncInterval, flags));
-		m_fence->Signal(*DX12API()->Queue(QueueType::Direct));
+		m_fence->Signal(*D3D12API()->Queue(QueueType::Direct));
 	}
 }

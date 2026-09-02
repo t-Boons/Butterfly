@@ -44,11 +44,11 @@ namespace Butterfly
         {
             samplerDesc = &d;
         }
-		m_viewIndex = DX12API()->DescriptorAllocatorSampler()->CreateSampler(samplerDesc);
+		m_viewIndex = D3D12API()->DescriptorAllocatorSampler()->CreateSampler(samplerDesc);
 	}
 
 	BFSampler::~BFSampler()
 	{
-		DX12API()->DescriptorAllocatorSampler()->FreeHandle(m_viewIndex);
+		D3D12API()->DescriptorAllocatorSampler()->FreeHandle(m_viewIndex);
 	}
 }

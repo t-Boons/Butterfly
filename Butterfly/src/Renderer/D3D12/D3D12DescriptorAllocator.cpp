@@ -5,11 +5,11 @@
 namespace Butterfly
 {
 	DX12DescriptorAllocator::DX12DescriptorAllocator(const D3D12_DESCRIPTOR_HEAP_DESC description, const std::wstring& resourceTag)
-		: m_desc(description), m_incrementSize(DX12API()->Device()->GetDescriptorHandleIncrementSize(description.Type))
+		: m_desc(description), m_incrementSize(D3D12API()->Device()->GetDescriptorHandleIncrementSize(description.Type))
 	{
 		BF_PROFILE_EVENT();
 
-		ThrowIfFailed(DX12API()->Device()->CreateDescriptorHeap(&m_desc, IID_PPV_ARGS(&m_heap)));
+		ThrowIfFailed(D3D12API()->Device()->CreateDescriptorHeap(&m_desc, IID_PPV_ARGS(&m_heap)));
 		m_heap->SetName(resourceTag.c_str());
 		m_nextFreeIndex = 0;
 		m_freedDiscriptors.reserve(64);
@@ -73,7 +73,7 @@ namespace Butterfly
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_heap->GetCPUDescriptorHandleForHeapStart();
 		cpuHandle.ptr += m_incrementSize * nextFreeValue;
-		DX12API()->Device()->CreateConstantBufferView(&desc, cpuHandle);
+		D3D12API()->Device()->CreateConstantBufferView(&desc, cpuHandle);
 		return nextFreeValue;
 	}
 
@@ -87,7 +87,7 @@ namespace Butterfly
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_heap->GetCPUDescriptorHandleForHeapStart();
 		cpuHandle.ptr += m_incrementSize * nextFreeValue;
-		DX12API()->Device()->CreateShaderResourceView(resource.HwResource, description, cpuHandle);
+		D3D12API()->Device()->CreateShaderResourceView(resource.HwResource, description, cpuHandle);
 		return nextFreeValue;
 	}
 
@@ -131,7 +131,7 @@ namespace Butterfly
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_heap->GetCPUDescriptorHandleForHeapStart();
 		cpuHandle.ptr += m_incrementSize * nextFreeValue;
-		DX12API()->Device()->CreateRenderTargetView(resource.HwResource, desc, cpuHandle);
+		D3D12API()->Device()->CreateRenderTargetView(resource.HwResource, desc, cpuHandle);
 		return nextFreeValue;
 	}
 
@@ -170,7 +170,7 @@ namespace Butterfly
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_heap->GetCPUDescriptorHandleForHeapStart();
 		cpuHandle.ptr += m_incrementSize * nextFreeValue;
-		DX12API()->Device()->CreateDepthStencilView(resource.HwResource, desc, cpuHandle);
+		D3D12API()->Device()->CreateDepthStencilView(resource.HwResource, desc, cpuHandle);
 		return nextFreeValue;
 	}
 
@@ -207,7 +207,7 @@ namespace Butterfly
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_heap->GetCPUDescriptorHandleForHeapStart();
 		cpuHandle.ptr += m_incrementSize * nextFreeValue;
-		DX12API()->Device()->CreateSampler(desc, cpuHandle);
+		D3D12API()->Device()->CreateSampler(desc, cpuHandle);
 		return nextFreeValue;
 	}
 }

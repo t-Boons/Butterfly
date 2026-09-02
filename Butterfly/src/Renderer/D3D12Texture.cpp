@@ -66,7 +66,7 @@ namespace Butterfly
 		UINT numRows = 0;
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
 		D3D12_RESOURCE_DESC textureDesc = newTexture->m_resource->HwResource->GetDesc();
-		DX12API()->Device()->GetCopyableFootprints(&textureDesc, 0, 1, 0, &footprint, &numRows, &rowPitch, &totalSize);
+		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, 1, 0, &footprint, &numRows, &rowPitch, &totalSize);
 
 
 		DX12Resource* uploadResource = DX12ResourceBuilder()
@@ -97,8 +97,8 @@ namespace Butterfly
 			list.List()->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
 
 			list.Close();
-			DX12API()->Queue(QueueType::Copy)->Execute(list);
-			DX12API()->Queue(QueueType::Copy)->WaitForFence();
+			D3D12API()->Queue(QueueType::Copy)->Execute(list);
+			D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 		}
 
 		{
@@ -107,8 +107,8 @@ namespace Butterfly
 			newTexture->m_resource->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 			list.Close();
-			DX12API()->Queue(QueueType::Direct)->Execute(list);
-			DX12API()->Queue(QueueType::Direct)->WaitForFence();
+			D3D12API()->Queue(QueueType::Direct)->Execute(list);
+			D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 		}
 
 		delete uploadResource;

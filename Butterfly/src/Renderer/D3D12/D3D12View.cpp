@@ -17,13 +17,13 @@ namespace Butterfly
 	BFRenderTargetView::BFRenderTargetView(const DX12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
 		: m_desc(desc), BFView(resource)
 	{
-		m_viewIndex = DX12API()->DescriptorAllocatorRtv()->CreateRtv(resource, &desc);
-		m_handle = DX12API()->DescriptorAllocatorRtv()->CpuHandleFromRtvHandle(m_viewIndex);
+		m_viewIndex = D3D12API()->DescriptorAllocatorRtv()->CreateRtv(resource, &desc);
+		m_handle = D3D12API()->DescriptorAllocatorRtv()->CpuHandleFromRtvHandle(m_viewIndex);
 	}
 
 	BFRenderTargetView::~BFRenderTargetView()
 	{
-		DX12API()->DescriptorAllocatorRtv()->FreeHandle(m_viewIndex);
+		D3D12API()->DescriptorAllocatorRtv()->FreeHandle(m_viewIndex);
 	}
 
 	///
@@ -33,13 +33,13 @@ namespace Butterfly
 	BFDepthStencilView::BFDepthStencilView(const DX12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
 		: m_desc(desc), BFView(resource)
 	{
-		m_viewIndex = DX12API()->DescriptorAllocatorDsv()->CreateDsv(resource, &desc);
-		m_handle = DX12API()->DescriptorAllocatorDsv()->CpuHandleFromDsvHandle(m_viewIndex);
+		m_viewIndex = D3D12API()->DescriptorAllocatorDsv()->CreateDsv(resource, &desc);
+		m_handle = D3D12API()->DescriptorAllocatorDsv()->CpuHandleFromDsvHandle(m_viewIndex);
 	}
 
 	BFDepthStencilView::~BFDepthStencilView()
 	{
-		DX12API()->DescriptorAllocatorDsv()->FreeHandle(m_viewIndex);
+		D3D12API()->DescriptorAllocatorDsv()->FreeHandle(m_viewIndex);
 	}
 
 	///
@@ -49,12 +49,12 @@ namespace Butterfly
 	BFShaderResourceView::BFShaderResourceView(const DX12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
 		: m_desc(desc), BFView(resource)
 	{
-		m_viewIndex = DX12API()->DescriptorAllocatorSrvCbvUav()->CreateSrv(resource, &desc);
+		m_viewIndex = D3D12API()->DescriptorAllocatorSrvCbvUav()->CreateSrv(resource, &desc);
 	}
 
 	BFShaderResourceView::~BFShaderResourceView()
 	{
-		DX12API()->DescriptorAllocatorSrvCbvUav()->FreeHandle(m_viewIndex);
+		D3D12API()->DescriptorAllocatorSrvCbvUav()->FreeHandle(m_viewIndex);
 	}
 
 	///
@@ -64,11 +64,11 @@ namespace Butterfly
 	BFUniformBufferView::BFUniformBufferView(const DX12Resource& resource, uint32_t sizeInBytes)
 		: m_sizeInBytes(sizeInBytes), BFView(resource)
 	{
-		m_viewIndex = DX12API()->DescriptorAllocatorSrvCbvUav()->CreateCbv(sizeInBytes, resource);
+		m_viewIndex = D3D12API()->DescriptorAllocatorSrvCbvUav()->CreateCbv(sizeInBytes, resource);
 	}
 
 	BFUniformBufferView::~BFUniformBufferView()
 	{
-		DX12API()->DescriptorAllocatorSrvCbvUav()->FreeHandle(m_viewIndex);
+		D3D12API()->DescriptorAllocatorSrvCbvUav()->FreeHandle(m_viewIndex);
 	}
 }

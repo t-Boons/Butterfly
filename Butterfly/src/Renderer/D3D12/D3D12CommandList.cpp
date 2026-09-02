@@ -70,8 +70,8 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		ThrowIfFailed(DX12API()->Device()->CreateCommandAllocator(type, IID_PPV_ARGS(&m_allocator)));
-		ThrowIfFailed(DX12API()->Device()->CreateCommandList(0, type, m_allocator, nullptr, IID_PPV_ARGS(&m_cmdList)));
+		ThrowIfFailed(D3D12API()->Device()->CreateCommandAllocator(type, IID_PPV_ARGS(&m_allocator)));
+		ThrowIfFailed(D3D12API()->Device()->CreateCommandList(0, type, m_allocator, nullptr, IID_PPV_ARGS(&m_cmdList)));
 	}
 
 	DX12CommandList::~DX12CommandList()

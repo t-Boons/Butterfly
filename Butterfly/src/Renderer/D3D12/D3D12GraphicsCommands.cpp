@@ -76,8 +76,8 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		ID3D12DescriptorHeap* heaps[] = { DX12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get(), DX12API()->DescriptorAllocatorSampler()->Heap().Get()};
+		ID3D12DescriptorHeap* heaps[] = { D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get(), D3D12API()->DescriptorAllocatorSampler()->Heap().Get()};
 		list.List()->SetDescriptorHeaps(_countof(heaps), heaps);
-		list.List()->SetGraphicsRootSignature(DX12API()->BindlessRootSignature());
+		list.List()->SetGraphicsRootSignature(D3D12API()->BindlessRootSignature());
 	}
 };

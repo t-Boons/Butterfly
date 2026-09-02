@@ -21,13 +21,13 @@ public:
         ImGui_ImplGlfw_InitForOther(window->GLFWWindow(), true);
 
         ImGui_ImplDX12_InitInfo init_info;
-        init_info.Device = DX12API()->Device();
+        init_info.Device = D3D12API()->Device();
         init_info.NumFramesInFlight = 1;
         init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-        init_info.SrvDescriptorHeap = DX12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get();
-        init_info.CommandQueue = DX12API()->Queue(QueueType::Direct)->D3D12Queue();
-        init_info.LegacySingleSrvCpuDescriptor = DX12API()->DescriptorAllocatorSrvCbvUav()->Heap()->GetCPUDescriptorHandleForHeapStart();
-        init_info.LegacySingleSrvGpuDescriptor = DX12API()->DescriptorAllocatorSrvCbvUav()->Heap()->GetGPUDescriptorHandleForHeapStart();
+        init_info.SrvDescriptorHeap = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get();
+        init_info.CommandQueue = D3D12API()->Queue(QueueType::Direct)->D3D12Queue();
+        init_info.LegacySingleSrvCpuDescriptor = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap()->GetCPUDescriptorHandleForHeapStart();
+        init_info.LegacySingleSrvGpuDescriptor = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap()->GetGPUDescriptorHandleForHeapStart();
         ImGui_ImplDX12_Init(&init_info);
     }
 
@@ -44,7 +44,7 @@ public:
 
         // Rendering
         ImGui::Render();
-        ID3D12DescriptorHeap* heaps[] = { DX12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get()};
+        ID3D12DescriptorHeap* heaps[] = { D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get()};
         list.List()->SetDescriptorHeaps(_countof(heaps), heaps);
         GraphicsCommands::SetRenderTargets(list, { &rt}, nullptr);
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), list.List());

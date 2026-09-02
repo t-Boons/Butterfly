@@ -9,7 +9,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		ThrowIfFailed(DX12API()->Device()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+		ThrowIfFailed(D3D12API()->Device()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
 		m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 		Check(m_fenceEvent);
 	}

@@ -11,7 +11,7 @@ namespace Butterfly
 
 		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = { sizeof(PipelineStateStream), &m_pss };
 
-		ThrowIfFailed(DX12API()->Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_pso)));
+		ThrowIfFailed(D3D12API()->Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_pso)));
 	}
 
 	DX12Pipeline::~DX12Pipeline()
@@ -130,7 +130,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		m_pss.pRootSignature = DX12API()->BindlessRootSignature();
+		m_pss.pRootSignature = D3D12API()->BindlessRootSignature();
 
 		return BFPipelineCache::GetOrCreatePipeline(m_hash, &m_pss);
 	}

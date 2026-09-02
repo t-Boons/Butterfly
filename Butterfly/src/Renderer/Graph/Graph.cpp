@@ -57,17 +57,17 @@ namespace Butterfly
 
 			if (i == PassFenceIndices[j])
 			{
-				DX12API()->Queue(QueueType::Direct)->Execute(static_cast<uint32_t>(cmdListQueue.size()), cmdListQueue.data());
+				D3D12API()->Queue(QueueType::Direct)->Execute(static_cast<uint32_t>(cmdListQueue.size()), cmdListQueue.data());
 
 				// Wait till previous work is executed.
-				DX12API()->Queue(QueueType::Direct)->WaitForFence();
+				D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 
 				cmdListQueue.clear();
 				j++;
 			}
 		}
 
-		DX12API()->Queue(QueueType::Direct)->WaitForFence();
+		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 
 		for (uint32_t i = 0; i < numPasses; ++i)
 		{

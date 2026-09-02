@@ -29,7 +29,7 @@ namespace Butterfly
 		{
 			uint32_t codePage = CP_UTF8;
 			ComPtr<IDxcBlobEncoding> sourceBlob;
-			ThrowIfFailed(DX12API()->ShaderUtils()->LoadFile(filePath.c_str(), &codePage, &sourceBlob));
+			ThrowIfFailed(D3D12API()->ShaderUtils()->LoadFile(filePath.c_str(), &codePage, &sourceBlob));
 
 
 			ComPtr<IDxcCompilerArgs> args;
@@ -39,7 +39,7 @@ namespace Butterfly
 				L"-Qembed_debug"
 			};
 
-			ThrowIfFailed(DX12API()->ShaderUtils()->BuildArguments(
+			ThrowIfFailed(D3D12API()->ShaderUtils()->BuildArguments(
 				filePath.c_str(),
 				L"main",
 				ShaderTypeToTargetProfile(type),
@@ -51,7 +51,7 @@ namespace Butterfly
 
 			const DxcBuffer shaderBuffer = DxcBuffer{ sourceBlob->GetBufferPointer(), sourceBlob->GetBufferSize(), DXC_CP_ACP };
 
-			ThrowIfFailed(DX12API()->ShaderCompiler()->Compile(&shaderBuffer, args->GetArguments(), args->GetCount(), nullptr, IID_PPV_ARGS(&result)));
+			ThrowIfFailed(D3D12API()->ShaderCompiler()->Compile(&shaderBuffer, args->GetArguments(), args->GetCount(), nullptr, IID_PPV_ARGS(&result)));
 
 			ComPtr<IDxcBlobUtf8> errors;
 			ThrowIfFailed(result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr));

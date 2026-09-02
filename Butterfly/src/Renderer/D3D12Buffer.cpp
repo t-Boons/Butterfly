@@ -51,15 +51,15 @@ namespace Butterfly
         m_resource->Transition(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
         copyList.List()->CopyResource(m_resource->HwResource, uploadResource->HwResource);
         copyList.Close();
-        DX12API()->Queue(QueueType::Copy)->Execute(copyList);
-        DX12API()->Queue(QueueType::Copy)->WaitForFence();
+        D3D12API()->Queue(QueueType::Copy)->Execute(copyList);
+        D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
         DX12CommandList transitionList;
         m_resource->Transition(transitionList, D3D12_RESOURCE_STATE_GENERIC_READ);
 
         transitionList.Close();
-        DX12API()->Queue(QueueType::Direct)->Execute(transitionList);
-        DX12API()->Queue(QueueType::Direct)->WaitForFence();
+        D3D12API()->Queue(QueueType::Direct)->Execute(transitionList);
+        D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 
         if (srvDesc) m_srv = new BFShaderResourceView(*m_resource, *srvDesc);
 
@@ -135,15 +135,15 @@ namespace Butterfly
         m_resource->Transition(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
         copyList.List()->CopyResource(m_resource->HwResource, uploadResource->HwResource);
         copyList.Close();
-        DX12API()->Queue(QueueType::Copy)->Execute(copyList);
-        DX12API()->Queue(QueueType::Copy)->WaitForFence();
+        D3D12API()->Queue(QueueType::Copy)->Execute(copyList);
+        D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
         DX12CommandList transitionList;
         m_resource->Transition(transitionList, D3D12_RESOURCE_STATE_INDEX_BUFFER);
 
         transitionList.Close();
-        DX12API()->Queue(QueueType::Direct)->Execute(transitionList);
-        DX12API()->Queue(QueueType::Direct)->WaitForFence();
+        D3D12API()->Queue(QueueType::Direct)->Execute(transitionList);
+        D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 
         m_view.BufferLocation = m_resource->HwResource->GetGPUVirtualAddress();
         m_view.SizeInBytes = numBytes;

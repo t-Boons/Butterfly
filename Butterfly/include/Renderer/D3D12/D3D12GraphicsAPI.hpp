@@ -50,7 +50,7 @@ namespace Butterfly
 		IDxcUtils* m_utils;
 	};
 
-	inline DX12GraphicsAPI* DX12API()
+	inline DX12GraphicsAPI* D3D12API()
 	{
 		return reinterpret_cast<DX12GraphicsAPI*>(Graphics);
 	}
