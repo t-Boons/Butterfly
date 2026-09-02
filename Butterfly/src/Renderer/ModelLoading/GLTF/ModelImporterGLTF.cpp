@@ -67,11 +67,11 @@ namespace Butterfly
 
 		bool success = loader.LoadASCIIFromFile(&model, &err, &warn, filePath);
 
-		Log::Assert(success, "%s $s", err.c_str(), filePath.c_str());
+		BF_CORE_ASSERT(success, "%s %s", err.c_str(), filePath.c_str());
 
 		if (!warn.empty())
 		{
-			Log::Warn("%s %s", warn.c_str(), filePath.c_str());
+			BF_CORE_LOG_WARN("%s %s", warn.c_str(), filePath.c_str());
 		}
 	}
 

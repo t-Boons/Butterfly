@@ -110,7 +110,7 @@ namespace Butterfly
                 }
             }
 
-            CheckMsg(processedCount == n, "Cycle detected: topological sort not possible.");
+            BF_CORE_ASSERT(processedCount == n, "Cycle detected: topological sort not possible.");
             return topoOrder; // Return the valid topological order
         }
     }

@@ -33,8 +33,8 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		CheckMsg(handle <= m_nextFreeIndex, "Discriptor handle index is higher than the existing index.");
-		CheckMsg(std::find(m_freedDiscriptors.begin(), m_freedDiscriptors.end(), handle) == m_freedDiscriptors.end(), "Discriptor handle index is higher than the existing index.");
+		BF_CORE_ASSERT(handle <= m_nextFreeIndex, "Discriptor handle index is higher than the existing index.");
+		BF_CORE_ASSERT(std::find(m_freedDiscriptors.begin(), m_freedDiscriptors.end(), handle) == m_freedDiscriptors.end(), "Discriptor handle index is higher than the existing index.");
 
 		m_freedDiscriptors.push_back(handle);
 	}
@@ -59,11 +59,11 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		CheckMsg(m_nextFreeIndex <static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap has overflown.")
-		CheckMsg(numBytes % 256 == 0, "CBV NumBytes must be 256 byte aligned.")
-		CheckMsg(numBytes <= resource.BufferDescription.Width, 
+		BF_CORE_ASSERT(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap has overflown.");
+		BF_CORE_ASSERT(numBytes % 256 == 0, "CBV NumBytes must be 256 byte aligned.");
+		BF_CORE_ASSERT(numBytes <= resource.BufferDescription.Width,
 			"CBV Virtual address overflow. Max NumBytes: %llu Requested NumBytes: %u",
-			resource.BufferDescription.Width, numBytes)
+			resource.BufferDescription.Width, numBytes);
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
 		desc.SizeInBytes = numBytes;
@@ -81,7 +81,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		CheckMsg(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap has overflown.");
+		BF_CORE_ASSERT(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap has overflown.");
 
 		const uint32_t nextFreeValue = NextFreeHandle();
 
@@ -125,7 +125,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		CheckMsg(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap buffer has overflown.");
+		BF_CORE_ASSERT(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap buffer has overflown.");
 
 		const uint32_t nextFreeValue = NextFreeHandle();
 
@@ -164,7 +164,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		CheckMsg(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap buffer has overflown.");
+		BF_CORE_ASSERT(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap buffer has overflown.");
 
 		const uint32_t nextFreeValue = NextFreeHandle();
 
@@ -201,7 +201,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		CheckMsg(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap buffer has overflown.");
+		BF_CORE_ASSERT(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap buffer has overflown.");
 
 		const uint32_t nextFreeValue = NextFreeHandle();
 

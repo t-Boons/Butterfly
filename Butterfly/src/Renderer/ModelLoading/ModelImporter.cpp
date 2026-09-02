@@ -7,7 +7,7 @@ namespace Butterfly
 	{
 		if (fileType == ".gltf") return MakeRef<ModelImporterGltf>();
 
-		Log::Critical("No valid loader found for fileType: %s", fileType.c_str());
+		BF_CORE_LOG_CRITICAL("No valid loader found for fileType: %s", fileType.c_str());
 		return nullptr;
 	}
 
@@ -15,8 +15,8 @@ namespace Butterfly
 	{
 		std::filesystem::path fp(filePath);
 
-		Log::Assert(fp.has_extension(), "FilePath does not have an extention: %s", filePath.c_str());
-		Log::Assert(fp.has_filename(), "FilePath does not have an name: %s", filePath.c_str());
+		BF_CORE_ASSERT(fp.has_extension(), "FilePath does not have an extention: %s", filePath.c_str());
+		BF_CORE_ASSERT(fp.has_filename(), "FilePath does not have an name: %s", filePath.c_str());
 
 		auto loader = GetModelLoaderTypeFromFileType(fp.extension().string());
 		if (!loader) return nullptr;

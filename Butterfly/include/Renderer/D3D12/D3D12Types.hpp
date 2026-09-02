@@ -11,7 +11,7 @@ namespace Butterfly
 		case QueueType::Direct: return D3D12_COMMAND_LIST_TYPE_DIRECT;
 		case QueueType::Copy: return D3D12_COMMAND_LIST_TYPE_COPY;
 		case QueueType::Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
-		default: Check(false); return static_cast<D3D12_COMMAND_LIST_TYPE>(-1);
+		default: BF_CORE_ASSERT(false, "Invalid QueueType"); return static_cast<D3D12_COMMAND_LIST_TYPE>(-1);
 		}
 	}
 }

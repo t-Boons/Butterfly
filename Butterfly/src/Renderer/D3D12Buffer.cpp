@@ -26,7 +26,7 @@ namespace Butterfly
     {
         BF_PROFILE_EVENT();
 
-        CheckMsg(src, "Structured buffer pointer is nullptr.");
+        BF_CORE_ASSERT(src, "Structured buffer pointer is nullptr.");
 
         m_numBytes = numBytes;
 
@@ -92,7 +92,7 @@ namespace Butterfly
 
     const BFShaderResourceView& BFStructuredBuffer::SRV() const
     {
-        CheckMsg(m_srv != nullptr, "%s", "Buffer does not have an SRV");
+        BF_CORE_ASSERT(m_srv != nullptr, "%s", "Buffer does not have an SRV");
         return *m_srv;
     }
 
@@ -109,7 +109,7 @@ namespace Butterfly
         {
         case DXGI_FORMAT_R32_UINT: bytesPerElement = 4;                 break;
         case DXGI_FORMAT_R16_UINT: bytesPerElement = 2;                 break;
-        default: Log::Critical("%s", "Invalid IndexBuffer format.");    break;
+        default: BF_CORE_LOG_CRITICAL("%s", "Invalid IndexBuffer format.");    break;
         }
 
         const uint32_t numBytes = bytesPerElement * numElements;
@@ -193,7 +193,7 @@ namespace Butterfly
 	{
         BF_PROFILE_EVENT();
 
-		CheckMsg(m_numBytes >= numBytes, "Byte overflow in UniformBuffer.");
+		BF_CORE_ASSERT(m_numBytes >= numBytes, "Byte overflow in UniformBuffer.");
 		m_resource->Write(src, numBytes);
 	}
 }

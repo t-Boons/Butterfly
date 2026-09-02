@@ -57,7 +57,7 @@ namespace Butterfly
 		m_lifetimes.clear();
 		m_resources.clear();
 
-		Log::Info("Deallocated/Flushed all transient resources.");
+		BF_CORE_LOG_INFO("Deallocated/Flushed all transient resources.");
 	}
 
 	inline void GraphTransientResourceCache::UpdateLifetimes()
@@ -107,7 +107,7 @@ namespace Butterfly
 			m_lifetimes.erase(key);
 			m_resources.erase(key);
 
-			Log::Info("Deallocated Transient resource: %s", key.c_str());
+			BF_CORE_LOG_INFO("Deallocated Transient resource: %s", key.c_str());
 		}
 	}
 
@@ -129,7 +129,7 @@ namespace Butterfly
 		// Reset the resource's lifetime.
 		m_lifetimes[key] = GRAPHRESOURCE_LIFETIME;
 
-		Check(out)
+		BF_CORE_ASSERT(out.get(), "Failed to retrieve existing resource: %s", key.c_str());
 		return *out.get();
 	}
 
@@ -145,7 +145,7 @@ namespace Butterfly
 		m_resources[key] = newResource;
 		m_lifetimes[key] = GRAPHRESOURCE_LIFETIME;
 
-		Log::Info("Allocated new Transient resource: %s", key.c_str());
+		BF_CORE_LOG_INFO("Allocated new Transient resource: %s", key.c_str());
 		return newResource.get();
 	}
 }

@@ -123,7 +123,7 @@ namespace Butterfly
 
 		BFTexture* newTexture = new BFTexture();
 
-		CheckMsg(!(desc.Flags & BFTextureDesc::RenderTargettable &&
+		BF_CORE_ASSERT(!(desc.Flags & BFTextureDesc::RenderTargettable &&
 			desc.Flags & BFTextureDesc::DepthStencilable),
 			"BFTexture can not have be RenderTargettable and DepthStenillable since it only tracks 1 resource.");
 
@@ -195,19 +195,19 @@ namespace Butterfly
 
 	const BFRenderTargetView& BFTexture::RTV() const
 	{
-		CheckMsg(m_rtv != nullptr, "%s", "Texture does not have RTV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::RenderTargettable set.");
+		BF_CORE_ASSERT(m_rtv != nullptr, "%s", "Texture does not have RTV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::RenderTargettable set.");
 		return *m_rtv;
 	}
 
 	const BFDepthStencilView& BFTexture::DSV() const
 	{
-		CheckMsg(m_dsv != nullptr, "%s", "Texture does not have DSV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::DepthStencilable set.");
+		BF_CORE_ASSERT(m_dsv != nullptr, "%s", "Texture does not have DSV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::DepthStencilable set.");
 		return *m_dsv;
 	}
 
 	const BFShaderResourceView& BFTexture::SRV() const
 	{
-		CheckMsg(m_srv != nullptr, "%s", "Texture does not have SRV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::ShaderResource set.");
+		BF_CORE_ASSERT(m_srv != nullptr, "%s", "Texture does not have SRV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::ShaderResource set.");
 		return *m_srv;
 	}
 

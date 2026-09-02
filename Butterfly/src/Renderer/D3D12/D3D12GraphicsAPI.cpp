@@ -23,16 +23,16 @@ namespace Butterfly
 		switch (severity)
 		{
 		case D3D12_MESSAGE_SEVERITY_INFO:
-			Log::Info("D3D12 -> %s", desc);
+			BF_CORE_LOG_INFO("D3D12 -> %s", desc);
 			break;
 		case D3D12_MESSAGE_SEVERITY_WARNING:
-			Log::Warn("D3D12 -> %s", desc);
+			BF_CORE_LOG_WARN("D3D12 -> %s", desc);
 			break;
 		case D3D12_MESSAGE_SEVERITY_ERROR:
-			Log::Critical("D3D12 -> %s", desc);
+			BF_CORE_LOG_CRITICAL("D3D12 -> %s", desc);
 			break;
 		default:
-			Log::Critical("D3D12 -> %s", desc);
+			BF_CORE_LOG_CRITICAL("D3D12 -> %s", desc);
 		}
 	}
 
@@ -79,10 +79,10 @@ namespace Butterfly
 
 			ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
 
-			Log::Info("Initialized DirectX 12");
-			Log::Info("	GPU:  %ls", desc.Description);
-			Log::Info("	VRAM: %i MB", static_cast<int>(desc.DedicatedVideoMemory / (1024 * 1024)));
-			if (enableDebug) Log::Warn("	Debug layer enabled.");
+			BF_CORE_LOG_INFO("Initialized DirectX 12");
+			BF_CORE_LOG_INFO("	GPU:  %ls", desc.Description);
+			BF_CORE_LOG_INFO("	VRAM: %i MB", static_cast<int>(desc.DedicatedVideoMemory / (1024 * 1024)));
+			if (enableDebug) BF_CORE_LOG_WARN("	Debug layer enabled.");
 
 			if (m_device) break;
 		}
@@ -147,7 +147,7 @@ namespace Butterfly
 
 	DX12GraphicsAPI::~DX12GraphicsAPI()
 	{
-		Log::Warn("Shutting down Direct X 12 context.");
+		BF_CORE_LOG_WARN("Shutting down Direct X 12 context.");
 
 		for (uint32_t i = 0; i < static_cast<uint32_t>(QueueType::Num); i++)
 		{

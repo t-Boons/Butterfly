@@ -68,6 +68,11 @@ namespace Butterfly
 
 		WindowEvents& Events() { return m_events; }
 
+		void Resize(uint32_t width, uint32_t height);
+
+		void SetFullscreen(bool fullscreen);
+		bool Fullscreen() const { return m_fullscreen; }
+
 	private:
 		void InitGLFW();
 		void BindGLFWCallbacks();
@@ -84,5 +89,9 @@ namespace Butterfly
 		HWND m_hwnd;
 		BFGraphicsContext* m_context;
 		WindowEvents m_events;
+
+		bool m_fullscreen = false;
+		glm::ivec2 m_preFullScreenPos;
+		glm::ivec2 m_preFullScreenSize;
 	};
 }

@@ -57,7 +57,7 @@ namespace Butterfly
 	{
 		if (m_eventInFlight)
 		{
-			Log::Warn("DX12CommandList::BeginGPUMarker is already running.");
+			BF_CORE_LOG_WARN("DX12CommandList::BeginGPUMarker is already running.");
 			return;
 		}
 
@@ -69,7 +69,7 @@ namespace Butterfly
 	{
 		if (!m_eventInFlight)
 		{
-			Log::Warn("DX12CommandList::EndGPUMarker called on CommandList without running GPU marker.");
+			BF_CORE_LOG_WARN("DX12CommandList::EndGPUMarker called on CommandList without running GPU marker.");
 			return;
 		}
 		m_eventInFlight = false;

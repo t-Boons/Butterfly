@@ -6,7 +6,7 @@ namespace Butterfly
 	{
 		if (mesh.m_indices->empty() || mesh.m_positions->empty() || mesh.m_normals->empty() || mesh.m_texcoords->empty())
 		{
-			Log::Error("One or more MikktSpaceMesh mesh pointers are null.");
+			BF_CORE_LOG_ERROR("One or more MikktSpaceMesh mesh pointers are null.");
 			return false;
 		}
 
@@ -30,9 +30,9 @@ namespace Butterfly
 		tangents = context.m_outTangents;
 
 		if (!succes)
-			Log::Error("Error loading MikktSpaceMesh tangents.");
+			BF_CORE_LOG_ERROR("Error loading MikktSpaceMesh tangents.");
 		else
-			Log::Info("Generated tangents using MikktSpace.");
+			BF_CORE_LOG_INFO("Generated tangents using MikktSpace.");
 
 		return succes;
 	}

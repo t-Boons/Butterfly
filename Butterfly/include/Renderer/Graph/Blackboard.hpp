@@ -41,7 +41,7 @@ namespace Butterfly
     {
         BF_PROFILE_EVENT();
 
-        CheckMsg(!HasValue(key), "Duplicate key found: %s", key.c_str());
+        BF_CORE_ASSERT(!HasValue(key), "Duplicate key found: %s", key.c_str());
         m_data[key] = value;
     }
 
@@ -58,13 +58,13 @@ namespace Butterfly
             try
             {
                 ptr = std::any_cast<ResourceType*>(it->second);
-                CheckMsg(ptr, "Resource with name %s does not exist in Blackboard.", key.c_str())
+                BF_CORE_ASSERT(ptr, "Resource with name %s does not exist in Blackboard.", key.c_str());
                 return *ptr;
             }
             catch (const std::exception& e)
             {
-                Log::Error(e.what());
-                Log::Assert(false, "Blackboard key value \"%s\" is not of type %s", key.c_str(), typeid(ResourceType).name());
+                BF_CORE_LOG_ERROR(e.what());
+                BF_CORE_ASSERT(false, "Blackboard key value \"%s\" is not of type %s", key.c_str(), typeid(ResourceType).name());
             }
 #else
             ptr = std::any_cast<ResourceType*>(it->second);
@@ -72,7 +72,7 @@ namespace Butterfly
 #endif
         }
 
-        Throw("Blackboard does not have value with key: %s", key.c_str());
+        BF_CORE_ASSERT(false, "Blackboard does not have value with key: %s", key.c_str());
         ResourceType* errorDummy = nullptr;
         return *errorDummy;
     }
@@ -94,7 +94,7 @@ namespace Butterfly
     {
         BF_PROFILE_EVENT();
 
-        CheckMsg(HasValue(key), "Blackboard does not have value with key: %s", key.c_str());
+        BF_CORE_ASSERT(HasValue(key), "Blackboard does not have value with key: %s", key.c_str());
         m_data.erase(m_data.find(key));
     }
 
@@ -103,7 +103,7 @@ namespace Butterfly
     {
         BF_PROFILE_EVENT();
 
-        CheckMsg(HasValue(key), "Blackboard does not have value with key: %s", key.c_str());
+        BF_CORE_ASSERT(HasValue(key), "Blackboard does not have value with key: %s", key.c_str());
         m_data[key] = value;
     }
 

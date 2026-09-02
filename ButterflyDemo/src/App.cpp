@@ -4,7 +4,7 @@
 
 namespace Butterfly
 {
-	void App::Init()
+	void SandboxLayer::OnInit()
 	{
 		BF_PROFILE_EVENT()
 
@@ -19,7 +19,7 @@ namespace Butterfly
 			m_window = ScopePtr<Butterfly::Window>(new Butterfly::Window("Butterfly Renderer", 1280, 720));
 
 			// Bind window events.
-			m_window->Events().OnWindowResize.Subscribe(BF_BIND_FUNC(&App::OnResize));
+			m_window->Events().OnWindowResize.Subscribe(BF_BIND_FUNC(&SandboxLayer::OnResize));
 			m_imGUi.Init(m_window.get());
 
 			StaticWindow = m_window.get();
@@ -104,19 +104,29 @@ namespace Butterfly
 		m_uniforms = ScopePtr<BFUniformBuffer>(new BFUniformBuffer(256, "Uniforms"));
 	}
 
-	void App::Tick()
+	void SandboxLayer::OnTick()
 	{
 		BF_PROFILE_FRAME("MainThread");
 		m_spectatorCam.Tick(m_input, m_window->DeltaTime());
-		ShouldShutDown = m_window->ShouldClose();
+		if (m_window->ShouldClose())
+		{
+			m_app->Quit();
+		}
 
 		if (m_input.IsKeyDown(BFB_F))
 		{
 			m_imguiEnabled = !m_imguiEnabled;
 		}
+
+		if (m_input.IsKeyDown(BFB_F11))
+		{
+			m_window->SetFullscreen(!m_window->Fullscreen());
+		}
+
+		Render();
 	}
 
-	void App::Render()
+	void SandboxLayer::Render()
 	{
 		m_cmdList->BeginGPUMarker("Initial screen clear.");
 
@@ -153,8 +163,8 @@ namespace Butterfly
 
 		BFTextureDesc desc2;
 		desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		desc2.Width = App::CompositeTexture->Width();
-		desc2.Height = App::CompositeTexture->Height();
+		desc2.Width = SandboxLayer::CompositeTexture->Width();
+		desc2.Height = SandboxLayer::CompositeTexture->Height();
 		desc2.Flags = BFTextureDesc::DepthStencilable;
 		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Positions", desc2);
 
@@ -163,7 +173,7 @@ namespace Butterfly
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
 
-				BFTexture& rt = *App::CompositeTexture;
+				BFTexture& rt = *SandboxLayer::CompositeTexture;
 
 				// Default Init stuff.
 				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -173,7 +183,7 @@ namespace Butterfly
 				GraphicsCommands::ClearDepthStencil(list, *params.DepthStencil->Resource());
 				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.15f, 1.0f });
 
-				GraphicsCommands::SetFullscreenViewportAndRect(list, App::CompositeTexture->Width(), App::CompositeTexture->Height());
+				GraphicsCommands::SetFullscreenViewportAndRect(list, SandboxLayer::CompositeTexture->Width(), SandboxLayer::CompositeTexture->Height());
 
 				BFPipelineBuilder psoBuilder;
 				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
@@ -231,14 +241,15 @@ namespace Butterfly
 		delete graph;
 	}
 
-	void App::ShutDown()
+	void SandboxLayer::OnShutdown()
 	{
 		BF_PROFILE_EVENT()
+		m_graphResources->Flush();
 
 		FullscreenQuad::ShutDown();
 	}
 
-	void App::ImGuiRender(const Graph* graph)
+	void SandboxLayer::ImGuiRender(const Graph* graph)
 	{
 		BF_PROFILE_EVENT()
 
@@ -266,7 +277,7 @@ namespace Butterfly
 		m_cmdList->Reset();
 	}
 
-	void App::OnResize(const Butterfly::WindowResizeEvent& ev)
+	void SandboxLayer::OnResize(const Butterfly::WindowResizeEvent& ev)
 	{
 		BF_PROFILE_EVENT()
 
@@ -284,9 +295,11 @@ namespace Butterfly
 			FREE(out);
 		}
 		m_blackBoard->RegisterOrReplace<BFTexture>(newComposite, "Screen");
+
+		SetCompositeBufferResolutionIfChanged(ev.Width, ev.Height);
 	}
 
-	void App::SetCompositeBufferResolutionIfChanged(uint32_t width, uint32_t height)
+	void SandboxLayer::SetCompositeBufferResolutionIfChanged(uint32_t width, uint32_t height)
 	{
 		if (CompositeTexture)
 		{

@@ -10,7 +10,7 @@ namespace Butterfly
 		switch (api)
 		{
 		case GraphicsAPIType::D3D12: Graphics = new DX12GraphicsAPI(); break;
-		default: Throw("No valid GraphicsAPI.")
+		default: BF_CORE_LOG_CRITICAL("No valid GraphicsAPI.");
 		}
 		Graphics->_Init(enableDebug);
 	}

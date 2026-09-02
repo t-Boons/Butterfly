@@ -14,7 +14,7 @@ namespace Butterfly
 		case ShaderType::Compute: return L"cs_6_6";
 		}
 
-		Log::Critical("Invalid ShaderType given.");
+		BF_CORE_LOG_CRITICAL("Invalid ShaderType given.");
 		return nullptr;
 	}
 
@@ -60,7 +60,7 @@ namespace Butterfly
 #ifdef BUTTERFLY_DEBUG
 				std::stringstream ss;
 				ss << "Shader compilation errors:\n" << errors->GetStringPointer();
-				Log::Error("%s", ss.str().c_str());
+				BF_CORE_LOG_ERROR("%s", ss.str().c_str());
 				MessageBoxA(GetActiveWindow(), "Retry shader compilation?", "Shader compilation failed.", MB_OK);
 				continue;
 #endif
@@ -82,11 +82,11 @@ namespace Butterfly
 		auto shader = m_map.find(filePath);
 		if (shader == m_map.end())
 		{
-			Log::Info("Created New Shader with filePath: %ls", filePath.c_str());
+			BF_CORE_LOG_INFO("Created New Shader with filePath: %ls", filePath.c_str());
 			m_map[filePath] = ScopePtr<BFShader>(new BFShader(filePath, type));
 		}
 
-		Check(m_map[filePath]->Type() == type);
+		BF_CORE_ASSERT(m_map[filePath]->Type() == type, "Shader type mismatch for filePath: %ls", filePath.c_str());
 		return m_map[filePath].get();
 	}
 }

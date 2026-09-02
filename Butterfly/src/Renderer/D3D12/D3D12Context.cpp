@@ -20,7 +20,7 @@ namespace Butterfly
 		RECT rect;
 		if (!GetClientRect(hwnd, &rect))
 		{
-			Throw("Can not get width and height from Hwnd");
+			BF_CORE_LOG_CRITICAL("Can not get width and height from Hwnd");
 		}
 
 		Resize(rect.right - rect.left, rect.bottom - rect.top);
@@ -38,14 +38,14 @@ namespace Butterfly
 
 		CreateContext();
 
-		Log::Info("Resized GraphicsContext window to: %u x %u", width, height);
+		BF_CORE_LOG_INFO("Resized GraphicsContext window to: %u x %u", width, height);
 	}
 
 	void BFGraphicsContext::CreateContext()
 	{
 		if (m_ctxInitialized)
 		{
-			Throw("BFGraphicsContext is already initialized");
+			BF_CORE_LOG_CRITICAL("BFGraphicsContext is already initialized");
 			return;
 		}
 

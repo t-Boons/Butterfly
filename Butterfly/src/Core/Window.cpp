@@ -36,7 +36,7 @@ namespace Butterfly
 	{
 		if (!glfwInit())
 		{
-			Throw("Failed to initialize GLTF.");
+			BF_CORE_LOG_CRITICAL("Failed to initialize GLTF.");
 		}
 
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
@@ -47,7 +47,7 @@ namespace Butterfly
 		if (!m_window)
 		{
 			glfwTerminate();
-			Throw("Failed to initialize GLTF Window.");
+			BF_CORE_LOG_CRITICAL("Failed to initialize GLTF Window.");
 		}
 
 		glfwShowWindow(m_window);
@@ -67,6 +67,9 @@ namespace Butterfly
 				WindowResizeEvent event;
 				event.Width = static_cast<uint32_t>(width);
 				event.Height = static_cast<uint32_t>(height);
+
+				if (event.Width == 0) event.Width = 1;
+				if (event.Height == 0) event.Height = 1;
 
 				WindowEvents* data = static_cast<WindowEvents*>(glfwGetWindowUserPointer(window));
 				data->OnWindowResize.Broadcast(event);
@@ -130,5 +133,36 @@ namespace Butterfly
 			{
 				m_context->Resize(ev.Width, ev.Height);
 			});
+	}
+
+	void Window::Resize(uint32_t width, uint32_t height)
+	{
+		BF_CORE_ASSERT(width > 0, "Width cannot be 0");
+		BF_CORE_ASSERT(height > 0, "Height cannot be 0");
+		glfwSetWindowSize(m_window, width, height);
+	}
+
+	void Window::SetFullscreen(bool fullscreen)
+	{
+		if (m_fullscreen == fullscreen)
+		{
+			BF_CORE_LOG_WARN("Window is already in the requested fullscreen state.");
+			return;
+		}
+
+		m_fullscreen = fullscreen;
+		if (fullscreen)
+		{
+			glfwGetWindowPos(m_window, &m_preFullScreenPos.x, &m_preFullScreenPos.y);
+			m_preFullScreenSize.x = m_width;
+			m_preFullScreenSize.y = m_height;
+			GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+			glfwSetWindowMonitor(m_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+		}
+		else
+		{
+			glfwSetWindowMonitor(m_window, nullptr, m_preFullScreenPos.x, m_preFullScreenPos.y, m_preFullScreenSize.x, m_preFullScreenSize.y, 0);
+		}
 	}
 }

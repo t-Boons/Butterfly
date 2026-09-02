@@ -93,7 +93,7 @@ namespace Butterfly
 		{
 			if (!m_hasBeenCreated)
 			{
-				Log::Warn("Resource freed by DX12ResourceBuilder. Are you sure you created the resource?");
+				BF_CORE_LOG_WARN("Resource freed by DX12ResourceBuilder. Are you sure you created the resource?");
 				FREE(m_resource);
 			}
 		}

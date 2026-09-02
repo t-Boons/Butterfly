@@ -24,6 +24,10 @@
 #include <any>
 #include <exception>
 
+#include "glm/glm.hpp"
+#include "glm/gtc/quaternion.hpp"
+#include "entt/entt.hpp"
+
 #include "Utils/Log.hpp"
 #include "Utils/Utils.hpp"
 #include "Utils/Profiler.hpp"

@@ -1,15 +1,10 @@
+#include "Butterfly.hpp"
 #include "App.hpp"
 
 int main()
 {
-	Butterfly::App* app = new Butterfly::App();
-	app->Init();
-
-	while (!app->ShouldShutDown)
-	{
-		app->Tick();
-		app->Render();
-	}
-	app->ShutDown();
+	Butterfly::Application* app = new Butterfly::Application();
+	app->AttachLayer<Butterfly::SandboxLayer>();
+	app->Start();
 	delete app;
 }

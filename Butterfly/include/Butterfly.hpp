@@ -9,6 +9,7 @@
 
 // Core types.
 #include "Core/Window.hpp"
+#include "Core/Application.hpp"
 
 #include "Renderer/D3D12/D3D12DescriptorAllocator.hpp"
 #include "Renderer/D3D12/D3D12CommandQueue.hpp"

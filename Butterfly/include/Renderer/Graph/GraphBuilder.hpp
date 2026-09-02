@@ -61,7 +61,7 @@ namespace Butterfly
 
 		if (!m_hasBeenCreated)
 		{
-			Log::Warn("GraphBuilder instance has been deleted without a graph being made.");
+			BF_CORE_LOG_WARN("GraphBuilder instance has been deleted without a graph being made.");
 			delete m_graph;
 		}
 	}
@@ -79,7 +79,7 @@ namespace Butterfly
 		BF_PROFILE_EVENT();
 
 		static_assert(!std::is_same<PassType, ParamStruct>::value, "PassType and ParamStruct may not be the same type.");
-		CheckMsg(HasPassType<ParamStruct>(), "GraphBuilder does not have a pass with type: %s", typeid(ParamStruct).name());
+		BF_CORE_ASSERT(HasPassType<ParamStruct>(), "GraphBuilder does not have a pass with type: %s", typeid(ParamStruct).name());
 
 
 		auto& depVec = PassFromType<PassType>()->m_dependencies;
@@ -107,7 +107,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		CheckMsg(!HasPassType<ParamStruct>(), "Duplicate pass with ParamStruct: %s", typeid(ParamStruct).name());
+		BF_CORE_ASSERT(!HasPassType<ParamStruct>(), "Duplicate pass with ParamStruct: %s", typeid(ParamStruct).name());
 		auto* pass = new Pass<ParamStruct>();
 
 		m_graph->PassTypes[typeid(ParamStruct)] = static_cast<uint32_t>(m_graph->Passes.size());
@@ -121,7 +121,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		CheckMsg(HasPassType<ParamStruct>(), "Pass with type ParamStruct cannot be found: %s", typeid(ParamStruct).name());
+		BF_CORE_ASSERT(HasPassType<ParamStruct>(), "Pass with type ParamStruct cannot be found: %s", typeid(ParamStruct).name());
 		return reinterpret_cast<Pass<ParamStruct>*>(m_graph->Passes[m_graph->PassTypes[typeid(ParamStruct)]]);
 	}
 

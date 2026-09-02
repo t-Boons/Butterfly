@@ -1,6 +1,9 @@
 #pragma once
 #include "Core/Common.hpp"
 
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+
 #include <dxgi1_6.h>
 #include <windows.h>
 #include <wrl.h>
@@ -37,7 +40,7 @@ namespace Butterfly
                 0,
                 nullptr
             );
-			Log::Critical("HRESULT Error: %s", hrCstr);
+			BF_CORE_LOG_CRITICAL("HRESULT Error: %s", hrCstr);
 		}
 	}
 

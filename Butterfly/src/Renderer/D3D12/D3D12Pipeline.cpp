@@ -27,7 +27,7 @@ namespace Butterfly
 		auto pso = s_pipelines.find(hash);
 		if (pso == s_pipelines.end())
 		{
-			Log::Info("Created New PSO with hash: %llu", hash);
+			BF_CORE_LOG_INFO("Created New PSO with hash: %llu", hash);
 			s_pipelines[hash] = new DX12Pipeline(*pss);
 		}
 		return *s_pipelines[hash];
@@ -38,8 +38,8 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		Check(vs);
-		CheckMsg(vs->Type() == ShaderType::Vertex, "PipelineBuilder shader is not a Vertex shader.");
+		BF_CORE_ASSERT(vs, "Vertex shader is null.");
+		BF_CORE_ASSERT(vs->Type() == ShaderType::Vertex, "PipelineBuilder shader is not a Vertex shader.");
 		m_pss.VS = { vs->Blob()->GetBufferPointer(), vs->Blob()->GetBufferSize() };
 		Utils::SumHash(m_hash, static_cast<uint64_t>(vs->NumBytes()));
 		return *this;
@@ -49,8 +49,8 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		Check(ps);
-		CheckMsg(ps->Type() == ShaderType::Pixel, "PipelineBuilder shader is not a Pixel shader.");
+		BF_CORE_ASSERT(ps, "Pixel shader is null.");
+		BF_CORE_ASSERT(ps->Type() == ShaderType::Pixel, "PipelineBuilder shader is not a Pixel shader.");
 		m_pss.PS = { ps->Blob()->GetBufferPointer(), ps->Blob()->GetBufferSize() };
 		Utils::SumHash(m_hash, static_cast<uint64_t>(ps->NumBytes()));
 		return *this;
@@ -81,9 +81,9 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		CheckMsg(formats.size() < 8, "RenderTarget format count exceeds 8, currently: %lu", formats.size())
+		BF_CORE_ASSERT(formats.size() < 8, "RenderTarget format count exceeds 8, currently: %lu", formats.size());
 
-			D3D12_RT_FORMAT_ARRAY rtvFormats = {};
+		D3D12_RT_FORMAT_ARRAY rtvFormats = {};
 		rtvFormats.NumRenderTargets = static_cast<uint32_t>(formats.size());
 		for (size_t i = 0; i < formats.size(); i++)
 		{

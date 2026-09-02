@@ -7,18 +7,16 @@
 
 namespace Butterfly
 {
-	class App
+	class SandboxLayer : public Butterfly::ApplicationLayer
 	{
 	public:
-		void Init();
-		void Tick();
+		virtual void OnInit();
+		virtual void OnTick();
+		virtual void OnShutdown();
 		void Render();
-		void ShutDown();
 		void ImGuiRender(const Graph* graph);
 		void OnResize(const Butterfly::WindowResizeEvent& ev);
 		void SetCompositeBufferResolutionIfChanged(uint32_t width, uint32_t height);
-
-		bool ShouldShutDown = false;
 
 		inline static Window* StaticWindow;
 		inline static BFTexture* CompositeTexture = nullptr;
