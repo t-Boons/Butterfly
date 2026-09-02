@@ -1,28 +1,9 @@
 #include "App.hpp"
-#include "GraphExamples/ForwardSponza.hpp"
+#include "glm/gtx/quaternion.hpp"
 #include <numeric>
 
 namespace Butterfly
 {
-	void TraversePassDeps(const Graph* graph, const PassBase* parent)
-	{
-		BF_PROFILE_EVENT()
-		auto deps = graph->PassDependencies(parent);
-		if (!deps.empty())
-		{
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 1.0f, 1.0f)); // Red text
-			if (ImGui::TreeNode(parent->Name().c_str()))
-			{
-				for (size_t j = 0; j < deps.size(); j++)
-					TraversePassDeps(graph, deps[j]);
-				ImGui::TreePop();
-			}
-			ImGui::PopStyleColor();
-		}
-		else
-			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), parent->Name().c_str());
-	}
-
 	void App::Init()
 	{
 		BF_PROFILE_EVENT()
@@ -61,11 +42,66 @@ namespace Butterfly
 
 		// Create command list.
 		auto genericCmdList = Graphics->CreateCommandList(QueueType::Direct);
-		m_cmdList = std::dynamic_pointer_cast<DX12CommandList>(genericCmdList);
+		m_cmdList = std::dynamic_pointer_cast<D3D12CommandList>(genericCmdList);
 
 
 		m_currentDemo = m_demos[0];
 		m_spectatorCam.GetCamera()->SetPosition({ 0.0f, 1.0f, 0.0f });
+
+
+		// Load the test model.
+		RefPtr<ModelImporter> importer = ModelImporter::Create("assets/Models/damagedhelmet/DamagedHelmet.gltf");
+		importer->Load();
+
+		auto& material = importer->Materials()[0];
+
+		// Model texture(s)
+		BFTextureDesc desc;
+		desc.Flags = BFTextureDesc::ShaderResource;
+		desc.Width = material->m_colorTexture->m_width;
+		desc.Height = material->m_colorTexture->m_height;
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+
+		m_modelAlbedo = ScopePtr<BFTexture>(BFTexture::CreateTextureFromCPUBuffer(
+			desc,
+			material->m_colorTexture->m_image.data(),
+			material->m_name));
+
+		// Model Indices
+		auto& mesh = importer->Meshes()[0];
+
+		m_modelIndices = ScopePtr<BFIndexBuffer>(new BFIndexBuffer(mesh->m_indices[0].data(), static_cast<uint32_t>(mesh->m_indices[0].size()), DXGI_FORMAT_R32_UINT, "ModelIndices"));
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+		srvDesc.Buffer.FirstElement = 0;
+		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+		{
+			srvDesc.Buffer.StructureByteStride = sizeof(glm::vec3);
+			srvDesc.Buffer.NumElements = static_cast<uint32_t>(mesh->m_positions[0].size());
+			const auto size = static_cast<uint32_t>(mesh->m_positions[0].size() * sizeof(glm::vec3));
+			m_modelPositions = ScopePtr<BFStructuredBuffer>(new BFStructuredBuffer(mesh->m_positions[0].data(), size, &srvDesc, "Position"));
+		}
+
+		{
+			srvDesc.Buffer.StructureByteStride = sizeof(glm::vec3);
+			srvDesc.Buffer.NumElements = static_cast<uint32_t>(mesh->m_normals[0].size());
+			const auto size = static_cast<uint32_t>(mesh->m_normals[0].size() * sizeof(glm::vec3));
+			m_modelNormals = ScopePtr<BFStructuredBuffer>(new BFStructuredBuffer(mesh->m_normals[0].data(), size, &srvDesc, "Normals"));
+		}
+		{
+			srvDesc.Buffer.StructureByteStride = sizeof(glm::vec2);
+			srvDesc.Buffer.NumElements = static_cast<uint32_t>(mesh->m_texcoords[0].size());
+			const auto size = static_cast<uint32_t>(mesh->m_texcoords[0].size() * sizeof(glm::vec2));
+			m_modelUVS = ScopePtr<BFStructuredBuffer>(new BFStructuredBuffer(mesh->m_texcoords[0].data(), size, &srvDesc, "TexCoords"));
+		}
+
+
+		m_uniforms = ScopePtr<BFUniformBuffer>(new BFUniformBuffer(256, "Uniforms"));
 	}
 
 	void App::Tick()
@@ -93,11 +129,78 @@ namespace Butterfly
 
 		GraphBuilder builder(*m_graphResources);
 
-		if (m_graphExample)
-		{
-			m_graphExample->Record(builder, *m_spectatorCam.GetCamera().get());
-		}
+		using namespace Butterfly;
 
+		struct UniformData
+		{
+			glm::mat4 ViewProjection;
+			glm::mat4 Model;
+		};
+
+		UniformData uniformData;
+		uniformData.ViewProjection = m_spectatorCam.GetCamera()->ViewProjectionMatrix();
+		uniformData.Model = glm::mat4(glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f)));
+
+		m_uniforms->Write(&uniformData, sizeof(uniformData));
+
+
+		struct ForwardRenderer
+		{
+			BFRGTexture* DepthStencil;
+		};
+
+		ForwardRenderer* params = builder.AllocParameters<ForwardRenderer>();
+
+		BFTextureDesc desc2;
+		desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		desc2.Width = App::CompositeTexture->Width();
+		desc2.Height = App::CompositeTexture->Height();
+		desc2.Flags = BFTextureDesc::DepthStencilable;
+		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Positions", desc2);
+
+		builder.AddPass<ForwardRenderer>("Forward Model",
+			[&](const ForwardRenderer& params, D3D12CommandList& list)
+			{
+				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
+
+				BFTexture& rt = *App::CompositeTexture;
+
+				// Default Init stuff.
+				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+				GraphicsCommands::SetRenderTargets(list, { &rt }, params.DepthStencil->Resource());
+
+				GraphicsCommands::ClearDepthStencil(list, *params.DepthStencil->Resource());
+				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.15f, 1.0f });
+
+				GraphicsCommands::SetFullscreenViewportAndRect(list, App::CompositeTexture->Width(), App::CompositeTexture->Height());
+
+				BFPipelineBuilder psoBuilder;
+				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+				psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
+				psoBuilder.DepthStencilFormat({ DXGI_FORMAT_D24_UNORM_S8_UINT });
+				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Forward_vert.hlsl", ShaderType::Vertex));
+				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Forward_frag.hlsl", ShaderType::Pixel));
+				psoBuilder.CullingMode(D3D12_CULL_MODE_FRONT);
+
+				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
+
+
+				BFSampler sampler;
+
+				ShaderVariables()
+					.Add(m_modelPositions->SRV().View())
+					.Add(m_modelNormals->SRV().View())
+					.Add(m_modelUVS->SRV().View())
+					.Add(m_uniforms->CBV().View())
+					.Add(sampler.View())
+					.Add(m_modelAlbedo->SRV().View())
+					.Submit(list);
+
+				list.List()->IASetIndexBuffer(&m_modelIndices->IBV());
+				list.List()->DrawIndexedInstanced(m_modelIndices->NumElements(), 1, 0, 0, 0);
+			});
+	
 
 		auto graph = ScopePtr<const Graph>(builder.Create());
 
@@ -139,112 +242,21 @@ namespace Butterfly
 
 		m_cmdList->BeginGPUMarker("ImGui");
 
-		// IMGUI DEBUG DATA.
 		m_imGUi.BeginFrame();
-
 		ImGui::DockSpaceOverViewport();
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		ImGui::Begin("Texture Window", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		ImGui::Begin("Butterfly Demo", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
 		ImVec2 newSize = ImGui::GetContentRegionAvail();
-		SetCompositeBufferResolutionIfChanged((uint32_t)newSize.x, (uint32_t)newSize.y);
+		SetCompositeBufferResolutionIfChanged(static_cast<uint32_t>(newSize.x), static_cast<uint32_t>(newSize.y));
 		BFTexture& tex = *CompositeTexture;
 		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(tex.SRV().View()).ptr;
-
 		ImGui::Image(textureID, newSize);
-		
 		ImGui::End();
 		ImGui::PopStyleVar();
 
-
-
-
-		ImGui::Begin("RenderGraph.");
-
-		// Select demo.
-		if (ImGui::BeginCombo("Select Demo", m_currentDemo.data()))
-		{
-			for (int n = 0; n < IM_ARRAYSIZE(m_demos); n++)
-			{
-				const bool is_selected = (m_currentDemo == m_demos[n]);
-
-				if (ImGui::Selectable(m_demos[n].data(), is_selected))
-				{
-					m_currentDemo = m_demos[n].data();
-					if (is_selected) ImGui::SetItemDefaultFocus();
-
-					m_graphExample.reset();
-
-					if (m_currentDemo == "ForwardSponza")
-					{
-						m_graphExample = ScopePtr<GraphExamples::ForwardSponza>(new GraphExamples::ForwardSponza());
-					}
-
-					if (m_graphExample)
-					{
-						m_graphExample->Init();
-					}
-				}
-			}
-			ImGui::EndCombo();
-		}
-
-		// Print pass dependencies graph.
-		ImGui::Text("DEPENDENCIES.");
-		ImGui::Spacing();
-
-		if (!graph->SortedPasses.empty())
-		{
-			PassBase* lastPass = graph->SortedPasses.back();
-
-			if (!graph->PassDependencies(lastPass).empty())
-			{
-				TraversePassDeps(graph, lastPass);
-			}
-			else
-			{
-				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "None");
-			}
-		}
-		else
-		{
-			ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "No Graph Selected.");
-		}
-
-		ImGui::Spacing();
-		ImGui::Spacing();
-
-		// Print pass execution order.
-		ImGui::Text("EXECUTION ORDER.");
-		ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Start Execution");
-		ImGui::Indent();
-
-		uint32_t j = 0;
-		for (uint32_t i = 0; i < graph->SortedPasses.size(); ++i)
-		{
-			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), graph->SortedPasses[i]->Name().c_str());
-			if (i == graph->PassFenceIndices[j])
-			{
-				if (j < graph->PassFenceIndices.size() - 1) j++;
-				ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "----------Sync----------");
-			}
-		}
-
-		ImGui::Unindent();
-		ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "End Execution");
-
-		ImGui::Spacing();
-		ImGui::Spacing();		
-		ImGui::Text("FPS: %f", 1.0f / m_window->DeltaTime());
-		ImGui::Text("NumLights: %i", GraphExamples::SponzaModel::numLights);
-		ImGui::Checkbox("Vsync", &m_window->Context().VSync);
-		if (ImGui::Button("Disable ImGui")) m_imguiEnabled = false;
-		ImGui::Text("Amount of Transiant resources: %u", graph->ResourceInitializer.NumResources());
-		ImGui::Text("Amount of Blackboard resources: %u", m_blackBoard->NumResources());
-		ImGui::End();
-
 		tex.Resource()->Transition(*m_cmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
 		m_imGUi.EndFrame(*m_cmdList, m_blackBoard->Get<BFTexture>("Screen"));
-		
+
 		m_cmdList->EndGPUMarker();
 		m_cmdList->Close();
 		D3D12API()->Queue(QueueType::Direct)->Execute(*m_cmdList);

@@ -38,7 +38,7 @@ namespace Butterfly
 
 	RefPtr<CommandList> DX12GraphicsAPI::CreateCommandList(QueueType type) const
 	{
-		RefPtr<DX12CommandList> list = MakeRef<DX12CommandList>(DXQueueTypeFromQueueType(type));
+		RefPtr<D3D12CommandList> list = MakeRef<D3D12CommandList>(DXQueueTypeFromQueueType(type));
 		return std::dynamic_pointer_cast<CommandList>(list);
 	}
 

@@ -21,7 +21,7 @@ namespace Butterfly
 		ParamStruct* GetPassData() const;
 
 		template<typename ParamStruct>
-		void AddPass(const std::string& name, std::function<void(const ParamStruct&, DX12CommandList&)>&& exec);
+		void AddPass(const std::string& name, std::function<void(const ParamStruct&, D3D12CommandList&)>&& exec);
 
 		template<typename ParamStruct>
 		[[nodiscard]] ParamStruct* AllocParameters();
@@ -94,7 +94,7 @@ namespace Butterfly
 
 
 	template<typename ParamStruct>
-	inline void GraphBuilder::AddPass(const std::string& name, std::function<void(const ParamStruct&, DX12CommandList&)>&& exec)
+	inline void GraphBuilder::AddPass(const std::string& name, std::function<void(const ParamStruct&, D3D12CommandList&)>&& exec)
 	{
 		BF_PROFILE_EVENT();
 

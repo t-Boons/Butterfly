@@ -3,7 +3,7 @@
 
 namespace Butterfly
 {
-	class DX12CommandList;
+	class D3D12CommandList;
 
 	class DX12CommandQueue
 	{
@@ -12,7 +12,7 @@ namespace Butterfly
 		~DX12CommandQueue();
 
 		void Execute(uint32_t numLists, ID3D12CommandList* const* lists) const;
-		void Execute(DX12CommandList& list) const;
+		void Execute(D3D12CommandList& list) const;
 
 		void WaitForFence() const;
 		ID3D12CommandQueue* D3D12Queue() const { return m_queue; }

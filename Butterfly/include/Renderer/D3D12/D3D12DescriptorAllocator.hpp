@@ -3,7 +3,7 @@
 
 namespace Butterfly
 {
-	class DX12Resource;
+	class D3D12Resource;
 
 	class DX12DescriptorAllocator : private NonCopyable
 	{
@@ -29,8 +29,8 @@ namespace Butterfly
 	public:
 		DX12DescriptorAllocatorCbvSrvUav(const uint32_t numDescriptors);
 
-		uint32_t CreateCbv(uint32_t numBytes, const DX12Resource& resource);
-		uint32_t CreateSrv(const DX12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* description);
+		uint32_t CreateCbv(uint32_t numBytes, const D3D12Resource& resource);
+		uint32_t CreateSrv(const D3D12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* description);
 	
 		D3D12_GPU_DESCRIPTOR_HANDLE  GpuHandleFromSrvHandle(uint32_t handle) const;
 		void AllocateDummy();
@@ -41,7 +41,7 @@ namespace Butterfly
 	public:
 		DX12DescriptorAllocatorRtv(const uint32_t numDescriptors);
 
-		uint32_t CreateRtv(const DX12Resource& buffer, const D3D12_RENDER_TARGET_VIEW_DESC* desc);
+		uint32_t CreateRtv(const D3D12Resource& buffer, const D3D12_RENDER_TARGET_VIEW_DESC* desc);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE CpuHandleFromRtvHandle(uint32_t handle) const;
 	};
@@ -51,7 +51,7 @@ namespace Butterfly
 	public:
 		DX12DescriptorAllocatorDsv(const uint32_t numDescriptors);
 
-		uint32_t CreateDsv(const DX12Resource& buffer, const D3D12_DEPTH_STENCIL_VIEW_DESC* desc);
+		uint32_t CreateDsv(const D3D12Resource& buffer, const D3D12_DEPTH_STENCIL_VIEW_DESC* desc);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE CpuHandleFromDsvHandle(uint32_t handle) const;
 	};

@@ -55,7 +55,7 @@ namespace Butterfly
 	{
 	}
 
-	uint32_t DX12DescriptorAllocatorCbvSrvUav::CreateCbv(uint32_t numBytes, const DX12Resource& resource)
+	uint32_t DX12DescriptorAllocatorCbvSrvUav::CreateCbv(uint32_t numBytes, const D3D12Resource& resource)
 	{
 		BF_PROFILE_EVENT();
 
@@ -77,7 +77,7 @@ namespace Butterfly
 		return nextFreeValue;
 	}
 
-	uint32_t DX12DescriptorAllocatorCbvSrvUav::CreateSrv(const DX12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* description)
+	uint32_t DX12DescriptorAllocatorCbvSrvUav::CreateSrv(const D3D12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* description)
 	{
 		BF_PROFILE_EVENT();
 
@@ -121,7 +121,7 @@ namespace Butterfly
 	{
 	}
 
-	uint32_t DX12DescriptorAllocatorRtv::CreateRtv(const DX12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC* desc)
+	uint32_t DX12DescriptorAllocatorRtv::CreateRtv(const D3D12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC* desc)
 	{
 		BF_PROFILE_EVENT();
 
@@ -160,7 +160,7 @@ namespace Butterfly
 	{
 	}
 
-	uint32_t DX12DescriptorAllocatorDsv::CreateDsv(const DX12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC* desc)
+	uint32_t DX12DescriptorAllocatorDsv::CreateDsv(const D3D12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC* desc)
 	{
 		BF_PROFILE_EVENT();
 

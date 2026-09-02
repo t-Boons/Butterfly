@@ -38,7 +38,7 @@ public:
         ImGui::NewFrame();
     }
 
-    void EndFrame(Butterfly::DX12CommandList& list, Butterfly::BFTexture & rt)
+    void EndFrame(Butterfly::D3D12CommandList& list, Butterfly::BFTexture & rt)
     {
         using namespace Butterfly;
 

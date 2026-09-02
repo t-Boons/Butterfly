@@ -19,7 +19,7 @@ namespace Butterfly
 		return *this;
 	}
 
-	ShaderVariables& ShaderVariables::Submit(DX12CommandList& list)
+	ShaderVariables& ShaderVariables::Submit(D3D12CommandList& list)
 	{
 		BF_PROFILE_EVENT();
 

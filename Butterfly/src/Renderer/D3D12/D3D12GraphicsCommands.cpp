@@ -9,7 +9,7 @@
 
 namespace Butterfly
 {
-	void GraphicsCommands::SetRenderTargets(DX12CommandList& list, const std::vector<BFTexture*>& rts, BFTexture* dsv)
+	void GraphicsCommands::SetRenderTargets(D3D12CommandList& list, const std::vector<BFTexture*>& rts, BFTexture* dsv)
 	{
 		BF_PROFILE_EVENT();
 
@@ -31,7 +31,7 @@ namespace Butterfly
 		list.List()->OMSetRenderTargets(static_cast<uint32_t>(rts.size()), &rtvHandles[0], false, dsvHandle);
 	}
 
-	void GraphicsCommands::ClearRenderTarget(DX12CommandList& list, BFTexture& rt)
+	void GraphicsCommands::ClearRenderTarget(D3D12CommandList& list, BFTexture& rt)
 	{
 		BF_PROFILE_EVENT();
 
@@ -39,7 +39,7 @@ namespace Butterfly
 		list.List()->ClearRenderTargetView(rt.RTV().Handle(), rt.ClearValue()->Color, 0, nullptr);
 	}
 
-	void GraphicsCommands::ClearRenderTarget(DX12CommandList& list, BFTexture& rt, const std::array<float, 4>& color)
+	void GraphicsCommands::ClearRenderTarget(D3D12CommandList& list, BFTexture& rt, const std::array<float, 4>& color)
 	{
 		BF_PROFILE_EVENT();
 
@@ -47,7 +47,7 @@ namespace Butterfly
 		list.List()->ClearRenderTargetView(rt.RTV().Handle(), &color.front(), 0, nullptr);
 	}
 
-	void GraphicsCommands::ClearDepthStencil(DX12CommandList& list, BFTexture& ds)
+	void GraphicsCommands::ClearDepthStencil(D3D12CommandList& list, BFTexture& ds)
 	{
 		BF_PROFILE_EVENT();
 
@@ -55,7 +55,7 @@ namespace Butterfly
 		list.List()->ClearDepthStencilView(ds.DSV().Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
-	void GraphicsCommands::SetFullscreenViewportAndRect(DX12CommandList& list, uint32_t width, uint32_t height)
+	void GraphicsCommands::SetFullscreenViewportAndRect(D3D12CommandList& list, uint32_t width, uint32_t height)
 	{
 		BF_PROFILE_EVENT();
 
@@ -72,7 +72,7 @@ namespace Butterfly
 		list.List()->RSSetViewports(1, &vp);
 	}
 
-	void GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(DX12CommandList& list)
+	void GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(D3D12CommandList& list)
 	{
 		BF_PROFILE_EVENT();
 

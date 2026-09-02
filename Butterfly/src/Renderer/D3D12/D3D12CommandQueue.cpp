@@ -36,7 +36,7 @@ namespace Butterfly
 		m_queue->ExecuteCommandLists(numLists, lists);
 	}
 
-	void DX12CommandQueue::Execute(DX12CommandList& list) const
+	void DX12CommandQueue::Execute(D3D12CommandList& list) const
 	{
 		BF_PROFILE_EVENT();
 

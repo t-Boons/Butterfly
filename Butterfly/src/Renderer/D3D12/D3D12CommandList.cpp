@@ -3,13 +3,13 @@
 
 namespace Butterfly
 {
-	DX12CommandListHandle::DX12CommandListHandle(DX12CommandList& list, DX12CommandListCache& cache, uint32_t index)
+	D3D12CommandListHandle::D3D12CommandListHandle(D3D12CommandList& list, D3D12CommandListCache& cache, uint32_t index)
 		: m_list(list), m_cache(cache), m_listIndex(index)
 	{
 		m_cache.m_isListInFlight[m_listIndex] = true;
 		m_cache.m_listsInFlight++;
 	}
-	DX12CommandListHandle::~DX12CommandListHandle()
+	D3D12CommandListHandle::~D3D12CommandListHandle()
 	{
 		m_cache.m_isListInFlight[m_listIndex] = false;
 		m_cache.m_listsInFlight--;
@@ -19,12 +19,12 @@ namespace Butterfly
 
 
 
-	DX12CommandListCache::DX12CommandListCache()
+	D3D12CommandListCache::D3D12CommandListCache()
 		: m_listsInFlight(0), m_listIndex(0)
 	{
 	}
 
-	DX12CommandListCache::~DX12CommandListCache()
+	D3D12CommandListCache::~D3D12CommandListCache()
 	{
 		BF_PROFILE_EVENT();
 
@@ -37,7 +37,7 @@ namespace Butterfly
 	}
 
 
-	DX12CommandListHandle* DX12CommandListCache::GetNewList(D3D12_COMMAND_LIST_TYPE type)
+	D3D12CommandListHandle* D3D12CommandListCache::GetNewList(D3D12_COMMAND_LIST_TYPE type)
 	{
 		BF_PROFILE_EVENT();
 
@@ -48,7 +48,7 @@ namespace Butterfly
 				m_isListInFlight[list.first] == false)
 			{
 				//If so return a new handle for that list.
-				return new DX12CommandListHandle(*list.second, *this, list.first);
+				return new D3D12CommandListHandle(*list.second, *this, list.first);
 			}
 		}
 
@@ -56,16 +56,16 @@ namespace Butterfly
 
 		// Create a new list.
 		m_listIndex++;
-		m_lists[m_listIndex] = new DX12CommandList(type);
+		m_lists[m_listIndex] = new D3D12CommandList(type);
 
-		return new DX12CommandListHandle(*m_lists[m_listIndex], *this, m_listIndex);
+		return new D3D12CommandListHandle(*m_lists[m_listIndex], *this, m_listIndex);
 	}
 
 
 
 
 
-	DX12CommandList::DX12CommandList(D3D12_COMMAND_LIST_TYPE type)
+	D3D12CommandList::D3D12CommandList(D3D12_COMMAND_LIST_TYPE type)
 		: m_hasExecuted(false), m_cmdListClosed(false), m_eventInFlight(false)
 	{
 		BF_PROFILE_EVENT();
@@ -74,7 +74,7 @@ namespace Butterfly
 		ThrowIfFailed(D3D12API()->Device()->CreateCommandList(0, type, m_allocator, nullptr, IID_PPV_ARGS(&m_cmdList)));
 	}
 
-	DX12CommandList::~DX12CommandList()
+	D3D12CommandList::~D3D12CommandList()
 	{
 		BF_PROFILE_EVENT();
 
@@ -82,7 +82,7 @@ namespace Butterfly
 		COM_FREE(m_allocator);
 	}
 
-	void DX12CommandList::Reset()
+	void D3D12CommandList::Reset()
 	{
 		BF_PROFILE_EVENT();
 
@@ -98,7 +98,7 @@ namespace Butterfly
 		m_cmdListClosed = false;
 	}
 
-	void DX12CommandList::Close()
+	void D3D12CommandList::Close()
 	{
 		BF_PROFILE_EVENT();
 
@@ -110,12 +110,12 @@ namespace Butterfly
 		}
 	}
 
-	void DX12CommandList::Marker(const std::string& str)
+	void D3D12CommandList::Marker(const std::string& str)
 	{
 		m_cmdList->SetMarker(1u, str.c_str(), static_cast<uint32_t>(str.size() + 1));
 	}
 
-	void DX12CommandList::BeginGPUMarker(const std::string& str)
+	void D3D12CommandList::BeginGPUMarker(const std::string& str)
 	{
 		if (m_eventInFlight)
 		{
@@ -127,7 +127,7 @@ namespace Butterfly
 		m_cmdList->BeginEvent(1u, str.c_str(), static_cast<uint32_t>(str.size() + 1));
 	}
 
-	void DX12CommandList::EndGPUMarker()
+	void D3D12CommandList::EndGPUMarker()
 	{
 		if (!m_eventInFlight)
 		{

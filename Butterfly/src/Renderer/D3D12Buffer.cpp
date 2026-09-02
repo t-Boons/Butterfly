@@ -30,7 +30,7 @@ namespace Butterfly
 
         m_numBytes = numBytes;
 
-        DX12Resource* uploadResource = DX12ResourceBuilder()
+        D3D12Resource* uploadResource = DX12ResourceBuilder()
             .HeapType(D3D12_HEAP_TYPE_UPLOAD)
             .InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
             .Buffer(numBytes)
@@ -46,7 +46,7 @@ namespace Butterfly
             .SetName(resourceTag)   
             .Create();
 
-        DX12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
+        D3D12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
 
         m_resource->Transition(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
         copyList.List()->CopyResource(m_resource->HwResource, uploadResource->HwResource);
@@ -54,7 +54,7 @@ namespace Butterfly
         D3D12API()->Queue(QueueType::Copy)->Execute(copyList);
         D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
-        DX12CommandList transitionList;
+        D3D12CommandList transitionList;
         m_resource->Transition(transitionList, D3D12_RESOURCE_STATE_GENERIC_READ);
 
         transitionList.Close();
@@ -85,7 +85,7 @@ namespace Butterfly
         return m_resource->HwResource; 
     }
 
-    DX12Resource& BFStructuredBuffer::DXResource() const 
+    D3D12Resource& BFStructuredBuffer::DXResource() const 
     { 
         return *m_resource; 
     }
@@ -114,7 +114,7 @@ namespace Butterfly
 
         const uint32_t numBytes = bytesPerElement * numElements;
 
-        DX12Resource* uploadResource = DX12ResourceBuilder()
+        D3D12Resource* uploadResource = DX12ResourceBuilder()
             .HeapType(D3D12_HEAP_TYPE_UPLOAD)
             .InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
             .IndexBuffer(numBytes)
@@ -130,7 +130,7 @@ namespace Butterfly
             .InitialState(D3D12_RESOURCE_STATE_COMMON)
             .Create();
 
-        DX12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
+        D3D12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
 
         m_resource->Transition(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
         copyList.List()->CopyResource(m_resource->HwResource, uploadResource->HwResource);
@@ -138,7 +138,7 @@ namespace Butterfly
         D3D12API()->Queue(QueueType::Copy)->Execute(copyList);
         D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
-        DX12CommandList transitionList;
+        D3D12CommandList transitionList;
         m_resource->Transition(transitionList, D3D12_RESOURCE_STATE_INDEX_BUFFER);
 
         transitionList.Close();

@@ -69,7 +69,7 @@ namespace Butterfly
 		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, 1, 0, &footprint, &numRows, &rowPitch, &totalSize);
 
 
-		DX12Resource* uploadResource = DX12ResourceBuilder()
+		D3D12Resource* uploadResource = DX12ResourceBuilder()
 			.HeapType(D3D12_HEAP_TYPE_UPLOAD)
 			.InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
 			.Buffer(totalSize)
@@ -90,7 +90,7 @@ namespace Butterfly
 		dstLocation.PlacedFootprint = footprint;
 
 		{
-			DX12CommandList list(D3D12_COMMAND_LIST_TYPE_COPY);
+			D3D12CommandList list(D3D12_COMMAND_LIST_TYPE_COPY);
 
 			newTexture->m_resource->Transition(list, D3D12_RESOURCE_STATE_COMMON);
 
@@ -102,7 +102,7 @@ namespace Butterfly
 		}
 
 		{
-			DX12CommandList list;
+			D3D12CommandList list;
 
 			newTexture->m_resource->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 

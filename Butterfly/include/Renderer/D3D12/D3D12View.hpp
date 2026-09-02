@@ -3,19 +3,19 @@
 
 namespace Butterfly
 {
-	class DX12Resource;
+	class D3D12Resource;
 
 	class BFView
 	{
 	protected:
-		BFView(const DX12Resource& resource);
-		const DX12Resource& m_resource;
+		BFView(const D3D12Resource& resource);
+		const D3D12Resource& m_resource;
 	};
 
 	class BFRenderTargetView : public BFView
 	{
 	public:
-		BFRenderTargetView(const DX12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC& desc);
+		BFRenderTargetView(const D3D12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC& desc);
 		~BFRenderTargetView();
 
 		uint32_t View() const { return m_viewIndex; }
@@ -30,7 +30,7 @@ namespace Butterfly
 	class BFDepthStencilView : public BFView
 	{
 	public:
-		BFDepthStencilView(const DX12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc);
+		BFDepthStencilView(const D3D12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc);
 		~BFDepthStencilView();
 
 		uint32_t View() const { return m_viewIndex; }
@@ -45,7 +45,7 @@ namespace Butterfly
 	class BFShaderResourceView : public BFView
 	{
 	public:
-		BFShaderResourceView(const DX12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
+		BFShaderResourceView(const D3D12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
 		~BFShaderResourceView();
 
 		uint32_t View() const { return m_viewIndex; }
@@ -58,7 +58,7 @@ namespace Butterfly
 	class BFUniformBufferView : public BFView
 	{
 	public:
-		BFUniformBufferView(const DX12Resource& resource, uint32_t sizeInBytes);
+		BFUniformBufferView(const D3D12Resource& resource, uint32_t sizeInBytes);
 		~BFUniformBufferView();
 
 		uint32_t View() const { return m_viewIndex; }

@@ -5,7 +5,7 @@
 
 namespace Butterfly
 {
-	BFView::BFView(const DX12Resource& resource)
+	BFView::BFView(const D3D12Resource& resource)
 		: m_resource(resource)
 	{
 	}
@@ -14,7 +14,7 @@ namespace Butterfly
 	/// BFRenderTargetView
 	///
 
-	BFRenderTargetView::BFRenderTargetView(const DX12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
+	BFRenderTargetView::BFRenderTargetView(const D3D12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
 		: m_desc(desc), BFView(resource)
 	{
 		m_viewIndex = D3D12API()->DescriptorAllocatorRtv()->CreateRtv(resource, &desc);
@@ -30,7 +30,7 @@ namespace Butterfly
 	/// BFDepthStencilView
 	///
 
-	BFDepthStencilView::BFDepthStencilView(const DX12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
+	BFDepthStencilView::BFDepthStencilView(const D3D12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
 		: m_desc(desc), BFView(resource)
 	{
 		m_viewIndex = D3D12API()->DescriptorAllocatorDsv()->CreateDsv(resource, &desc);
@@ -46,7 +46,7 @@ namespace Butterfly
 	/// BFShaderResourceView
 	///
 
-	BFShaderResourceView::BFShaderResourceView(const DX12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
+	BFShaderResourceView::BFShaderResourceView(const D3D12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
 		: m_desc(desc), BFView(resource)
 	{
 		m_viewIndex = D3D12API()->DescriptorAllocatorSrvCbvUav()->CreateSrv(resource, &desc);
@@ -61,7 +61,7 @@ namespace Butterfly
 	/// BFUniformBufferView
 	///
 
-	BFUniformBufferView::BFUniformBufferView(const DX12Resource& resource, uint32_t sizeInBytes)
+	BFUniformBufferView::BFUniformBufferView(const D3D12Resource& resource, uint32_t sizeInBytes)
 		: m_sizeInBytes(sizeInBytes), BFView(resource)
 	{
 		m_viewIndex = D3D12API()->DescriptorAllocatorSrvCbvUav()->CreateCbv(sizeInBytes, resource);

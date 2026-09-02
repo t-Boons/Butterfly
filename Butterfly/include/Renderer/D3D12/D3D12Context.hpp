@@ -5,8 +5,8 @@
 
 namespace Butterfly
 {
-	class DX12Resource;
-	class DX12CommandList;
+	class D3D12Resource;
+	class D3D12CommandList;
 	class DX12Fence;
 
 	class BFGraphicsContext : private NonCopyable
@@ -15,7 +15,7 @@ namespace Butterfly
 		BFGraphicsContext(HWND hwnd);
 		~BFGraphicsContext();
 
-		void DisplayTexture(DX12Resource& toDisplay);
+		void DisplayTexture(D3D12Resource& toDisplay);
 		void Resize(uint32_t width, uint32_t height);
 
 		bool VSync;
@@ -25,9 +25,9 @@ namespace Butterfly
 		void FreeContext();
 
 		IDXGISwapChain4* m_swapChain;
-		DX12CommandList* m_swapchainCmdList[BUFFER_COUNT];
+		D3D12CommandList* m_swapchainCmdList[BUFFER_COUNT];
 		DX12Fence* m_fence;
-		DX12Resource* m_renderTargets[BUFFER_COUNT];
+		D3D12Resource* m_renderTargets[BUFFER_COUNT];
 		bool m_ctxInitialized;
 
 		HWND m_hwnd;

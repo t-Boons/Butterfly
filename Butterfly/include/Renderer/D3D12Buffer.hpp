@@ -4,7 +4,7 @@
 
 namespace Butterfly
 {
-	class DX12Resource;
+	class D3D12Resource;
 
 	class BFShaderResourceView;
 	class BFUniformBufferView;
@@ -19,11 +19,11 @@ namespace Butterfly
 		void Write(const void* src, uint32_t numBytes);
 
 		ID3D12Resource2* Resource() const;
-		DX12Resource& DXResource() const;
+		D3D12Resource& DXResource() const;
 		const BFShaderResourceView& SRV() const;
 
 	private:
-		DX12Resource* m_resource;
+		D3D12Resource* m_resource;
 		uint32_t m_numBytes;
 		BFShaderResourceView* m_srv;
 	};
@@ -38,7 +38,7 @@ namespace Butterfly
 		void Write(const void* src, uint32_t numBytes);
 
 		uint32_t m_numBytes;
-		DX12Resource* m_resource;
+		D3D12Resource* m_resource;
 		BFUniformBufferView* m_cbv;
 	};
 
@@ -53,7 +53,7 @@ namespace Butterfly
 
 	private:
 		uint32_t m_numElements;
-		DX12Resource* m_resource;
+		D3D12Resource* m_resource;
 		D3D12_INDEX_BUFFER_VIEW m_view;
 	};
 }

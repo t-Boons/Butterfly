@@ -4,7 +4,7 @@
 
 namespace Butterfly
 {
-	class DX12CommandList;
+	class D3D12CommandList;
 
 	class PassBase
 	{
@@ -20,7 +20,7 @@ namespace Butterfly
 		const std::string& Name() const { return m_name; }
 
 	protected:
-		virtual void Execute(DX12CommandList& ctx) = 0;
+		virtual void Execute(D3D12CommandList& ctx) = 0;
 
 		const std::vector<std::type_index>& Dependencies() const { return m_dependencies; }
 
@@ -37,10 +37,10 @@ namespace Butterfly
 
 	protected:
 		Pass();
-		virtual void Execute(DX12CommandList& cmdList) override;
+		virtual void Execute(D3D12CommandList& cmdList) override;
 
 	private:
-		std::function<void(const Params&, DX12CommandList&)> m_executeLambda;
+		std::function<void(const Params&, D3D12CommandList&)> m_executeLambda;
 		Params m_parameters;
 	};
 
@@ -55,7 +55,7 @@ namespace Butterfly
 	}
 
 	template<typename Params>
-	inline void Pass<Params>::Execute(DX12CommandList& cmdList)
+	inline void Pass<Params>::Execute(D3D12CommandList& cmdList)
 	{
 		BF_PROFILE_EVENT();
 

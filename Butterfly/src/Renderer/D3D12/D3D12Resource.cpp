@@ -4,7 +4,7 @@
 
 namespace Butterfly
 {
-		DX12Resource* DX12Resource::Write(const void* src, uint32_t numBytes)
+		D3D12Resource* D3D12Resource::Write(const void* src, uint32_t numBytes)
 		{
 			std::stringstream ss;
 			ss << "DX12Resource::Write -> " << DebugName;
@@ -19,7 +19,7 @@ namespace Butterfly
 			return this;
 		}
 
-		DX12Resource* DX12Resource::Transition(const DX12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState)
+		D3D12Resource* D3D12Resource::Transition(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState)
 		{
 			BF_PROFILE_EVENT();
 
@@ -35,20 +35,20 @@ namespace Butterfly
 			return this;
 		}
 
-		DX12Resource::~DX12Resource()
+		D3D12Resource::~D3D12Resource()
 		{
 			BF_PROFILE_EVENT();
 
 			COM_FREE(HwResource);
 		}
 
-		DX12Resource::DX12Resource()
+		D3D12Resource::D3D12Resource()
 			: BufferDescription(D3D12_RESOURCE_DESC()), HeapProperties(CD3DX12_HEAP_PROPERTIES()), HwResource(nullptr),
 			ClearValue(D3D12_CLEAR_VALUE()), DebugName("Resource"), CurrentResourceState(D3D12_RESOURCE_STATE_GENERIC_READ)
 		{
 		}
 
-		void DX12Resource::Alloc()
+		void D3D12Resource::Alloc()
 		{
 			std::stringstream ss;
 			ss << "DX12Resource::Alloc -> " << DebugName;
@@ -86,7 +86,7 @@ namespace Butterfly
 		DX12ResourceBuilder::DX12ResourceBuilder()
 			: m_hasBeenCreated(false)
 		{
-			m_resource = new DX12Resource();
+			m_resource = new D3D12Resource();
 		}
 
 		DX12ResourceBuilder::~DX12ResourceBuilder()
@@ -98,7 +98,7 @@ namespace Butterfly
 			}
 		}
 
-		DX12Resource* DX12ResourceBuilder::CreateFromSwapchain(ID3D12Resource2* resource, D3D12_RESOURCE_STATES state)
+		D3D12Resource* DX12ResourceBuilder::CreateFromSwapchain(ID3D12Resource2* resource, D3D12_RESOURCE_STATES state)
 		{
 			BF_PROFILE_EVENT();
 
@@ -114,7 +114,7 @@ namespace Butterfly
 			return m_resource;
 		}
 
-		DX12Resource* DX12ResourceBuilder::Create()
+		D3D12Resource* DX12ResourceBuilder::Create()
 		{
 			m_hasBeenCreated = true;
 			m_resource->Alloc();

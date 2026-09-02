@@ -4,60 +4,58 @@
 
 namespace Butterfly
 {
-	class DX12CommandListCache;
-	class DX12CommandList;
+	class D3D12CommandListCache;
+	class D3D12CommandList;
 
-	class DX12CommandListHandle : private NonCopyable
+	class D3D12CommandListHandle : private NonCopyable
 	{
 	public:
-		DX12CommandList& List() { return m_list; }
+		D3D12CommandList& List() { return m_list; }
 
-		~DX12CommandListHandle();
+		~D3D12CommandListHandle();
 
 	private:
-		DX12CommandListHandle(DX12CommandList& list, DX12CommandListCache& cache, uint32_t index);
+		D3D12CommandListHandle(D3D12CommandList& list, D3D12CommandListCache& cache, uint32_t index);
 
-		friend class DX12CommandListCache;
+		friend class D3D12CommandListCache;
 
 		uint32_t m_listIndex;
-		DX12CommandListCache& m_cache;
-		DX12CommandList& m_list;
+		D3D12CommandListCache& m_cache;
+		D3D12CommandList& m_list;
 	};
 
 
-	class DX12CommandListCache : private NonCopyable
+	class D3D12CommandListCache : private NonCopyable
 	{
 	public:
-		DX12CommandListCache();
-		~DX12CommandListCache();
+		D3D12CommandListCache();
+		~D3D12CommandListCache();
 
-		DX12CommandListHandle* GetNewList(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT);
+		D3D12CommandListHandle* GetNewList(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT);
 
-		friend class DX12CommandListHandle;
+		friend class D3D12CommandListHandle;
 
 	private:
-		std::unordered_map<uint32_t, DX12CommandList*> m_lists;
+		std::unordered_map<uint32_t, D3D12CommandList*> m_lists;
 		std::unordered_map<uint32_t, bool> m_isListInFlight;
 
 		uint32_t m_listsInFlight;
 		uint32_t m_listIndex;
 	};
 
-	static inline DX12CommandListCache* g_CommandListCache = nullptr;
-	inline DX12CommandListCache* CommandListCache()
+	static inline D3D12CommandListCache* g_CommandListCache = nullptr;
+	inline D3D12CommandListCache* CommandListCache()
 	{
-		if (!g_CommandListCache) g_CommandListCache = new DX12CommandListCache();
+		if (!g_CommandListCache) g_CommandListCache = new D3D12CommandListCache();
 		return g_CommandListCache;
 	}
 
 
-	class ScopedGPUMarker;
-
-	class DX12CommandList : public CommandList
+	class D3D12CommandList : public CommandList
 	{
 	public:
-		DX12CommandList(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT);
-		~DX12CommandList();
+		D3D12CommandList(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT);
+		~D3D12CommandList();
 
 		virtual void Reset() override;
 		virtual void Close() override;

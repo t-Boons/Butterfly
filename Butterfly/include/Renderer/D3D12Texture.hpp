@@ -4,7 +4,7 @@
 
 namespace Butterfly
 {
-	class DX12Resource;
+	class D3D12Resource;
 	class BFDepthStencilView;
 	class BFRenderTargetView;
 	class BFShaderResourceView;
@@ -45,13 +45,13 @@ namespace Butterfly
 		uint32_t Width() const { return m_desc.Width; }
 		uint32_t Height() const { return m_desc.Height; }
 
-		DX12Resource* Resource() { return m_resource; }
+		D3D12Resource* Resource() { return m_resource; }
 
 	private:
 		BFTexture() = default;
 		void CreateViews(const BFTextureDesc& desc);
 
-		DX12Resource* m_resource;
+		D3D12Resource* m_resource;
 		BFTextureDesc m_desc{};
 		BFDepthStencilView* m_dsv;
 		BFRenderTargetView* m_rtv;

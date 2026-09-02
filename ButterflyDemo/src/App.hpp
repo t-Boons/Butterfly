@@ -1,7 +1,6 @@
 #pragma once
 #include "Butterfly.hpp"
 #include "Input/Input.hpp"
-#include "GraphExamples/GraphExamples.hpp"
 #include "Tools/ImGUIRenderer.hpp"
 #include <string_view>
 #include "Tools/SpectatorCamera.hpp"
@@ -26,7 +25,7 @@ namespace Butterfly
 	private:
 		Input m_input;
 		ScopePtr<Window> m_window;
-		RefPtr<DX12CommandList> m_cmdList;
+		RefPtr<D3D12CommandList> m_cmdList;
 
 		ImGUIRenderer m_imGUi;
 		glm::vec2 m_oldWindowSize;
@@ -39,8 +38,15 @@ namespace Butterfly
 		ScopePtr<GraphTransientResourceCache> m_graphResources;
 		ScopePtr<Blackboard> m_blackBoard;
 
+		ScopePtr<BFIndexBuffer> m_modelIndices;
+		ScopePtr<BFStructuredBuffer> m_modelPositions;
+		ScopePtr<BFStructuredBuffer> m_modelNormals;
+		ScopePtr<BFStructuredBuffer> m_modelUVS;
+		ScopePtr<BFTexture> m_modelAlbedo;
 
-		ScopePtr<GraphExamples::GraphExample> m_graphExample;
+		ScopePtr<BFUniformBuffer> m_uniforms;
+
+		
 		const std::string_view m_demos[2] = { "None", "ForwardSponza"};
 		std::string m_currentDemo;
 		SpectatorCamera m_spectatorCam;

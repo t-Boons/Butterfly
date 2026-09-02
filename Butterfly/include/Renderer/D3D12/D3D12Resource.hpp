@@ -3,15 +3,15 @@
 
 namespace Butterfly
 {
-	class DX12CommandList;
+	class D3D12CommandList;
 
-	class DX12Resource : private NonCopyable
+	class D3D12Resource : private NonCopyable
 	{
 	public:
-		~DX12Resource();
+		~D3D12Resource();
 
-		DX12Resource* Write(const void* src, uint32_t numBytes);
-		DX12Resource* Transition(const DX12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState);
+		D3D12Resource* Write(const void* src, uint32_t numBytes);
+		D3D12Resource* Transition(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState);
 
 		friend class DX12ResourceBuilder;
 
@@ -23,7 +23,7 @@ namespace Butterfly
 		std::string DebugName;
 
 	private:
-		DX12Resource();
+		D3D12Resource();
 
 		void Alloc();
 	};
@@ -34,8 +34,8 @@ namespace Butterfly
 		DX12ResourceBuilder();
 		~DX12ResourceBuilder();
 
-		DX12Resource* CreateFromSwapchain(ID3D12Resource2* resource, D3D12_RESOURCE_STATES state);
-		DX12Resource* Create();
+		D3D12Resource* CreateFromSwapchain(ID3D12Resource2* resource, D3D12_RESOURCE_STATES state);
+		D3D12Resource* Create();
 
 		DX12ResourceBuilder& SetName(const std::string& name);
 		DX12ResourceBuilder& HeapType(D3D12_HEAP_TYPE type);
@@ -50,6 +50,6 @@ namespace Butterfly
 
 	private:
 		bool m_hasBeenCreated;
-		DX12Resource* m_resource;
+		D3D12Resource* m_resource;
 	};
 }

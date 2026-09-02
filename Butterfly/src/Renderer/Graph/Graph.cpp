@@ -31,7 +31,7 @@ namespace Butterfly
 		const uint32_t numPasses = static_cast<uint32_t>(SortedPasses.size());
 
 		const auto cache = CommandListCache();
-		std::vector<DX12CommandListHandle*> handles;
+		std::vector<D3D12CommandListHandle*> handles;
 		handles.reserve(numPasses);
 
 		for (uint32_t i = 0; i < numPasses; i++)
@@ -46,7 +46,7 @@ namespace Butterfly
 		uint32_t j = 0;
 		for (uint32_t i = 0; i < numPasses; ++i)
 		{
-			DX12CommandList& list = handles[i]->List();
+			D3D12CommandList& list = handles[i]->List();
 			list.BeginGPUMarker("RenderPass -> " + SortedPasses[i]->Name());
 			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(list);
 			SortedPasses[i]->Execute(list);

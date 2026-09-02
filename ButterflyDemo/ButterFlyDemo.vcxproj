@@ -159,8 +159,7 @@ xcopy "$(ProjectDir)assets" "$(OutDir)assets"/S /E /I /Y</Command>
   <ItemGroup>
     <ClCompile Include="src\App.cpp" />
     <ClCompile Include="src\Tools\Camera.cpp" />
-    <ClCompile Include="src\entry.cpp" />
-    <ClCompile Include="src\GraphExamples\ForwardSponza.cpp" />
+    <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Input\Input.cpp" />
     <ClCompile Include="src\Tools\SpectatorCamera.cpp" />
   </ItemGroup>
@@ -171,10 +170,7 @@ xcopy "$(ProjectDir)assets" "$(OutDir)assets"/S /E /I /Y</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\App.hpp" />
-    <ClInclude Include="src\GraphExamples\SponzaModel.hpp" />
     <ClInclude Include="src\Tools\Camera.hpp" />
-    <ClInclude Include="src\GraphExamples\ForwardSponza.hpp" />
-    <ClInclude Include="src\GraphExamples\GraphExamples.hpp" />
     <ClInclude Include="src\Tools\ImGUIRenderer.hpp" />
     <ClInclude Include="src\Input\Input.hpp" />
     <ClInclude Include="src\Input\WindowsKeyCodes.hpp" />

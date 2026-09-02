@@ -1,7 +1,6 @@
 struct Uniforms
 {
     float4x4 ViewProjection;
-    float4x4 InvViewProjection;
     float4x4 Model;
 };
 
@@ -13,7 +12,6 @@ struct BufferIndices
     int uniformIndex;
     int samplerIndex;
     int textureIndex;
-    int lightsIndex;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
@@ -26,7 +24,6 @@ struct V2P
     float2 texCoord : TEXCOORD0;
     nointerpolation int samplerIndex : SAMPLERINDEX;
     nointerpolation int textureIndex : TEXTUREINDEX;
-    nointerpolation int lightIndex : LIGHTINDEX;
 };
 
 V2P main(uint vertexID : SV_VertexID)
@@ -44,7 +41,6 @@ V2P main(uint vertexID : SV_VertexID)
     output.texCoord = texcoords[vertexID];
     output.samplerIndex = resources.samplerIndex;
     output.textureIndex = resources.textureIndex;
-    output.lightIndex = resources.lightsIndex;
     output.fragPos = mul(uniforms.Model, float4(position[vertexID], 1.0)).xyz;
     return output;
 }

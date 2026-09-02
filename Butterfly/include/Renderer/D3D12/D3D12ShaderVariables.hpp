@@ -3,7 +3,7 @@
 
 namespace Butterfly
 {
-	class DX12CommandList;
+	class D3D12CommandList;
 
 	class ShaderVariables
 	{
@@ -11,7 +11,7 @@ namespace Butterfly
 		ShaderVariables();
 
 		ShaderVariables& Add(int index);
-		ShaderVariables& Submit(DX12CommandList& list);
+		ShaderVariables& Submit(D3D12CommandList& list);
 		ShaderVariables& Reset();
 
 	private:

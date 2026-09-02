@@ -55,7 +55,7 @@ namespace Butterfly
 
 		for (uint32_t i = 0; i < BUFFER_COUNT; i++)
 		{
-			m_swapchainCmdList[i] = new DX12CommandList();
+			m_swapchainCmdList[i] = new D3D12CommandList();
 		}
 
 
@@ -106,7 +106,7 @@ namespace Butterfly
 		}
 	}
 
-	void BFGraphicsContext::DisplayTexture(DX12Resource& toDisplay)
+	void BFGraphicsContext::DisplayTexture(D3D12Resource& toDisplay)
 	{
 		BF_PROFILE_EVENT()
 
@@ -116,8 +116,8 @@ namespace Butterfly
 
 		m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 
-		DX12Resource& backBuffer = *m_renderTargets[m_backBufferIndex];
-		DX12CommandList& list = *m_swapchainCmdList[m_backBufferIndex];
+		D3D12Resource& backBuffer = *m_renderTargets[m_backBufferIndex];
+		D3D12CommandList& list = *m_swapchainCmdList[m_backBufferIndex];
 		list.Reset();
 
 		// Record copy.
