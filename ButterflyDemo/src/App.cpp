@@ -126,7 +126,6 @@ namespace Butterfly
 		D3D12API()->Queue(QueueType::Direct)->Execute(*frame.CmdList);
 		frame.Fence->Signal(*D3D12API()->Queue(QueueType::Direct));
 
-
 		m_window->Update();
 		m_input.Poll();
 		m_previousFrame = m_frameIndex;

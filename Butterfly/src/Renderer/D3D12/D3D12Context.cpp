@@ -153,6 +153,8 @@ namespace Butterfly
 
 		D3D12Resource& backBuffer = *m_renderTargets[m_backBufferIndex];
 		D3D12CommandList& list = *m_swapchainCmdList[m_backBufferIndex];
+
+		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 		list.Reset();
 
 		// Record copy.
