@@ -61,10 +61,11 @@ namespace Butterfly
 	/// BFUniformBufferView
 	///
 
-	BFUniformBufferView::BFUniformBufferView(const D3D12Resource& resource, uint32_t sizeInBytes)
+	BFUniformBufferView::BFUniformBufferView(const D3D12Resource& resource, uint32_t sizeInBytes, uint32_t offset)
 		: m_sizeInBytes(sizeInBytes), BFView(resource)
 	{
-		m_viewIndex = D3D12API()->DescriptorAllocatorSrvCbvUav()->CreateCbv(sizeInBytes, resource);
+		m_viewIndex = D3D12API()->DescriptorAllocatorSrvCbvUav()->CreateCbv(sizeInBytes, resource, offset);
+		m_offset = offset;
 	}
 
 	BFUniformBufferView::~BFUniformBufferView()

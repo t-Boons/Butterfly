@@ -55,7 +55,7 @@ namespace Butterfly
 	{
 	}
 
-	uint32_t DX12DescriptorAllocatorCbvSrvUav::CreateCbv(uint32_t numBytes, const D3D12Resource& resource)
+	uint32_t DX12DescriptorAllocatorCbvSrvUav::CreateCbv(uint32_t numBytes, const D3D12Resource& resource, uint32_t offset)
 	{
 		BF_PROFILE_EVENT();
 
@@ -67,7 +67,7 @@ namespace Butterfly
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
 		desc.SizeInBytes = numBytes;
-		desc.BufferLocation = resource.HwResource->GetGPUVirtualAddress();
+		desc.BufferLocation = resource.HwResource->GetGPUVirtualAddress() + offset;
 
 		const uint32_t nextFreeValue = NextFreeHandle();
 

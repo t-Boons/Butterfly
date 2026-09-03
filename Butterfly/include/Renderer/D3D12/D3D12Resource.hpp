@@ -10,7 +10,9 @@ namespace Butterfly
 	public:
 		~D3D12Resource();
 
-		D3D12Resource* Write(const void* src, uint32_t numBytes);
+		D3D12Resource* Write(const void* src, uint32_t numBytes, uint32_t offset = 0);
+		void* Map();
+		void Unmap();
 		D3D12Resource* Transition(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState);
 
 		friend class DX12ResourceBuilder;

@@ -31,12 +31,48 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		FreeContext();
+		if (!m_ctxInitialized)
+		{
+			m_width = width;
+			m_height = height;
+			CreateContext();
+			return;
+		}
+
+		if (width == m_width && height == m_height)
+		{
+			return;
+		}
+
+		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
+
+		for (uint32_t i = 0; i < BUFFER_COUNT; ++i)
+		{
+			FREE(m_renderTargets[i]);
+		}
 
 		m_width = width;
 		m_height = height;
 
-		CreateContext();
+		ThrowIfFailed(m_swapChain->ResizeBuffers(
+			BUFFER_COUNT,
+			m_width,
+			m_height,
+			DXGI_FORMAT_R8G8B8A8_UNORM,
+			DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
+
+		for (uint32_t i = 0; i < BUFFER_COUNT; ++i)
+		{
+			ID3D12Resource2* renderTarget;
+			ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
+
+			m_renderTargets[i] = DX12ResourceBuilder()
+				.RenderTarget(DXGI_FORMAT_R8G8B8A8_UNORM, m_width, m_height)
+				.SetName(("BackBuffer: " + std::to_string(i)).c_str())
+				.CreateFromSwapchain(renderTarget, D3D12_RESOURCE_STATE_PRESENT);
+		}
+
+		m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 
 		BF_CORE_LOG_INFO("Resized GraphicsContext window to: %u x %u", width, height);
 	}
@@ -50,8 +86,6 @@ namespace Butterfly
 		}
 
 		m_ctxInitialized = true;
-
-		m_fence = new DX12Fence();
 
 		for (uint32_t i = 0; i < BUFFER_COUNT; i++)
 		{
@@ -93,16 +127,19 @@ namespace Butterfly
 		{
 			m_ctxInitialized = false;
 
-			FREE(m_fence);
+			// Ensure no command list still references a back buffer before releasing it.
+			D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 
-			// Safe release because its a DX12 type;
-			COM_FREE(m_swapChain);
-			
 			for (uint32_t i = 0; i < BUFFER_COUNT; i++)
 			{
 				FREE(m_renderTargets[i]);
 				FREE(m_swapchainCmdList[i]);
 			}
+
+
+			// Render targets hold references obtained from GetBuffer, so they must be
+			// released before the swap chain itself.
+			COM_FREE(m_swapChain);
 		}
 	}
 
@@ -111,8 +148,6 @@ namespace Butterfly
 		BF_PROFILE_EVENT()
 
 		m_frameIndex++;
-
-		m_fence->Wait();
 
 		m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 
@@ -171,6 +206,5 @@ namespace Butterfly
 		}
 
 		ThrowIfFailed(m_swapChain->Present(syncInterval, flags));
-		m_fence->Signal(*D3D12API()->Queue(QueueType::Direct));
 	}
 }

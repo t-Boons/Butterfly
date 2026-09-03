@@ -38,6 +38,10 @@ namespace Butterfly
 		int Delta;
 	};
 
+	struct WindowRefreshEvent
+	{
+	};
+
 	class Window : private NonCopyable
 	{
 	public:
@@ -48,6 +52,7 @@ namespace Butterfly
 			EventDispatcher<MousePointerEvent> OnPointerEvent;
 			EventDispatcher<MouseButtonEvent> OnMouseEvent;
 			EventDispatcher<MouseScrollEvent> OnScrollEvent;
+			EventDispatcher<WindowRefreshEvent> OnWindowRefresh;
 		};
 
 

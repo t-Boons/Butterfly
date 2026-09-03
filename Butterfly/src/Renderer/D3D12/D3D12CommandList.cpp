@@ -4,7 +4,7 @@
 namespace Butterfly
 {
 	D3D12CommandList::D3D12CommandList(D3D12_COMMAND_LIST_TYPE type)
-		: m_hasExecuted(false), m_cmdListClosed(false), m_eventInFlight(false)
+		: m_hasExecuted(false), m_cmdListClosed(false)
 	{
 		BF_PROFILE_EVENT();
 
@@ -55,24 +55,11 @@ namespace Butterfly
 
 	void D3D12CommandList::BeginGPUMarker(const std::string& str)
 	{
-		if (m_eventInFlight)
-		{
-			BF_CORE_LOG_WARN("DX12CommandList::BeginGPUMarker is already running.");
-			return;
-		}
-
-		m_eventInFlight = true;
 		m_cmdList->BeginEvent(1u, str.c_str(), static_cast<uint32_t>(str.size() + 1));
 	}
 
 	void D3D12CommandList::EndGPUMarker()
 	{
-		if (!m_eventInFlight)
-		{
-			BF_CORE_LOG_WARN("DX12CommandList::EndGPUMarker called on CommandList without running GPU marker.");
-			return;
-		}
-		m_eventInFlight = false;
 		m_cmdList->EndEvent();
 	}
 }

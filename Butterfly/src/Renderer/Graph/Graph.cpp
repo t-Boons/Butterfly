@@ -24,29 +24,19 @@ namespace Butterfly
 		}
 	}
 
-	void Graph::Execute() const
+	void Graph::Execute(D3D12CommandList& cmdList) const
 	{
 		BF_PROFILE_EVENT();
 		const uint32_t numPasses = static_cast<uint32_t>(Passes.size());
 
-		D3D12CommandList list;
-
-		std::vector<ID3D12CommandList*> cmdListQueue;
-		cmdListQueue.reserve(numPasses);
-		
 		uint32_t j = 0;
 		for (uint32_t i = 0; i < numPasses; ++i)
 		{
-			list.BeginGPUMarker("RenderPass -> " + Passes[i]->Name());
-			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(list);
-			Passes[i]->Execute(list);
-			list.EndGPUMarker();
+			cmdList.BeginGPUMarker("RenderPass -> " + Passes[i]->Name());
+			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(cmdList);
+			Passes[i]->Execute(cmdList);
+			cmdList.EndGPUMarker();
 		}
-
-		list.Close();
-		D3D12API()->Queue(QueueType::Direct)->Execute(list);
-
-		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 
 		ResourceInitializer.UpdateLifetimes();
 	}

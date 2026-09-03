@@ -4,7 +4,7 @@
 
 namespace Butterfly
 {
-	DX12Fence::DX12Fence()
+	D3D12Fence::D3D12Fence()
 		: m_fenceValue(0)
 	{
 		BF_PROFILE_EVENT();
@@ -14,14 +14,14 @@ namespace Butterfly
 		BF_CORE_ASSERT(m_fenceEvent, "Failed to create fence event.");
 	}
 
-	DX12Fence::~DX12Fence()
+	D3D12Fence::~D3D12Fence()
 	{
 		BF_PROFILE_EVENT();
 		COM_FREE(m_fence)
 		CloseHandle(m_fenceEvent);
 	}
 
-	void DX12Fence::SignalAndWait(const DX12CommandQueue& queue)
+	void D3D12Fence::SignalAndWait(const D3D12CommandQueue& queue)
 	{
 		BF_PROFILE_EVENT();
 
@@ -29,14 +29,14 @@ namespace Butterfly
 		Wait();
 	}
 
-	void DX12Fence::Signal(const DX12CommandQueue& queue)
+	void D3D12Fence::Signal(const D3D12CommandQueue& queue)
 	{
 		BF_PROFILE_EVENT();
 		m_fenceValue++;
 		ThrowIfFailed(queue.D3D12Queue()->Signal(m_fence, m_fenceValue));
 	}
 
-	void DX12Fence::Wait()
+	void D3D12Fence::Wait()
 	{
 		BF_PROFILE_EVENT();
 		if (m_fence->GetCompletedValue() < m_fenceValue)

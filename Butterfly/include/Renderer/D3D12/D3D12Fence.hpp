@@ -3,19 +3,20 @@
 
 namespace Butterfly
 {
-	class DX12CommandQueue;
+	class D3D12CommandQueue;
 
-	class DX12Fence : private NonCopyable
+	class D3D12Fence : private NonCopyable
 	{
 	public:
-		DX12Fence();
-		~DX12Fence();
+		D3D12Fence();
+		~D3D12Fence();
 
-		void SignalAndWait(const DX12CommandQueue& queue);
+		void SignalAndWait(const D3D12CommandQueue& queue);
 
-		void Signal(const DX12CommandQueue& queue);
+		void Signal(const D3D12CommandQueue& queue);
 		void Wait();
 
+		uint64_t FenceValue() const { return m_fenceValue; }
 	private:
 
 		ID3D12Fence* m_fence;

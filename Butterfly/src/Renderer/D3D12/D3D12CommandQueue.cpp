@@ -5,7 +5,7 @@
 
 namespace Butterfly
 {
-	DX12CommandQueue::DX12CommandQueue(D3D12_COMMAND_LIST_TYPE type, const std::string& resourceTag)
+	D3D12CommandQueue::D3D12CommandQueue(D3D12_COMMAND_LIST_TYPE type, const std::string& resourceTag)
 		: m_type(type)
 	{
 		BF_PROFILE_EVENT();
@@ -19,24 +19,24 @@ namespace Butterfly
 		BF_CORE_LOG_INFO("DX12 command queue created: %s", resourceTag.c_str());
 	}
 
-	DX12CommandQueue::~DX12CommandQueue()
+	D3D12CommandQueue::~D3D12CommandQueue()
 	{
 		BF_PROFILE_EVENT();
 
 		COM_FREE(m_queue)
 	}
 
-	void DX12CommandQueue::Execute(uint32_t numLists, ID3D12CommandList* const* lists) const
+	void D3D12CommandQueue::Execute(uint32_t numLists, ID3D12CommandList* const* lists) const
 	{
 		BF_PROFILE_EVENT();
 
-		BF_CORE_ASSERT(numLists > 0, "DX12CommandQueue numLists is 0");
-		BF_CORE_ASSERT(Utils::IsArrayPtrValid(numLists, lists), "DX12CommandQueue Lists provided are invalid");
+		BF_CORE_ASSERT(numLists > 0, "D3D12CommandQueue numLists is 0");
+		BF_CORE_ASSERT(Utils::IsArrayPtrValid(numLists, lists), "D3D12CommandQueue Lists provided are invalid");
 
 		m_queue->ExecuteCommandLists(numLists, lists);
 	}
 
-	void DX12CommandQueue::Execute(D3D12CommandList& list) const
+	void D3D12CommandQueue::Execute(D3D12CommandList& list) const
 	{
 		BF_PROFILE_EVENT();
 
@@ -44,11 +44,11 @@ namespace Butterfly
 		m_queue->ExecuteCommandLists(1, l);
 	}
 
-	void DX12CommandQueue::WaitForFence() const
+	void D3D12CommandQueue::WaitForFence() const
 	{
 		BF_PROFILE_EVENT();
 
-		DX12Fence fence;
+		D3D12Fence fence;
 		fence.SignalAndWait(*this);
 	}
 }

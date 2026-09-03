@@ -30,6 +30,7 @@
 #include "Renderer/D3D12Sampler.hpp"
 #include "Renderer/D3D12Buffer.hpp"
 #include "Renderer/D3D12Texture.hpp"
+#include "Renderer/D3D12/D3D12Fence.hpp"
 
 // Butterfly (Render)Graph
 #include "Renderer/Graph/GraphBuilder.hpp"

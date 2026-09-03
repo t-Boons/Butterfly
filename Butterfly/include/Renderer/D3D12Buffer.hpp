@@ -34,12 +34,18 @@ namespace Butterfly
 		BFUniformBuffer(uint32_t numBytes, const std::string& resourceTag);
 		~BFUniformBuffer();
 
-		const BFUniformBufferView& CBV() const;
-		void Write(const void* src, uint32_t numBytes);
+		uint32_t AllocView(uint32_t sizeInBytes);
 
+		const RefPtr<BFUniformBufferView> GetView(uint32_t viewIndex) const;
+		uint32_t GetViewOffset(uint32_t viewIndex) const;
+		void Write(const void* src, uint32_t numBytes, uint32_t viewIndex);
+
+	private:
 		uint32_t m_numBytes;
-		D3D12Resource* m_resource;
-		BFUniformBufferView* m_cbv;
+		uint32_t m_bytesAllocated;
+		RefPtr<D3D12Resource> m_resource;
+		std::vector<RefPtr<BFUniformBufferView>> m_cbvs;
+		void* m_mappedData;
 	};
 
 	class BFIndexBuffer : public BFResource, private NonCopyable

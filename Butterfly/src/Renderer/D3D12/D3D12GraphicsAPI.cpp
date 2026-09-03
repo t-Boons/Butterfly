@@ -96,6 +96,11 @@ namespace Butterfly
 
 		ComPtr<ID3D12InfoQueue1> infoQueue;
 		if (SUCCEEDED(m_device->QueryInterface(IID_PPV_ARGS(&infoQueue)))) {
+			// The debug layer stores every message unless a limit is configured.
+			// Resizing creates a steady stream of validation messages, so leaving the
+			// default unlimited queue enabled grows the process's CPU memory forever.
+			// Keep enough recent diagnostics for debugging while bounding its storage.
+			ThrowIfFailed(infoQueue->SetMessageCountLimit(1024));
 
 			infoQueue->PushStorageFilter(&filter);
 
@@ -112,9 +117,9 @@ namespace Butterfly
 		m_descriptorAllocatorsSampler = new DX12DescriptorAllocatorSampler(2048);
 
 		// Allocate queues.
-		m_queues[static_cast<uint32_t>(QueueType::Direct)] = new DX12CommandQueue(DXQueueTypeFromQueueType(QueueType::Direct), "DX12CommandQueue::DirectQueue");
-		m_queues[static_cast<uint32_t>(QueueType::Copy)] = new DX12CommandQueue(DXQueueTypeFromQueueType(QueueType::Copy), "DX12CommandQueue::CopyQueue");
-		m_queues[static_cast<uint32_t>(QueueType::Compute)] = new DX12CommandQueue(DXQueueTypeFromQueueType(QueueType::Compute), "DX12CommandQueue::ComputeQueue");
+		m_queues[static_cast<uint32_t>(QueueType::Direct)] = new D3D12CommandQueue(DXQueueTypeFromQueueType(QueueType::Direct), "D3D12CommandQueue::DirectQueue");
+		m_queues[static_cast<uint32_t>(QueueType::Copy)] = new D3D12CommandQueue(DXQueueTypeFromQueueType(QueueType::Copy), "D3D12CommandQueue::CopyQueue");
+		m_queues[static_cast<uint32_t>(QueueType::Compute)] = new D3D12CommandQueue(DXQueueTypeFromQueueType(QueueType::Compute), "D3D12CommandQueue::ComputeQueue");
 
 		// Allocate shadercompiler stuff.
 		ThrowIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_utils)));

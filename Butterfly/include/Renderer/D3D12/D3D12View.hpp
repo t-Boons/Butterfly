@@ -58,14 +58,17 @@ namespace Butterfly
 	class BFUniformBufferView : public BFView
 	{
 	public:
-		BFUniformBufferView(const D3D12Resource& resource, uint32_t sizeInBytes);
+		BFUniformBufferView(const D3D12Resource& resource, uint32_t sizeInBytes, uint32_t offset);
 		~BFUniformBufferView();
 
 		uint32_t View() const { return m_viewIndex; }
+		uint32_t Offset() const { return m_offset; }
+		uint32_t NumBytes() const { return m_sizeInBytes; }
 
 	private:
 		D3D12_CPU_DESCRIPTOR_HANDLE m_handle;
-		uint32_t m_viewIndex;
 		uint32_t m_sizeInBytes;
+		uint32_t m_viewIndex;
+		uint32_t m_offset;
 	};
 }

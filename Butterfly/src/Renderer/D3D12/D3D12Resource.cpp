@@ -4,19 +4,33 @@
 
 namespace Butterfly
 {
-		D3D12Resource* D3D12Resource::Write(const void* src, uint32_t numBytes)
+		D3D12Resource* D3D12Resource::Write(const void* src, uint32_t numBytes, uint32_t offset)
 		{
 			std::stringstream ss;
-			ss << "DX12Resource::Write -> " << DebugName;
+			ss << "D3D12Resource::Write -> " << DebugName;
 			BF_PROFILE_EVENT_DYNAMIC(ss.str().c_str());
 
 
 			void* pData;
 			HwResource->Map(0, nullptr, &pData);
-			memcpy(pData, src, numBytes);
+			memcpy((char*)pData + offset, src, numBytes);
 			HwResource->Unmap(0, nullptr);
 
 			return this;
+		}
+
+		void* D3D12Resource::Map()
+		{
+			BF_PROFILE_EVENT();
+			void* pData;
+			HwResource->Map(0, nullptr, &pData);
+			return pData;
+		}
+
+		void D3D12Resource::Unmap()
+		{
+			BF_PROFILE_EVENT();
+			HwResource->Unmap(0, nullptr);
 		}
 
 		D3D12Resource* D3D12Resource::Transition(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState)

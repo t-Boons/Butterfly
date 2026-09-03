@@ -41,7 +41,7 @@ namespace Butterfly
 	public:
 		friend class GraphTransientResourceCache;
 
-		BFTexture* Resource() const { return m_resource; }
+		RefPtr<BFTexture> Resource() const { return m_resource; }
 
 		~BFRGTexture();
 
@@ -51,7 +51,7 @@ namespace Butterfly
 			m_resource = BFTexture::CreateTextureForGPU(desc);
 		}
 
-		BFTexture* m_resource;
+		RefPtr<BFTexture> m_resource;
 	};
 
 	class BFRGStructuredBuffer : public BFRGResource

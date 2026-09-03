@@ -29,8 +29,8 @@ namespace Butterfly
 	class BFTexture : public BFResource, private NonCopyable
 	{
 	public:
-		static BFTexture* CreateTextureFromCPUBuffer(const BFTextureDesc& desc, const void* data, const std::string& resourceTag);
-		static BFTexture* CreateTextureForGPU(const BFTextureDesc& desc);
+		static RefPtr<BFTexture> CreateTextureFromCPUBuffer(const BFTextureDesc& desc, const void* data, const std::string& resourceTag);
+		static RefPtr<BFTexture> CreateTextureForGPU(const BFTextureDesc& desc);
 
 		~BFTexture();
 
@@ -51,10 +51,10 @@ namespace Butterfly
 		BFTexture() = default;
 		void CreateViews(const BFTextureDesc& desc);
 
-		D3D12Resource* m_resource;
+		D3D12Resource* m_resource = nullptr;
 		BFTextureDesc m_desc{};
-		BFDepthStencilView* m_dsv;
-		BFRenderTargetView* m_rtv;
-		BFShaderResourceView* m_srv;
+		BFDepthStencilView* m_dsv = nullptr;
+		BFRenderTargetView* m_rtv = nullptr;
+		BFShaderResourceView* m_srv = nullptr;
 	};
 }

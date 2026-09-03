@@ -47,11 +47,11 @@ namespace Butterfly
 
 	// Texture create functions.
 
-	BFTexture* BFTexture::CreateTextureFromCPUBuffer(const BFTextureDesc& desc, const void* data, const std::string& resourceTag)
+	RefPtr<BFTexture> BFTexture::CreateTextureFromCPUBuffer(const BFTextureDesc& desc, const void* data, const std::string& resourceTag)
 	{
 		BF_PROFILE_EVENT("BFTexture::BFTexture (Texture upload)");
 
-		BFTexture* newTexture = new BFTexture();
+		RefPtr<BFTexture> newTexture = RefPtr<BFTexture>(new BFTexture());
 
 		newTexture->m_resource = DX12ResourceBuilder()
 			.HeapType(D3D12_HEAP_TYPE_DEFAULT)
@@ -117,11 +117,11 @@ namespace Butterfly
 		return newTexture;
 	}
 
-	BFTexture* BFTexture::CreateTextureForGPU(const BFTextureDesc& desc)
+	RefPtr<BFTexture> BFTexture::CreateTextureForGPU(const BFTextureDesc& desc)
 	{
 		BF_PROFILE_EVENT();
 
-		BFTexture* newTexture = new BFTexture();
+		RefPtr<BFTexture> newTexture = RefPtr<BFTexture>(new BFTexture());
 
 		BF_CORE_ASSERT(!(desc.Flags & BFTextureDesc::RenderTargettable &&
 			desc.Flags & BFTextureDesc::DepthStencilable),
@@ -184,7 +184,6 @@ namespace Butterfly
 		FREE(m_rtv);
 		FREE(m_dsv);
 		FREE(m_srv);
-
 		FREE(m_resource);
 	}
 

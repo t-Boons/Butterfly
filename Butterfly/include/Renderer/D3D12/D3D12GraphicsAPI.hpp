@@ -14,7 +14,7 @@ namespace Butterfly
 		ID3D12Device4* Device() const { return m_device; }
 		IDXGIFactory7* Factory() const { return m_factory; }
 
-		class DX12CommandQueue* Queue(QueueType type) const { return m_queues[static_cast<uint32_t>(type)]; }
+		class D3D12CommandQueue* Queue(QueueType type) const { return m_queues[static_cast<uint32_t>(type)]; }
 		class DX12DescriptorAllocatorCbvSrvUav* DescriptorAllocatorSrvCbvUav() const { return m_descriptorAllocatorSrvCbvUav; }
 		class DX12DescriptorAllocatorSampler* DescriptorAllocatorSampler() const { return m_descriptorAllocatorsSampler; }
 		class DX12DescriptorAllocatorRtv* DescriptorAllocatorRtv() const { return m_descriptorAllocatorsRtv; }
@@ -38,7 +38,7 @@ namespace Butterfly
 		ID3D12Device4* m_device;
 		IDXGIFactory7* m_factory;
 
-		class DX12CommandQueue* m_queues[static_cast<uint32_t>(QueueType::Num)];
+		class D3D12CommandQueue* m_queues[static_cast<uint32_t>(QueueType::Num)];
 		class DX12DescriptorAllocatorCbvSrvUav*	m_descriptorAllocatorSrvCbvUav;
 		class DX12DescriptorAllocatorRtv*			m_descriptorAllocatorsRtv;
 		class DX12DescriptorAllocatorDsv*			m_descriptorAllocatorsDsv;

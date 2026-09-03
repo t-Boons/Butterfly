@@ -43,7 +43,7 @@ namespace Butterfly
             .HeapType(D3D12_HEAP_TYPE_DEFAULT)
             .InitialState(D3D12_RESOURCE_STATE_COMMON)
             .Buffer(numBytes)
-            .SetName(resourceTag)   
+            .SetName(resourceTag)
             .Create();
 
         D3D12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
@@ -71,7 +71,7 @@ namespace Butterfly
     {
         BF_PROFILE_EVENT()
 
-        FREE(m_srv);
+            FREE(m_srv);
         FREE(m_resource);
     }
 
@@ -81,13 +81,13 @@ namespace Butterfly
     }
 
     ID3D12Resource2* BFStructuredBuffer::Resource() const
-    { 
-        return m_resource->HwResource; 
+    {
+        return m_resource->HwResource;
     }
 
-    D3D12Resource& BFStructuredBuffer::DXResource() const 
-    { 
-        return *m_resource; 
+    D3D12Resource& BFStructuredBuffer::DXResource() const
+    {
+        return *m_resource;
     }
 
     const BFShaderResourceView& BFStructuredBuffer::SRV() const
@@ -156,44 +156,70 @@ namespace Butterfly
     {
         BF_PROFILE_EVENT()
 
-        FREE(m_resource);
+            FREE(m_resource);
     }
 
 
     // BFUniformBuffer
 
     BFUniformBuffer::BFUniformBuffer(uint32_t numBytes, const std::string& resourceTag)
-        : m_numBytes(numBytes), m_cbv(nullptr)
+        : m_numBytes(numBytes), m_bytesAllocated(0)
     {
         BF_PROFILE_EVENT();
 
-        m_resource = DX12ResourceBuilder()
+        D3D12Resource* resource = DX12ResourceBuilder()
             .HeapType(D3D12_HEAP_TYPE_UPLOAD)
             .Buffer(numBytes)
             .SetName(resourceTag)
             .Create();
 
-        m_cbv = new BFUniformBufferView(*m_resource, numBytes);
+		m_resource = RefPtr<D3D12Resource>(resource);
+
+
+        m_mappedData = m_resource->Map();
     }
 
     BFUniformBuffer::~BFUniformBuffer()
     {
         BF_PROFILE_EVENT()
 
-        FREE(m_cbv);
-        FREE(m_resource);
+            for (uint32_t i = 0; i < m_cbvs.size(); ++i)
+            {
+                m_cbvs[i].reset();
+            }
+
+        m_resource.reset();
     }
 
-    const BFUniformBufferView& BFUniformBuffer::CBV() const
+    uint32_t BFUniformBuffer::AllocView(uint32_t sizeInBytes)
     {
-        return *m_cbv;
-    }
-
-    void BFUniformBuffer::Write(const void* src, uint32_t numBytes)
-	{
         BF_PROFILE_EVENT();
 
-		BF_CORE_ASSERT(m_numBytes >= numBytes, "Byte overflow in UniformBuffer.");
-		m_resource->Write(src, numBytes);
-	}
+		const uint32_t alignedSize = Align256(sizeInBytes);
+        BF_CORE_ASSERT(m_bytesAllocated + alignedSize <= m_numBytes, "Not enough space in uniform buffer to allocate view.");
+
+        uint32_t offset = m_bytesAllocated;
+        m_bytesAllocated += alignedSize;
+        RefPtr<BFUniformBufferView> view = MakeRef<BFUniformBufferView>(*m_resource, alignedSize, offset);
+        m_cbvs.push_back(view);
+        return static_cast<uint32_t>(m_cbvs.size() - 1);
+    }
+
+    const RefPtr<BFUniformBufferView> BFUniformBuffer::GetView(uint32_t viewIndex) const
+    {
+        BF_CORE_ASSERT(viewIndex < m_cbvs.size(), "Invalid view index");
+        return m_cbvs[viewIndex];
+    }
+
+    uint32_t BFUniformBuffer::GetViewOffset(uint32_t viewIndex) const
+    {
+        return GetView(viewIndex)->Offset();
+    }
+
+    void BFUniformBuffer::Write(const void* src, uint32_t numBytes, uint32_t viewIndex)
+    {
+        BF_CORE_ASSERT(numBytes <= GetView(viewIndex)->NumBytes(), "Not enough space in uniform buffer view to write data.");
+
+        memcpy(m_mappedData, src, numBytes);
+    }
 }

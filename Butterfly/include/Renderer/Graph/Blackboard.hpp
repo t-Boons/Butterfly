@@ -1,25 +1,28 @@
 #pragma once
 #include "Core/Common.hpp"
+#include <any>
+#include <unordered_map>
+#include <string>
 
 namespace Butterfly
 {
-	class Blackboard : private NonCopyable
-	{
-	public:
+    class Blackboard : private NonCopyable
+    {
+    public:
         template <typename ResourceType>
-        void Register(ResourceType* value, const std::string& key);
+        void Register(RefPtr<ResourceType> value, const std::string& key);
 
         template <typename ResourceType>
-        ResourceType& Get(const std::string& key) const;
+        RefPtr<ResourceType> Get(const std::string& key) const;
 
         template <typename ResourceType>
-        bool TryGet(const std::string& key, ResourceType*& out) const;
+        bool TryGet(const std::string& key, RefPtr<ResourceType>& out) const;
 
         template <typename ResourceType>
-        void Replace(ResourceType* value, const std::string& key);
+        void Replace(RefPtr<ResourceType> value, const std::string& key);
 
         template <typename ResourceType>
-        void RegisterOrReplace(ResourceType* value, const std::string& key);
+        void RegisterOrReplace(RefPtr<ResourceType> value, const std::string& key);
 
 
         void Erase(const std::string& key);
@@ -28,64 +31,59 @@ namespace Butterfly
 
         uint32_t NumResources() const { return static_cast<uint32_t>(m_data.size()); }
 
-	private:
-		std::unordered_map<std::string, std::any> m_data;
-	};
+    private:
+        std::unordered_map<std::string, std::any> m_data;
+    };
 
     ////////////////////
     // Implementation //
     ////////////////////
 
     template <typename ResourceType>
-    inline void Blackboard::Register(ResourceType* value, const std::string& key)
+    inline void Blackboard::Register(RefPtr<ResourceType> value, const std::string& key)
     {
         BF_PROFILE_EVENT();
 
         BF_CORE_ASSERT(!HasValue(key), "Duplicate key found: %s", key.c_str());
-        m_data[key] = value;
+        m_data[key] = std::move(value);
     }
 
     template <typename ResourceType>
-    inline ResourceType& Blackboard::Get(const std::string& key) const
+    inline RefPtr<ResourceType> Blackboard::Get(const std::string& key) const
     {
         BF_PROFILE_EVENT();
 
         auto it = m_data.find(key);
         if (it != m_data.end())
         {
-            ResourceType* ptr = nullptr;
 #ifdef BUTTERFLY_DEBUG
             try
             {
-                ptr = std::any_cast<ResourceType*>(it->second);
-                BF_CORE_ASSERT(ptr, "Resource with name %s does not exist in Blackboard.", key.c_str());
-                return *ptr;
+                return std::any_cast<RefPtr<ResourceType>>(it->second);
             }
-            catch (const std::exception& e)
+            catch (const std::bad_any_cast& e)
             {
                 BF_CORE_LOG_ERROR(e.what());
                 BF_CORE_ASSERT(false, "Blackboard key value \"%s\" is not of type %s", key.c_str(), typeid(ResourceType).name());
             }
 #else
-            ptr = std::any_cast<ResourceType*>(it->second);
-            return *ptr;
+            return std::any_cast<RefPtr<ResourceType>>(it->second);
 #endif
         }
 
         BF_CORE_ASSERT(false, "Blackboard does not have value with key: %s", key.c_str());
-        ResourceType* errorDummy = nullptr;
-        return *errorDummy;
+        return nullptr;
     }
 
     template <typename ResourceType>
-    inline bool Blackboard::TryGet(const std::string& key, ResourceType*& out) const
+    inline bool Blackboard::TryGet(const std::string& key, RefPtr<ResourceType>& out) const
     {
         if (!HasValue(key))
         {
             return false;
         }
 
-        out = &Get<ResourceType>(key);
+        out = Get<ResourceType>(key);
         return true;
     }
 
@@ -99,24 +97,24 @@ namespace Butterfly
     }
 
     template <typename ResourceType>
-    inline void Blackboard::Replace(ResourceType* value, const std::string& key)
+    inline void Blackboard::Replace(RefPtr<ResourceType> value, const std::string& key)
     {
         BF_PROFILE_EVENT();
 
         BF_CORE_ASSERT(HasValue(key), "Blackboard does not have value with key: %s", key.c_str());
-        m_data[key] = value;
+        m_data[key] = std::move(value);
     }
 
     template <typename ResourceType>
-    inline void Blackboard::RegisterOrReplace(ResourceType* value, const std::string& key)
+    inline void Blackboard::RegisterOrReplace(RefPtr<ResourceType> value, const std::string& key)
     {
         if (HasValue(key))
         {
-            Replace<ResourceType>(value, key);
+            Replace<ResourceType>(std::move(value), key);
         }
         else
         {
-            Register<ResourceType>(value, key);
+            Register<ResourceType>(std::move(value), key);
         }
     }
 
@@ -125,10 +123,6 @@ namespace Butterfly
         BF_PROFILE_EVENT();
 
         auto it = m_data.find(name);
-        if (it != m_data.end())
-        {
-            return true;
-        }
-        return false;
+        return it != m_data.end();
     }
 }

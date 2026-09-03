@@ -7,7 +7,7 @@ namespace Butterfly
 {
 	class D3D12Resource;
 	class D3D12CommandList;
-	class DX12Fence;
+	class D3D12Fence;
 
 	class BFGraphicsContext : private NonCopyable
 	{
@@ -26,7 +26,6 @@ namespace Butterfly
 
 		IDXGISwapChain4* m_swapChain;
 		D3D12CommandList* m_swapchainCmdList[BUFFER_COUNT];
-		DX12Fence* m_fence;
 		D3D12Resource* m_renderTargets[BUFFER_COUNT];
 		bool m_ctxInitialized;
 

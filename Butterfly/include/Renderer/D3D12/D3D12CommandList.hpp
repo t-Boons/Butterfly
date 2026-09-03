@@ -22,7 +22,6 @@ namespace Butterfly
 	private:
 		bool m_cmdListClosed;
 		bool m_hasExecuted;
-		bool m_eventInFlight;
 		ID3D12GraphicsCommandList* m_cmdList;
 		ID3D12CommandAllocator* m_allocator;
 		D3D12_COMMAND_LIST_TYPE m_dxType;

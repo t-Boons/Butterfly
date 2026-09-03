@@ -70,4 +70,9 @@ namespace Butterfly
     {
         return std::make_unique<T>(std::forward<Args>(args)...);
     }
+
+    inline uint32_t Align256(uint32_t size)
+    {
+        return (size + 255) & ~255u;
+    }
 }

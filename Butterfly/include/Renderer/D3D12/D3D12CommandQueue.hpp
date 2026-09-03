@@ -5,11 +5,11 @@ namespace Butterfly
 {
 	class D3D12CommandList;
 
-	class DX12CommandQueue
+	class D3D12CommandQueue
 	{
 	public:
-		DX12CommandQueue(D3D12_COMMAND_LIST_TYPE type, const std::string& resourceTag);
-		~DX12CommandQueue();
+		D3D12CommandQueue(D3D12_COMMAND_LIST_TYPE type, const std::string& resourceTag);
+		~D3D12CommandQueue();
 
 		void Execute(uint32_t numLists, ID3D12CommandList* const* lists) const;
 		void Execute(D3D12CommandList& list) const;

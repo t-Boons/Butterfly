@@ -5,6 +5,6 @@ namespace Butterfly
 {
 	BFRGTexture::~BFRGTexture()
 	{
-		FREE(m_resource);
+		m_resource.reset();
 	}
 }
