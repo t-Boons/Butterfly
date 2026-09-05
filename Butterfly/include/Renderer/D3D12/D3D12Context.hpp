@@ -15,7 +15,8 @@ namespace Butterfly
 		BFGraphicsContext(HWND hwnd);
 		~BFGraphicsContext();
 
-		void DisplayTexture(D3D12Resource& toDisplay);
+		void RecordCopyToBackBuffer(D3D12Resource& toDisplay, D3D12CommandList& cmdList);
+		void Present();
 		void Resize(uint32_t width, uint32_t height);
 
 		bool VSync;

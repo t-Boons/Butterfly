@@ -12,6 +12,7 @@ add_library(Butterfly STATIC
     src/Core/Window.cpp
     src/Core/Application.cpp
 
+    src/Renderer/Renderer.cpp
     src/Renderer/GraphicsAPI.cpp
     src/Renderer/D3D12Buffer.cpp
     src/Renderer/D3D12Sampler.cpp

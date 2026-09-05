@@ -4,7 +4,6 @@
 namespace Butterfly
 {
 	class Application;
-
 	class ApplicationLayer : public NonCopyable
 	{
 	public:
@@ -14,15 +13,24 @@ namespace Butterfly
 
 	protected:
 		friend class Application;
-		Application* m_app;
+		Application* m_app = nullptr;
 	};
+
+	class Window;
+	class Renderer;
+	class Blackboard;
 
 	class Application : public NonCopyable
 	{
 	public:
-		void Start();
+		void Init();
 		void Update();
 		void Quit();
+
+		static Application& Get() { return *m_thisApp; }
+		Window& GetWindow() { return *m_window; }
+		Renderer& GetRenderer() { return *m_renderer; }
+		Blackboard& GetBlackboard() { return *m_blackboard; }
 
 		template<typename T>
 		void AttachLayer()
@@ -31,17 +39,13 @@ namespace Butterfly
 			m_layers.back()->m_app = this;
 		}
 
-		template<typename T>
-		void RemoveLayer()
-		{
-			m_layers.erase(std::remove_if(m_layers.begin(), m_layers.end(), [](const RefPtr<ApplicationLayer>& layer)
-				{
-					return dynamic_cast<T*>(layer.get()) != nullptr;
-				}), m_layers.end());
-		}
-
 	private:
+		inline static Application* m_thisApp;
 		bool m_running = true;
 		std::vector<RefPtr<ApplicationLayer>> m_layers;
+
+		Window* m_window;
+		Renderer* m_renderer;
+		Blackboard* m_blackboard;
 	};
 }

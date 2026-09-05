@@ -143,7 +143,7 @@ namespace Butterfly
 		}
 	}
 
-	void BFGraphicsContext::DisplayTexture(D3D12Resource& toDisplay)
+	void BFGraphicsContext::RecordCopyToBackBuffer(D3D12Resource& toDisplay, D3D12CommandList& list)
 	{
 		BF_PROFILE_EVENT()
 
@@ -152,10 +152,6 @@ namespace Butterfly
 		m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 
 		D3D12Resource& backBuffer = *m_renderTargets[m_backBufferIndex];
-		D3D12CommandList& list = *m_swapchainCmdList[m_backBufferIndex];
-
-		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
-		list.Reset();
 
 		// Record copy.
 		{
@@ -192,12 +188,11 @@ namespace Butterfly
 
 			backBuffer.Transition(list, D3D12_RESOURCE_STATE_PRESENT);
 			list.EndGPUMarker();
-			list.Close();
 		}
+	}
 
-		D3D12API()->Queue(QueueType::Direct)->Execute(list);
-
-
+	void BFGraphicsContext::Present()
+	{
 		uint32_t flags = DXGI_PRESENT_ALLOW_TEARING;
 		uint32_t syncInterval = 0;
 
