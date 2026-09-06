@@ -67,8 +67,6 @@ namespace Butterfly
 		std::string Name() const { return m_name; }
 		GLFWwindow* GLFWWindow() const { return m_window; }
 		BFGraphicsContext& Context() { return *m_context; }
-		float Time() const { return m_time; }
-		float DeltaTime() const { return m_deltaTime; }
 		float AspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 
 		WindowEvents& Events() { return m_events; }
@@ -82,10 +80,6 @@ namespace Butterfly
 		void InitGLFW();
 		void BindGLFWCallbacks();
 		void BindEvents();
-
-		float m_oldTime;
-		float m_deltaTime;
-		float m_time;
 
 		uint32_t m_width;
 		uint32_t m_height;

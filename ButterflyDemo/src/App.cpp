@@ -8,8 +8,8 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-			m_imGUi.Init(&m_app->GetWindow());
-		m_input.Init(&m_app->GetWindow());
+			m_imGUi.Init(&Application::Get().GetWindow());
+		m_input.Init(&Application::Get().GetWindow());
 
 		Application::Get().GetBlackboard().Register<Camera>(m_spectatorCam.GetCamera(), "ViewCamera");
 		Application::Get().GetWindow().Events().OnWindowResize.Subscribe([=](const WindowResizeEvent& ev)
@@ -24,11 +24,11 @@ namespace Butterfly
 	void SandboxLayer::OnTick()
 	{
 		BF_PROFILE_FRAME("SandboxLayer::OnTick");
-		m_spectatorCam.Tick(m_input, m_app->GetWindow().DeltaTime());
+		m_spectatorCam.Tick(m_input, Application::Get().GetTime().DeltaTime());
 
 		if (m_input.IsKeyDown(BFB_F11))
 		{
-			m_app->GetWindow().SetFullscreen(!m_app->GetWindow().Fullscreen());
+			Application::Get().GetWindow().SetFullscreen(!Application::Get().GetWindow().Fullscreen());
 		}
 
 		m_input.Poll();

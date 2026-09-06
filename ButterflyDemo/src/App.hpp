@@ -25,7 +25,7 @@ namespace Butterfly
 		glm::ivec2 Size;
 	};
 
-	class SandboxLayer : public Butterfly::ApplicationLayer
+	class SandboxLayer : public Butterfly::Layer
 	{
 	public:
 		virtual void OnInit();

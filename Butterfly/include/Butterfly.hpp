@@ -8,8 +8,10 @@
 #include "Renderer/CommandList.hpp"
 
 // Core types.
+#include "Core//Log.hpp"
 #include "Core/Window.hpp"
 #include "Core/Application.hpp"
+#include "Core/Time.hpp"
 
 #include "Renderer/D3D12/D3D12DescriptorAllocator.hpp"
 #include "Renderer/D3D12/D3D12CommandQueue.hpp"
@@ -40,6 +42,5 @@
 
 // Utils.
 #include "Utils/FullscreenQuad.hpp"
-#include "Utils/Log.hpp"
 #include "Utils/Utils.hpp"
 #include "Utils/Profiler.hpp"

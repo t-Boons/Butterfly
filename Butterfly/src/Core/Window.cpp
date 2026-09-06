@@ -26,9 +26,6 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		m_oldTime = m_time;
-		m_time = static_cast<float>(glfwGetTime());
-		m_deltaTime = m_time - m_oldTime;
 		glfwPollEvents();
 	}
 

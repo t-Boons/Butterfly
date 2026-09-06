@@ -11,6 +11,7 @@ add_subdirectory(lib/tinygltf)
 add_library(Butterfly STATIC
     src/Core/Window.cpp
     src/Core/Application.cpp
+    src/Core/Time.cpp
 
     src/Renderer/Renderer.cpp
     src/Renderer/GraphicsAPI.cpp

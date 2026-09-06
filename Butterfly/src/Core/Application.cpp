@@ -3,6 +3,7 @@
 #include "Core/Window.hpp"
 #include "Renderer/Renderer.hpp"
 #include "Renderer/Graph/Blackboard.hpp"
+#include "Core/Time.hpp"
 
 
 namespace Butterfly
@@ -12,7 +13,7 @@ namespace Butterfly
 		BF_PROFILE_EVENT()
 
 		m_running = true;
-		m_thisApp = this;
+		s_instance = this;
 
 		bool useDebug = true;
 #ifdef NDEBUG
@@ -26,6 +27,9 @@ namespace Butterfly
 
 		m_renderer = new Renderer();
 		m_renderer->Init();
+
+		m_time = new Time();
+		m_time->Init();
 
 
 		for (auto& layer : m_layers)
@@ -48,6 +52,7 @@ namespace Butterfly
 
 		m_window->Update();
 		m_renderer->Render();
+		m_time->Tick();
 
 		for (auto& layer : m_layers)
 		{
