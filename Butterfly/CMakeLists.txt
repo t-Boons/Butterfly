@@ -12,6 +12,10 @@ add_library(Butterfly STATIC
     src/Core/Window.cpp
     src/Core/Application.cpp
     src/Core/Time.cpp
+    src/Core/UUID.cpp
+
+    src/Scene/Scene.cpp
+    src/Scene/Registry/Transform.cpp
 
     src/Renderer/Renderer.cpp
     src/Renderer/GraphicsAPI.cpp

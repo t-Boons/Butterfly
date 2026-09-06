@@ -8,18 +8,20 @@ namespace Butterfly
 	class Renderer;
 	class Blackboard;
 	class Time;
+	class Scene;
 
 	class Application : public NonCopyable
 	{
 	public:
 		void Init();
-		void Update();
+		void Tick();
 		void Quit();
 
 		static Application& Get() { return *s_instance; }
 		Window& GetWindow() { return *m_window; }
 		Renderer& GetRenderer() { return *m_renderer; }
 		Time& GetTime() { return *m_time; }
+		Scene& GetScene() { return *m_scene; }
 		Blackboard& GetBlackboard() { return *m_blackboard; }
 
 		template<typename T>
@@ -36,6 +38,7 @@ namespace Butterfly
 		Window* m_window;
 		Renderer* m_renderer;
 		Time* m_time;
+		Scene* m_scene;
 		Blackboard* m_blackboard;
 	};
 }

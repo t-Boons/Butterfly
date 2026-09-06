@@ -17,6 +17,10 @@
 #include "Renderer/Graph/GraphBuilder.hpp"
 #include "Renderer/D3D12/D3D12View.hpp"
 
+#include "Scene/Scene.hpp"
+#include "Scene/Registry/MeshRenderer.hpp"
+#include "Scene/Registry/Transform.hpp"
+
 #include "../../../ButterflyDemo/src/Tools/Camera.hpp"
 
 namespace Butterfly
@@ -44,57 +48,6 @@ namespace Butterfly
 		FrameCreateData createData;
 		createData.Size = { Application::Get().GetWindow().Width(), Application::Get().GetWindow().Height() };
 		InvalidateFrameDatas(createData);
-
-		// Load the test model.
-		RefPtr<ModelImporter> importer = ModelImporter::Create("assets/Models/damagedhelmet/DamagedHelmet.gltf");
-		importer->Load();
-
-		auto& material = importer->Materials()[0];
-
-		// Model texture(s)
-		BFTextureDesc desc;
-		desc.Flags = BFTextureDesc::ShaderResource;
-		desc.Width = material->m_colorTexture->m_width;
-		desc.Height = material->m_colorTexture->m_height;
-		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-
-		m_modelAlbedo = BFTexture::CreateTextureFromCPUBuffer(
-			desc,
-			material->m_colorTexture->m_image.data(),
-			material->m_name);
-
-		// Model Indices
-		auto& mesh = importer->Meshes()[0];
-
-		m_modelIndices = ScopePtr<BFIndexBuffer>(new BFIndexBuffer(mesh->m_indices[0].data(), static_cast<uint32_t>(mesh->m_indices[0].size()), DXGI_FORMAT_R32_UINT, "ModelIndices"));
-
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-		srvDesc.Buffer.FirstElement = 0;
-		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-
-		{
-			srvDesc.Buffer.StructureByteStride = sizeof(glm::vec3);
-			srvDesc.Buffer.NumElements = static_cast<uint32_t>(mesh->m_positions[0].size());
-			const auto size = static_cast<uint32_t>(mesh->m_positions[0].size() * sizeof(glm::vec3));
-			m_modelPositions = ScopePtr<BFStructuredBuffer>(new BFStructuredBuffer(mesh->m_positions[0].data(), size, &srvDesc, "Position"));
-		}
-
-		{
-			srvDesc.Buffer.StructureByteStride = sizeof(glm::vec3);
-			srvDesc.Buffer.NumElements = static_cast<uint32_t>(mesh->m_normals[0].size());
-			const auto size = static_cast<uint32_t>(mesh->m_normals[0].size() * sizeof(glm::vec3));
-			m_modelNormals = ScopePtr<BFStructuredBuffer>(new BFStructuredBuffer(mesh->m_normals[0].data(), size, &srvDesc, "Normals"));
-		}
-		{
-			srvDesc.Buffer.StructureByteStride = sizeof(glm::vec2);
-			srvDesc.Buffer.NumElements = static_cast<uint32_t>(mesh->m_texcoords[0].size());
-			const auto size = static_cast<uint32_t>(mesh->m_texcoords[0].size() * sizeof(glm::vec2));
-			m_modelUVS = ScopePtr<BFStructuredBuffer>(new BFStructuredBuffer(mesh->m_texcoords[0].data(), size, &srvDesc, "TexCoords"));
-		}
 	}
 
 	void Renderer::Render()
@@ -125,6 +78,12 @@ namespace Butterfly
 		m_frameIndex = m_frameIndex % NUM_RENDER_BUFFERS;
 	}
 
+	struct UniformCameraData
+	{
+		glm::mat4 ViewProjection;
+		glm::mat4 Model;
+	};
+
 	void Renderer::InvalidateFrameDatas(const FrameCreateData& createData)
 	{
 		WaitForInflightFrames();
@@ -149,7 +108,7 @@ namespace Butterfly
 			m_frameDatas[i].FramePresentable = false;
 
 
-			m_frameDatas[i].UniformCameraDataViewIndex = m_frameDatas[i].Uniforms->AllocView(sizeof(glm::mat4) * 2);
+			m_frameDatas[i].UniformCameraDataViewIndex = m_frameDatas[i].Uniforms->AllocView(sizeof(UniformCameraData));
 		}
 	}
 
@@ -164,16 +123,12 @@ namespace Butterfly
 	void Renderer::RecordNewFrame(FrameData& frameData)
 	{
 		// Upload camera data uniform.
-		struct UniformCameraData
-		{
-			glm::mat4 ViewProjection;
-			glm::mat4 Model;
-		} cameraData;
 
-		cameraData.Model = glm::mat4(1.0f);
-		cameraData.ViewProjection = Application::Get().GetBlackboard().Get<Camera>("ViewCamera")->ViewProjectionMatrix();
-
-		frameData.Uniforms->Write(&cameraData, sizeof(UniformCameraData), frameData.UniformCameraDataViewIndex);
+		//UniformCameraData cameraData;
+		//cameraData.Model = glm::mat4(1.0f);
+		//cameraData.ViewProjection = Application::Get().GetBlackboard().Get<Camera>("ViewCamera")->ViewProjectionMatrix();
+		//
+		//frameData.Uniforms->Write(&cameraData, sizeof(UniformCameraData), frameData.UniformCameraDataViewIndex);
 
 
 		RecordCmdList(frameData);
@@ -235,20 +190,28 @@ namespace Butterfly
 
 				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
 
-
 				BFSampler sampler;
+				auto view = Application::Get().GetScene().GetEntityRegistry().view<Transform, MeshRenderer>();
+				for (auto [entity, transform, meshRenderer] : view.each())
+				{
+					UniformCameraData cameraData;
+					cameraData.Model = transform.GetMatrix();
+					cameraData.ViewProjection = Application::Get().GetBlackboard().Get<Camera>("ViewCamera")->ViewProjectionMatrix();
 
-				ShaderVariables()
-					.Add(m_modelPositions->SRV().View())
-					.Add(m_modelNormals->SRV().View())
-					.Add(m_modelUVS->SRV().View())
-					.Add(frameData.Uniforms->GetView(frameData.UniformCameraDataViewIndex)->View())
-					.Add(sampler.View())
-					.Add(m_modelAlbedo->SRV().View())
-					.Submit(list);
+					frameData.Uniforms->Write(&cameraData, sizeof(UniformCameraData), frameData.UniformCameraDataViewIndex);
 
-				list.List()->IASetIndexBuffer(&m_modelIndices->IBV());
-				list.List()->DrawIndexedInstanced(m_modelIndices->NumElements(), 1, 0, 0, 0);
+					ShaderVariables()
+						.Add(meshRenderer.m_modelPositions->SRV().View())
+						.Add(meshRenderer.m_modelNormals->SRV().View())
+						.Add(meshRenderer.m_modelUVS->SRV().View())
+						.Add(frameData.Uniforms->GetView(frameData.UniformCameraDataViewIndex)->View())
+						.Add(sampler.View())
+						.Add(meshRenderer.m_modelAlbedo->SRV().View())
+						.Submit(list);
+
+					list.List()->IASetIndexBuffer(&meshRenderer.m_modelIndices->IBV());
+					list.List()->DrawIndexedInstanced(meshRenderer.m_modelIndices->NumElements(), 1, 0, 0, 0);
+				}
 			});
 
 

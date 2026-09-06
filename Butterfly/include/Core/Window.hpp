@@ -60,7 +60,7 @@ namespace Butterfly
 		~Window();
 
 		bool ShouldClose() const;
-		void Update();
+		void Tick();
 
 		uint32_t Width() const { return m_width; }
 		uint32_t Height() const { return m_height; }

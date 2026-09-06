@@ -1,4 +1,4 @@
-#pragma onc
+#pragma once
 #include "Core/Common.hpp"
 #include <chrono>
 

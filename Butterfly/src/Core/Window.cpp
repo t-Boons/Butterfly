@@ -22,7 +22,7 @@ namespace Butterfly
 		return glfwWindowShouldClose(m_window);
 	}
 
-	void Window::Update()
+	void Window::Tick()
 	{
 		BF_PROFILE_EVENT()
 

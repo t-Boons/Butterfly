@@ -48,12 +48,6 @@ namespace Butterfly
 
 		ScopePtr<Blackboard> m_blackBoard;
 
-		ScopePtr<BFIndexBuffer> m_modelIndices;
-		ScopePtr<BFStructuredBuffer> m_modelPositions;
-		ScopePtr<BFStructuredBuffer> m_modelNormals;
-		ScopePtr<BFStructuredBuffer> m_modelUVS;
-		RefPtr<BFTexture> m_modelAlbedo;
-
 		uint32_t m_frameIndex = 0;
 		uint32_t m_previousFrame = 0;
 

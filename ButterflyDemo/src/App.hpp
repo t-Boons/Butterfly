@@ -37,5 +37,7 @@ namespace Butterfly
 		ImGUIRenderer m_imGUi;
 		SpectatorCamera m_spectatorCam;
 
+		float m_modelMovementTime = 0;
+		Entity model;
 	};
 }

@@ -4,7 +4,7 @@
 #include "Renderer/Renderer.hpp"
 #include "Renderer/Graph/Blackboard.hpp"
 #include "Core/Time.hpp"
-
+#include "Scene/Scene.hpp"
 
 namespace Butterfly
 {
@@ -31,6 +31,8 @@ namespace Butterfly
 		m_time = new Time();
 		m_time->Init();
 
+		m_scene = new Scene();
+		m_scene->Init();
 
 		for (auto& layer : m_layers)
 		{
@@ -39,20 +41,21 @@ namespace Butterfly
 
 		while (m_running)
 		{
-			Update();
+			Tick();
 		}
 	}
 
-	void Application::Update()
+	void Application::Tick()
 	{
 		if (m_window->ShouldClose())
 		{
 			Quit();
 		}
 
-		m_window->Update();
+		m_window->Tick();
 		m_renderer->Render();
 		m_time->Tick();
+		m_scene->Tick();
 
 		for (auto& layer : m_layers)
 		{

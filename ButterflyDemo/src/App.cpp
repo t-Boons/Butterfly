@@ -18,8 +18,19 @@ namespace Butterfly
 				p.AspectRatio = static_cast<float>(ev.Width) / static_cast<float>(ev.Height);
 				m_spectatorCam.GetCamera()->SetProjection(p);
 		});
-	}
 
+
+		Transform tr;
+		MeshRenderer mr;
+
+		mr.LoadTestModel();
+
+		model = Application::Get().GetScene().CreateEntity();
+
+		model.AddComponent<Transform>(tr);
+		model.AddComponent<MeshRenderer>(std::move(mr));
+
+	}
 
 	void SandboxLayer::OnTick()
 	{
@@ -29,6 +40,20 @@ namespace Butterfly
 		if (m_input.IsKeyDown(BFB_F11))
 		{
 			Application::Get().GetWindow().SetFullscreen(!Application::Get().GetWindow().Fullscreen());
+		}
+
+
+		if (m_input.IsKeyPressed(BFB_R))
+		{
+			m_modelMovementTime += Application::Get().GetTime().DeltaTime();
+
+			Transform& tr = model.GetComponent<Transform>();
+
+			glm::vec3 position = tr.GetPosition();
+			position.y = glm::sin(m_modelMovementTime * 3);
+			tr.SetPosition(position);
+
+			tr.SetRotation(glm::quat(glm::vec3(0.0f, m_modelMovementTime * 5, 0.0f)));
 		}
 
 		m_input.Poll();

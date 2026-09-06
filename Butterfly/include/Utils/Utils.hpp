@@ -115,14 +115,42 @@ namespace Butterfly
         }
     }
 
+    class NonCopyableNonMoveable
+    {
+    protected:
+        NonCopyableNonMoveable() = default;
+        ~NonCopyableNonMoveable() = default;
+
+        NonCopyableNonMoveable(const NonCopyableNonMoveable&) = delete;
+        NonCopyableNonMoveable& operator=(const NonCopyableNonMoveable&) = delete;
+
+        NonCopyableNonMoveable(NonCopyableNonMoveable&&) = delete;
+        NonCopyableNonMoveable& operator=(NonCopyableNonMoveable&&) = delete;
+    };
+
+    class NonMoveable
+    {
+    protected:
+        NonMoveable() = default;
+        ~NonMoveable() = default;
+
+        NonMoveable(const NonMoveable&) = default;
+        NonMoveable& operator=(const NonMoveable&) = default;
+
+        NonMoveable(NonMoveable&&) = delete;
+        NonMoveable& operator=(NonMoveable&&) = delete;
+    };
+
     class NonCopyable
     {
     protected:
         NonCopyable() = default;
         ~NonCopyable() = default;
+
         NonCopyable(const NonCopyable&) = delete;
         NonCopyable& operator=(const NonCopyable&) = delete;
-        NonCopyable(NonCopyable&&) = delete;
-        NonCopyable& operator=(NonCopyable&&) = delete;
+
+        NonCopyable(NonCopyable&&) noexcept = default;
+        NonCopyable& operator=(NonCopyable&&) noexcept = default;
     };
 }

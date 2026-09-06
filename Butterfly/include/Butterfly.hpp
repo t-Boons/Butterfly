@@ -13,6 +13,11 @@
 #include "Core/Application.hpp"
 #include "Core/Time.hpp"
 
+// Scene and Registry
+#include "Scene/Scene.hpp"
+#include "Scene/Registry/Transform.hpp"
+#include "Scene/Registry/MeshRenderer.hpp"
+
 #include "Renderer/D3D12/D3D12DescriptorAllocator.hpp"
 #include "Renderer/D3D12/D3D12CommandQueue.hpp"
 #include "Renderer/D3D12/D3D12CommandList.hpp"
