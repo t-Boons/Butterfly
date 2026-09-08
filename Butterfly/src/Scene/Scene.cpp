@@ -1,6 +1,7 @@
 #include "Scene/Scene.hpp"
 #include "Scene/Registry/PendingDestroy.hpp"
-#include "Scene/Registry/EntityID.hpp"
+#include "Scene/Registry/IDComponent.hpp"
+#include "Scene/Registry/NameComponent.hpp"
 
 namespace Butterfly
 {
@@ -27,7 +28,13 @@ namespace Butterfly
 	Entity Scene::CreateEntity()
 	{
 		Entity entity(&m_entityRegistry);
-		entity.AddComponent<EntityID>().Value = UUID::Generate();
+		entity.AddComponent<IDComponent>().Value = UUID::Generate();
+		
+		NameComponent name;
+		name.Tag = "Untagged";
+		name.Name = "New GameObject";
+		entity.AddComponent<NameComponent>(name);
+
 		return entity;
 	}
 }

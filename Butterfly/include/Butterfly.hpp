@@ -17,6 +17,7 @@
 #include "Scene/Scene.hpp"
 #include "Scene/Registry/Transform.hpp"
 #include "Scene/Registry/MeshRenderer.hpp"
+#include "Scene/Registry/NameComponent.hpp"
 
 #include "Renderer/Renderer.hpp" 
 #include "Renderer/D3D12/D3D12DescriptorAllocator.hpp"

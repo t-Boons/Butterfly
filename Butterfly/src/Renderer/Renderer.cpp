@@ -24,6 +24,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_d3d12.h"
 #include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_internal.h"
 
 #include "../../../ButterflyDemo/src/Tools/Camera.hpp"
 
@@ -74,6 +75,40 @@ namespace Butterfly
 		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
 	}
 
+	void Renderer::RenderImGUIImage(FrameData& frame, uint32_t viewportIndex)
+	{
+		ImVec2 size = ImGui::GetContentRegionAvail();
+		if (size.x < 1.0f) size.x = 1.0f;
+		if (size.y < 1.0f) size.y = 1.0f;
+
+		// When one of the viewports gets resized.
+		if (!frame.Viewports[viewportIndex].RenderTarget || frame.Viewports[viewportIndex].RenderTarget->Width() != size.x || frame.Viewports[viewportIndex].RenderTarget->Height() != size.y)
+		{
+			if (frame.Viewports[viewportIndex].RenderTarget)
+			{
+				WaitForInflightFrames();
+				frame.Viewports[viewportIndex].RenderTarget.reset();
+			}
+
+			frame.Viewports[viewportIndex].GraphResources->Flush();
+
+			BFTextureDesc desc;
+			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			desc.Width = size.x;
+			desc.Height = size.y;
+			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
+			desc.DebugName = "Viewport " + std::to_string(viewportIndex) + " RenderTarget";
+
+			frame.Viewports[viewportIndex].RenderTarget = BFTexture::CreateTextureForGPU(desc);
+
+			OnViewportResize.Broadcast(ViewportResizeEvent({ size.x, size.y }));
+		}
+
+
+		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(frame.Viewports[viewportIndex].RenderTarget->SRV().View()).ptr;
+		ImGui::Image(textureID, { size.x, size.y });
+	}
+
 	void Renderer::Render()
 	{
 		BF_PROFILE_FRAME("Renderer::Render");
@@ -88,13 +123,10 @@ namespace Butterfly
 		frame.Fence->Wait();
 		frame.CmdList->Reset();
 
-		OnPreFrameRecorded.Broadcast(frame);
-
-
 		frame.CmdList->BeginGPUMarker("Render Frame -> " + std::to_string(frame.FrameIndex));
 
 		frame.CmdList->BeginGPUMarker("Composite Clear.");
-		GraphicsCommands::ClearRenderTarget(*frame.CmdList, *frame.RenderTarget, { 0.0, 0.05f, 0.1f, 1.0f });
+		GraphicsCommands::ClearRenderTarget(*frame.CmdList, *frame.RenderTarget, { 0.05f, 0.05f, 0.05f, 1.0f });
 		frame.CmdList->EndGPUMarker();
 
 
@@ -102,58 +134,16 @@ namespace Butterfly
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		ImGui::DockSpaceOverViewport();
+		OnImGUIRender.Broadcast(frame);
 
 		for (uint32_t i = 0; i < m_numViewports; i++)
 		{
 			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(i));
-			const std::string name = "Viewport " + std::to_string(i);
-
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
-
-			ImVec2 size = ImGui::GetContentRegionAvail();
-			if (size.x < 1.0f) size.x = 1.0f;
-			if (size.y < 1.0f) size.y = 1.0f;
-
-			// When one of the viewports gets resized.
-			if (!frame.Viewports[i].RenderTarget || frame.Viewports[i].RenderTarget->Width() != size.x || frame.Viewports[i].RenderTarget->Height() != size.y)
-			{
-				if (frame.Viewports[i].RenderTarget)
-				{
-					WaitForInflightFrames();
-					frame.Viewports[i].RenderTarget.reset();
-				}
-
-				frame.Viewports[i].GraphResources->Flush();
-
-				BFTextureDesc desc;
-				desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-				desc.Width = size.x;
-				desc.Height = size.y;
-				desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
-				desc.DebugName = "Viewport " + std::to_string(i) + " RenderTarget";
-
-				frame.Viewports[i].RenderTarget = BFTexture::CreateTextureForGPU(desc);
-
-				OnViewportResize.Broadcast(ViewportResizeEvent({size.x, size.y }));
-			}
-
-			ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(frame.Viewports[i].RenderTarget->SRV().View()).ptr;
-
-			frame.Viewports[i].RenderTarget->Resource()->Transition(*frame.CmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			RecordCmdList(frame, i);
-			frame.Viewports[i].RenderTarget->Resource()->Transition(*frame.CmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
-			ImGui::Image(textureID, size);
-
-			ImGui::PopStyleVar(2);
-			ImGui::End();
-
-			OnFrameRecorded.Broadcast(frame);
-
 			frame.CmdList->EndGPUMarker();
+			frame.Viewports[i].RenderTarget->Resource()->Transition(*frame.CmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
 		}
+
 
 		ImGui::Render();
 		ID3D12DescriptorHeap* heaps[] = { D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get() };
@@ -203,7 +193,6 @@ namespace Butterfly
 
 			m_frameDatas[i].CmdList = MakeRef<D3D12CommandList>();
 			m_frameDatas[i].Fence = MakeRef<D3D12Fence>();
-			m_frameDatas[i].FramePresentable = false;
 
 			m_frameDatas[i].Viewports.clear();
 			m_frameDatas[i].Viewports.resize(m_numViewports);
@@ -216,7 +205,7 @@ namespace Butterfly
 				viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(j) + " Uniforms");
 
 
-				m_frameDatas[i].UniformCameraDataViewIndex = viewport.Uniforms->AllocView(sizeof(UniformCameraData));
+				viewport.UniformCameraDataViewIndex = viewport.Uniforms->AllocView(sizeof(UniformCameraData));
 			}
 		}
 	}
@@ -265,7 +254,7 @@ namespace Butterfly
 				GraphicsCommands::SetRenderTargets(list, { &rt }, params.DepthStencil->Resource().get());
 
 				GraphicsCommands::ClearDepthStencil(list, *params.DepthStencil->Resource());
-				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.25f, 1.0f });
+				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.15f, 1.0f });
 
 				GraphicsCommands::SetFullscreenViewportAndRect(list, rt.Width(), rt.Height());
 
@@ -292,13 +281,13 @@ namespace Butterfly
 					cameraData.Model = transform.GetMatrix();
 					cameraData.ViewProjection = Application::Get().GetBlackboard().Get<Camera>("ViewCamera")->ViewProjectionMatrix();
 
-					frameData.Viewports[viewportIndex].Uniforms->Write(&cameraData, sizeof(UniformCameraData), frameData.UniformCameraDataViewIndex);
+					frameData.Viewports[viewportIndex].Uniforms->Write(&cameraData, sizeof(UniformCameraData), viewport.UniformCameraDataViewIndex);
 
 					ShaderVariables()
 						.Add(meshRenderer.m_modelPositions->SRV().View())
 						.Add(meshRenderer.m_modelNormals->SRV().View())
 						.Add(meshRenderer.m_modelUVS->SRV().View())
-						.Add(frameData.Viewports[viewportIndex].Uniforms	->GetView(frameData.UniformCameraDataViewIndex)->View())
+						.Add(frameData.Viewports[viewportIndex].Uniforms->GetView(viewport.UniformCameraDataViewIndex)->View())
 						.Add(sampler.View())
 						.Add(meshRenderer.m_modelAlbedo->SRV().View())
 						.Submit(list);

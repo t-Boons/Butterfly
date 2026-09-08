@@ -3,7 +3,7 @@
 
 namespace Butterfly
 {
-	class EntityID
+	class IDComponent
 	{
 	public:
 		UUID Value;

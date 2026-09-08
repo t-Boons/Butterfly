@@ -19,6 +19,8 @@ namespace Butterfly
 		RefPtr<BFTexture> RenderTarget;
 		RefPtr<GraphTransientResourceCache> GraphResources;
 		RefPtr<BFUniformBuffer> Uniforms;
+
+		uint32_t UniformCameraDataViewIndex;
 	};
 
 	struct FrameData
@@ -27,10 +29,7 @@ namespace Butterfly
 		RefPtr<D3D12CommandList> CmdList;
 		RefPtr<D3D12Fence> Fence;
 		uint32_t FrameIndex;
-		bool FramePresentable = false;
 		std::vector<Viewport> Viewports;
-
-		uint32_t UniformCameraDataViewIndex;
 	};
 
 	struct FrameCreateData
@@ -51,14 +50,17 @@ namespace Butterfly
 
 		~Renderer();
 
-		EventDispatcher<FrameData&> OnFrameRecorded;
-		EventDispatcher<FrameData&> OnPreFrameRecorded;
+		EventDispatcher<FrameData&> OnImGUIRender;
 		EventDispatcher<ViewportResizeEvent> OnViewportResize;
+
+		void RenderImGUIImage(FrameData& frame, uint32_t viewportIndex);
 	private:
 		void InvalidateFrameDatas(const FrameCreateData& createData);
 		void WaitForInflightFrames();
 		void RecordCmdList(FrameData& frameData, uint32_t viewportIndex);
 		void ApplyResize();
+
+
 
 		std::vector<FrameData> m_frameDatas;
 
