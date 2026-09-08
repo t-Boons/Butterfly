@@ -13,7 +13,7 @@ namespace Butterfly
 		virtual void OnTick();
 		virtual void OnShutdown();
 
-		void ImGUIRender(D3D12CommandList& list);
+		void ImGUIRender(FrameData& data);
 
 	private:
 		Input m_input;

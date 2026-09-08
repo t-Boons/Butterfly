@@ -13,12 +13,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(Butterfly)
-add_subdirectory(ButterflyDemo)
+add_subdirectory(ButterflyEditor)
 
 target_compile_definitions(Butterfly PRIVATE
     $<$<CONFIG:RelWithProfiling>:REL_WITH_PROFILING>
 )
 
-target_compile_definitions(ButterflyDemo PRIVATE
+target_compile_definitions(ButterflyEditor PRIVATE
     $<$<CONFIG:RelWithProfiling>:REL_WITH_PROFILING>
 )
