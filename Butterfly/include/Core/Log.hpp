@@ -3,6 +3,7 @@
 #include <iostream>
 #include <assert.h>
 #include <stdio.h>
+#include <mutex>
 
 // ANSI escape codes for text colors
 #define RESET "\033[0m"
@@ -78,27 +79,33 @@ namespace Butterfly
 		}
 
 	private:
-		template <typename... Args>
-		static void InternalLog(const char* format, const char* color, const char* prefix, Args... args)
-		{
-			time_t t = time(0);
-			tm now;
-			localtime_s(&now, &t);
+    template <typename... Args>
+    static void InternalLog(const char* format, const char* color, const char* prefix, Args... args)
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
 
-			printf(color);
-			printf("[Butterfly %i-%i-%i:%i:%i:%i] %s",
-				(int)now.tm_year + 1900,
-				now.tm_mon + 1,
-				now.tm_mday,
-				now.tm_hour,
-				now.tm_min,
-				now.tm_sec,
-				prefix
-			);
+        time_t t = time(0);
+        tm now;
+        localtime_s(&now, &t);
 
-			printf(format, args...);
-			printf(RESET);
-			printf("\n");
-		}
+        printf(color);
+
+        printf("[Butterfly %i-%i-%i:%i:%i:%i] %s",
+            static_cast<int>(now.tm_year) + 1900,
+            now.tm_mon + 1,
+            now.tm_mday,
+            now.tm_hour,
+            now.tm_min,
+            now.tm_sec,
+            prefix
+        );
+
+        printf(format, args...);
+        printf(RESET);
+        printf("\n");
+    }
+
+private:
+    inline static std::mutex s_mutex;
 	};
 }

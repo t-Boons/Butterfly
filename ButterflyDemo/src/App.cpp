@@ -8,28 +8,22 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-			m_imGUi.Init(&Application::Get().GetWindow());
 		m_input.Init(&Application::Get().GetWindow());
 
 		Application::Get().GetBlackboard().Register<Camera>(m_spectatorCam.GetCamera(), "ViewCamera");
-		Application::Get().GetWindow().Events().OnWindowResize.Subscribe([=](const WindowResizeEvent& ev)
-		{
+
+		Application::Get().GetRenderer().OnViewportResize.Subscribe([&](const ViewportResizeEvent& ev)
+			{
 				auto p = m_spectatorCam.GetCamera()->Projection();
-				p.AspectRatio = static_cast<float>(ev.Width) / static_cast<float>(ev.Height);
+				p.AspectRatio = static_cast<float>(ev.Size.x) / static_cast<float>(ev.Size.y);
 				m_spectatorCam.GetCamera()->SetProjection(p);
-		});
-
-
-		Transform tr;
-		MeshRenderer mr;
-
-		mr.LoadTestModel();
+			});
 
 		model = Application::Get().GetScene().CreateEntity();
 
-		model.AddComponent<Transform>(tr);
-		model.AddComponent<MeshRenderer>(std::move(mr));
-
+		model.AddComponent<Transform>();
+		model.AddComponent<MeshRenderer>();
+		model.GetComponent<MeshRenderer>().LoadTestModel();
 	}
 
 	void SandboxLayer::OnTick()
@@ -41,7 +35,6 @@ namespace Butterfly
 		{
 			Application::Get().GetWindow().SetFullscreen(!Application::Get().GetWindow().Fullscreen());
 		}
-
 
 		if (m_input.IsKeyPressed(BFB_R))
 		{

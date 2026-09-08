@@ -7,12 +7,15 @@ add_subdirectory(lib/imgui)
 add_subdirectory(lib/MikkTSpace)
 add_subdirectory(lib/optick)
 add_subdirectory(lib/tinygltf)
+add_subdirectory(lib/tinyobj)
 
 add_library(Butterfly STATIC
     src/Core/Window.cpp
     src/Core/Application.cpp
     src/Core/Time.cpp
     src/Core/UUID.cpp
+    src/Core/FileSystem.cpp
+    src/Core/JobSystem.cpp
 
     src/Scene/Scene.cpp
     src/Scene/Registry/Transform.cpp

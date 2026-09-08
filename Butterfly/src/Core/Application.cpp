@@ -3,6 +3,7 @@
 #include "Core/Window.hpp"
 #include "Renderer/Renderer.hpp"
 #include "Renderer/Graph/Blackboard.hpp"
+#include "Core/JobSystem.hpp"
 #include "Core/Time.hpp"
 #include "Scene/Scene.hpp"
 
@@ -34,6 +35,8 @@ namespace Butterfly
 		m_scene = new Scene();
 		m_scene->Init();
 
+		m_jobSystem = new JobSystem();
+
 		for (auto& layer : m_layers)
 		{
 			layer->OnInit();
@@ -47,19 +50,20 @@ namespace Butterfly
 
 	void Application::Tick()
 	{
-		if (m_window->ShouldClose())
-		{
-			Quit();
-		}
-
 		m_window->Tick();
 		m_renderer->Render();
+
 		m_time->Tick();
 		m_scene->Tick();
 
 		for (auto& layer : m_layers)
 		{
 			layer->OnTick();
+		}
+
+		if (m_window->ShouldClose())
+		{
+			Quit();
 		}
 	}
 
@@ -70,5 +74,12 @@ namespace Butterfly
 		{
 			layer->OnShutdown();
 		}
+
+		delete m_jobSystem;
+		delete m_scene;
+		delete m_time;
+		delete m_renderer;
+		delete m_window;
+		delete m_blackboard;
 	}
 }

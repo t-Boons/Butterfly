@@ -16,10 +16,14 @@
 #include "Renderer/D3D12/D3D12Pipeline.hpp"
 #include "Renderer/Graph/GraphBuilder.hpp"
 #include "Renderer/D3D12/D3D12View.hpp"
+#include "Renderer/D3D12/D3D12Resource.hpp"
 
 #include "Scene/Scene.hpp"
 #include "Scene/Registry/MeshRenderer.hpp"
 #include "Scene/Registry/Transform.hpp"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_d3d12.h"
+#include "imgui/imgui_impl_glfw.h"
 
 #include "../../../ButterflyDemo/src/Tools/Camera.hpp"
 
@@ -48,6 +52,26 @@ namespace Butterfly
 		FrameCreateData createData;
 		createData.Size = { Application::Get().GetWindow().Width(), Application::Get().GetWindow().Height() };
 		InvalidateFrameDatas(createData);
+
+
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		ImGui_ImplGlfw_InitForOther(Application::Get().GetWindow().GLFWWindow(), true);
+
+		ImGui_ImplDX12_InitInfo init_info;
+		init_info.Device = D3D12API()->Device();
+		init_info.NumFramesInFlight = NUM_RENDER_BUFFERS;
+		init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		init_info.SrvDescriptorHeap = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get();
+		init_info.CommandQueue = D3D12API()->Queue(QueueType::Direct)->D3D12Queue();
+		init_info.LegacySingleSrvCpuDescriptor = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap()->GetCPUDescriptorHandleForHeapStart();
+		init_info.LegacySingleSrvGpuDescriptor = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap()->GetGPUDescriptorHandleForHeapStart();
+		ImGui_ImplDX12_Init(&init_info);
+
+		// We allocate a dummy because textureslot 1 is used by ImGUI for font rendering.
+		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
 	}
 
 	void Renderer::Render()
@@ -64,8 +88,83 @@ namespace Butterfly
 		frame.Fence->Wait();
 		frame.CmdList->Reset();
 
-		RecordNewFrame(frame);
+		OnPreFrameRecorded.Broadcast(frame);
+
+
+		frame.CmdList->BeginGPUMarker("Render Frame -> " + std::to_string(frame.FrameIndex));
+
+		frame.CmdList->BeginGPUMarker("Composite Clear.");
+		GraphicsCommands::ClearRenderTarget(*frame.CmdList, *frame.RenderTarget, { 0.0, 0.05f, 0.1f, 1.0f });
+		frame.CmdList->EndGPUMarker();
+
+
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::DockSpaceOverViewport();
+
+		for (uint32_t i = 0; i < m_numViewports; i++)
+		{
+			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(i));
+			const std::string name = "Viewport " + std::to_string(i);
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
+
+			ImVec2 size = ImGui::GetContentRegionAvail();
+			if (size.x < 1.0f) size.x = 1.0f;
+			if (size.y < 1.0f) size.y = 1.0f;
+
+			// When one of the viewports gets resized.
+			if (!frame.Viewports[i].RenderTarget || frame.Viewports[i].RenderTarget->Width() != size.x || frame.Viewports[i].RenderTarget->Height() != size.y)
+			{
+				if (frame.Viewports[i].RenderTarget)
+				{
+					WaitForInflightFrames();
+					frame.Viewports[i].RenderTarget.reset();
+				}
+
+				frame.Viewports[i].GraphResources->Flush();
+
+				BFTextureDesc desc;
+				desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				desc.Width = size.x;
+				desc.Height = size.y;
+				desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
+				desc.DebugName = "Viewport " + std::to_string(i) + " RenderTarget";
+
+				frame.Viewports[i].RenderTarget = BFTexture::CreateTextureForGPU(desc);
+
+				OnViewportResize.Broadcast(ViewportResizeEvent({size.x, size.y }));
+			}
+
+			ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(frame.Viewports[i].RenderTarget->SRV().View()).ptr;
+
+			frame.Viewports[i].RenderTarget->Resource()->Transition(*frame.CmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			RecordCmdList(frame, i);
+			frame.Viewports[i].RenderTarget->Resource()->Transition(*frame.CmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
+			ImGui::Image(textureID, size);
+
+			ImGui::PopStyleVar(2);
+			ImGui::End();
+
+			OnFrameRecorded.Broadcast(frame);
+
+			frame.CmdList->EndGPUMarker();
+		}
+
+		ImGui::Render();
+		ID3D12DescriptorHeap* heaps[] = { D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get() };
+		frame.CmdList->List()->SetDescriptorHeaps(_countof(heaps), heaps);
+		GraphicsCommands::SetRenderTargets(*frame.CmdList, { frame.RenderTarget.get()}, nullptr);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), frame.CmdList->List());
+
 		Application::Get().GetWindow().Context().RecordCopyToBackBuffer(*frame.RenderTarget->Resource(), *frame.CmdList);
+
+
+		frame.CmdList->EndGPUMarker();
 
 		frame.CmdList->Close();
 		D3D12API()->Queue(QueueType::Direct)->Execute(*frame.CmdList);
@@ -101,14 +200,24 @@ namespace Butterfly
 			desc.DebugName = "Frame " + std::to_string(i) + " RenderTarget";
 
 			m_frameDatas[i].RenderTarget = BFTexture::CreateTextureForGPU(desc);
-			m_frameDatas[i].GraphResources = MakeRef<GraphTransientResourceCache>();
-			m_frameDatas[i].Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + " Uniforms");
+
 			m_frameDatas[i].CmdList = MakeRef<D3D12CommandList>();
 			m_frameDatas[i].Fence = MakeRef<D3D12Fence>();
 			m_frameDatas[i].FramePresentable = false;
 
+			m_frameDatas[i].Viewports.clear();
+			m_frameDatas[i].Viewports.resize(m_numViewports);
 
-			m_frameDatas[i].UniformCameraDataViewIndex = m_frameDatas[i].Uniforms->AllocView(sizeof(UniformCameraData));
+
+			for (uint32_t j = 0; j < m_frameDatas[i].Viewports.size(); j++)
+			{
+				Viewport& viewport = m_frameDatas[i].Viewports[j];
+				viewport.GraphResources = MakeRef<GraphTransientResourceCache>();
+				viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(j) + " Uniforms");
+
+
+				m_frameDatas[i].UniformCameraDataViewIndex = viewport.Uniforms->AllocView(sizeof(UniformCameraData));
+			}
 		}
 	}
 
@@ -120,30 +229,10 @@ namespace Butterfly
 		}
 	}
 
-	void Renderer::RecordNewFrame(FrameData& frameData)
+	void Renderer::RecordCmdList(FrameData& frameData, uint32_t viewportIndex)
 	{
-		// Upload camera data uniform.
-
-		//UniformCameraData cameraData;
-		//cameraData.Model = glm::mat4(1.0f);
-		//cameraData.ViewProjection = Application::Get().GetBlackboard().Get<Camera>("ViewCamera")->ViewProjectionMatrix();
-		//
-		//frameData.Uniforms->Write(&cameraData, sizeof(UniformCameraData), frameData.UniformCameraDataViewIndex);
-
-
-		RecordCmdList(frameData);
-	}
-
-
-	void Renderer::RecordCmdList(FrameData& frameData)
-	{
-		frameData.CmdList->BeginGPUMarker("Render Frame -> " + std::to_string(frameData.FrameIndex));
-
-		frameData.CmdList->BeginGPUMarker("Composite Clear.");
-		GraphicsCommands::ClearRenderTarget(*frameData.CmdList, *frameData.RenderTarget, { 0.0, 0.05f, 0.1f, 1.0f });
-		frameData.CmdList->EndGPUMarker();
-
-		GraphBuilder builder(*frameData.GraphResources);
+		Viewport& viewport = frameData.Viewports[viewportIndex];
+		GraphBuilder builder(*frameData.Viewports[viewportIndex].GraphResources);
 
 		struct ForwardRenderer
 		{
@@ -153,15 +242,15 @@ namespace Butterfly
 
 		ForwardRenderer* params = builder.AllocParameters<ForwardRenderer>();
 
-		params->Comp = frameData.RenderTarget.get();
+		params->Comp = viewport.RenderTarget.get();
 
 
 		BFTextureDesc desc2;
 		desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		desc2.Width = frameData.RenderTarget->Width();
-		desc2.Height = frameData.RenderTarget->Height();
+		desc2.Width = viewport.RenderTarget->Width();
+		desc2.Height = viewport.RenderTarget->Height();
 		desc2.Flags = BFTextureDesc::DepthStencilable;
-		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Positions", desc2);
+		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport " + std::to_string(viewportIndex), desc2);
 
 		builder.AddPass<ForwardRenderer>("Forward Model",
 			[&](const ForwardRenderer& params, D3D12CommandList& list)
@@ -176,7 +265,7 @@ namespace Butterfly
 				GraphicsCommands::SetRenderTargets(list, { &rt }, params.DepthStencil->Resource().get());
 
 				GraphicsCommands::ClearDepthStencil(list, *params.DepthStencil->Resource());
-				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.15f, 1.0f });
+				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.25f, 1.0f });
 
 				GraphicsCommands::SetFullscreenViewportAndRect(list, rt.Width(), rt.Height());
 
@@ -194,17 +283,22 @@ namespace Butterfly
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<Transform, MeshRenderer>();
 				for (auto [entity, transform, meshRenderer] : view.each())
 				{
+					if (!meshRenderer.m_meshLoaded)
+					{
+						continue;
+					}
+
 					UniformCameraData cameraData;
 					cameraData.Model = transform.GetMatrix();
 					cameraData.ViewProjection = Application::Get().GetBlackboard().Get<Camera>("ViewCamera")->ViewProjectionMatrix();
 
-					frameData.Uniforms->Write(&cameraData, sizeof(UniformCameraData), frameData.UniformCameraDataViewIndex);
+					frameData.Viewports[viewportIndex].Uniforms->Write(&cameraData, sizeof(UniformCameraData), frameData.UniformCameraDataViewIndex);
 
 					ShaderVariables()
 						.Add(meshRenderer.m_modelPositions->SRV().View())
 						.Add(meshRenderer.m_modelNormals->SRV().View())
 						.Add(meshRenderer.m_modelUVS->SRV().View())
-						.Add(frameData.Uniforms->GetView(frameData.UniformCameraDataViewIndex)->View())
+						.Add(frameData.Viewports[viewportIndex].Uniforms	->GetView(frameData.UniformCameraDataViewIndex)->View())
 						.Add(sampler.View())
 						.Add(meshRenderer.m_modelAlbedo->SRV().View())
 						.Submit(list);
@@ -214,13 +308,9 @@ namespace Butterfly
 				}
 			});
 
-
 		auto graph = builder.Create();
 		graph->Execute(*frameData.CmdList);
 		delete graph;
-
-
-		frameData.CmdList->EndGPUMarker();
 	}
 
 	void Renderer::ApplyResize()
@@ -231,5 +321,16 @@ namespace Butterfly
 		createData.Size = m_resizeSize;
 
 		InvalidateFrameDatas(createData);
+	}
+
+	Renderer::~Renderer()
+	{
+		WaitForInflightFrames();
+
+		m_frameDatas.clear();
+
+		ImGui_ImplDX12_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
 	}
 }
