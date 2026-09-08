@@ -13,6 +13,9 @@
 #include "Core/Application.hpp"
 #include "Core/Time.hpp"
 
+// Asset types
+#include "Asset/AssetRegistry.hpp"
+
 // Scene and Registry
 #include "Scene/Scene.hpp"
 #include "Scene/Registry/TransformComponent.hpp"

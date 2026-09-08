@@ -9,12 +9,11 @@ namespace Butterfly
 
     std::vector<uint8_t> FileSystem::ReadBinary(const std::filesystem::path& path)
     {
-        const std::filesystem::path assetPath = s_assetPath / path;
-        std::ifstream file(assetPath, std::ios::binary | std::ios::ate);
+        std::ifstream file(path, std::ios::binary | std::ios::ate);
 
         if (!file)
         {
-            BF_CORE_LOG_WARN("Directory does not exist: %s. Cannot read binary.", path.c_str());
+            BF_CORE_LOG_WARN("Directory does not exist: %ls. Cannot read binary.", path.c_str());
             return {};
         }
 
@@ -34,7 +33,7 @@ namespace Butterfly
 
         if (!file)
         {
-            BF_CORE_LOG_WARN("Directory does not exist: %s. Canot read text.", path.c_str());
+            BF_CORE_LOG_WARN("Directory does not exist: %ls. Canot read text.", path.c_str());
             return {};
         }
 
@@ -47,7 +46,7 @@ namespace Butterfly
  
         if (!file)
         {
-            BF_CORE_LOG_WARN("Directory does not exist: %s. Cannot write binary.", path.c_str());
+            BF_CORE_LOG_WARN("Directory does not exist: %ls. Cannot write binary.", path.c_str());
             return false;
         }
 
@@ -56,18 +55,48 @@ namespace Butterfly
         return file.good();
     }
 
+    bool FileSystem::Copy(const std::filesystem::path& source, const std::filesystem::path& dest)
+    {
+        std::ifstream  src(source, std::ios::binary);
+
+        if (!src.is_open())
+        {
+            BF_CORE_LOG_WARN("File does not exist: %ls. Cannot copy file to %ls.", source.c_str(), dest.c_str());
+            return false;
+        }
+
+        BF_CORE_LOG_TRACE("Copied file: %ls to %ls", source.c_str(), dest.c_str());
+
+        std::ofstream  dst(dest, std::ios::binary);
+
+        dst << src.rdbuf();
+        return true;
+    }
+
     bool FileSystem::WriteText(const std::filesystem::path& path, const std::string& data)
     {
         std::ofstream file(path);
 
-        if (!file)
+        if (!file.is_open())
         {
-            BF_CORE_LOG_WARN("Directory does not exist: %s. Cannot write text.", path.c_str());
+            BF_CORE_LOG_WARN("Cannot open/create file: %ls", path.c_str());
             return false;
         }
 
         file.write(data.data(), static_cast<std::streamsize>(data.size()));
 
+        BF_CORE_LOG_TRACE("FileSystem::WriteText -> %ls %u", path.c_str(), data.length());
+
         return file.good();
+    }
+
+    std::filesystem::path FileSystem::WorkingDirectory()
+    {
+        return std::filesystem::current_path();
+    }
+
+    std::filesystem::path FileSystem::ReplaceExtention(const std::filesystem::path& path, const std::string& extention)
+    {
+        return path.parent_path() / (path.stem().string() + extention);
     }
 }

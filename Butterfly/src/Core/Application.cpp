@@ -6,6 +6,7 @@
 #include "Core/JobSystem.hpp"
 #include "Core/Time.hpp"
 #include "Scene/Scene.hpp"
+#include "Asset/AssetRegistry.hpp"
 
 namespace Butterfly
 {
@@ -25,17 +26,11 @@ namespace Butterfly
 		m_window = new Window("Butterfly Renderer", 1280, 720);
 
 		m_blackboard = new Blackboard();
-
 		m_renderer = new Renderer();
-		m_renderer->Init();
-
 		m_time = new Time();
-		m_time->Init();
-
 		m_scene = new Scene();
-		m_scene->Init();
-
 		m_jobSystem = new JobSystem();
+		m_assetRegistry = new AssetRegistry();
 
 		for (auto& layer : m_layers)
 		{

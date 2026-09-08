@@ -30,7 +30,7 @@
 
 namespace Butterfly
 {
-	void Renderer::Init()
+	Renderer::Renderer()
 	{
 		BF_PROFILE_EVENT()
 

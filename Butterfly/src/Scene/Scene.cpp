@@ -5,7 +5,7 @@
 
 namespace Butterfly
 {
-	void Scene::Init()
+	Scene::Scene()
 	{
 
 	}

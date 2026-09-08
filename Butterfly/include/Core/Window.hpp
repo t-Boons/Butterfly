@@ -68,6 +68,7 @@ namespace Butterfly
 		GLFWwindow* GLFWWindow() const { return m_window; }
 		BFGraphicsContext& Context() { return *m_context; }
 		float AspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
+		bool OpenFileDialog(std::string& path) const;
 
 		WindowEvents& Events() { return m_events; }
 

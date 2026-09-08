@@ -2,7 +2,7 @@
 
 namespace Butterfly
 {
-	void Time::Init()
+	Time::Time()
 	{
 		m_startTime = std::chrono::steady_clock::now();
 		m_lastTime = m_startTime;

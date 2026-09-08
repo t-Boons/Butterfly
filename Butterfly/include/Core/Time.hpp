@@ -7,7 +7,8 @@ namespace Butterfly
 	class Time : public NonCopyable
 	{
 	public:
-		void Init();
+		Time();
+
 		void Tick();
 		double Elapsed() const { return m_elapsedTime; }
 		float DeltaTime() const { return m_deltaTime; }

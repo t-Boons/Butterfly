@@ -45,7 +45,8 @@ namespace Butterfly
 	class Renderer : public NonCopyable
 	{
 	public:
-		void Init();
+		Renderer();
+
 		void Render();
 
 		~Renderer();

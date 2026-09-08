@@ -7,7 +7,8 @@ namespace Butterfly
 	class Scene : public NonCopyable
 	{
 	public:
-		void Init();
+		Scene();
+
 		void Tick();
 
 		void DestroyPendingEntities();

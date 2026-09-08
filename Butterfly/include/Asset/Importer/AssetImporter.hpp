@@ -7,7 +7,10 @@ namespace Butterfly
 	class IAssetImporter
 	{
 	public:
-		static RefPtr<IAssetImporter> FindImporter(const std::filesystem::path& path);
+		static std::vector<RefPtr<IAssetImporter>> CreateImporters();
+
 		virtual RefPtr<IAsset> Import(const std::filesystem::path& path) = 0;
+		virtual bool IsCorrectFileExtention(const std::string& fileExtention) = 0;
+		virtual std::string_view AssetType() = 0;
 	};
 }

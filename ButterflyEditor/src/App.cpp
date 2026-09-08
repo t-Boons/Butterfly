@@ -57,6 +57,54 @@ namespace Butterfly
 
 	void SandboxLayer::ImGUIRender(FrameData& data)
 	{
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("Import"))
+				{
+					std::string path;
+					if (Application::Get().GetWindow().OpenFileDialog(path))
+					{
+						AssetMetadata meta;
+						if (Application::Get().GetAssetRegistry().Register(path, meta))
+						{
+							BF_LOG_INFO("Yippie");
+						}
+					}
+				}
+
+				if (ImGui::MenuItem("Open"))
+				{
+				}
+
+				if (ImGui::MenuItem("Save"))
+				{
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Tools"))
+			{
+				if (ImGui::MenuItem("Settings"))
+				{
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Help"))
+			{
+				ImGui::MenuItem("About");
+
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMainMenuBar();
+		}
+
+
 		ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_NoWindowMenuButton;
 		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspaceFlags);
 

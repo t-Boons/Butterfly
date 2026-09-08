@@ -8,6 +8,7 @@ add_subdirectory(lib/MikkTSpace)
 add_subdirectory(lib/optick)
 add_subdirectory(lib/tinygltf)
 add_subdirectory(lib/tinyobj)
+add_subdirectory(lib/yaml-cpp)
 
 add_library(Butterfly STATIC
     src/Core/Window.cpp
@@ -19,6 +20,9 @@ add_library(Butterfly STATIC
 
     src/Scene/Scene.cpp
     src/Scene/Registry/TransformComponent.cpp
+
+    src/Asset/Importer/Assetimporter.cpp
+    src/Asset/Importer/OBJImporter.cpp
 
     src/Renderer/Renderer.cpp
     src/Renderer/GraphicsAPI.cpp
@@ -60,6 +64,8 @@ target_link_libraries(Butterfly
         mikktspace
         optick
         tinygltf
+        tinyobj
+        yaml-cpp
     PRIVATE
         d3d12
         dxgi)

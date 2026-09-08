@@ -139,6 +139,31 @@ namespace Butterfly
 			});
 	}
 
+	bool Window::OpenFileDialog(std::string& path) const
+	{
+		char fileName[MAX_PATH] = {};
+
+		OPENFILENAMEA ofn{};
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = glfwGetWin32Window(m_window);
+		ofn.lpstrFile = fileName;
+		ofn.nMaxFile = MAX_PATH;
+
+		ofn.lpstrFilter =
+			"All Files\0*.*\0";
+
+		ofn.nFilterIndex = 1;
+		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+		if (GetOpenFileNameA(&ofn))
+		{
+			path = fileName;
+			return true;
+		}
+
+		return false;
+	}
+
 	void Window::Resize(uint32_t width, uint32_t height)
 	{
 		BF_CORE_ASSERT(width > 0, "Width cannot be 0");

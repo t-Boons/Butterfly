@@ -1,15 +1,16 @@
 #include "Asset/Importer/AssetImporter.hpp"
 #include "Asset/Importer/OBJImporter.hpp"
+#include "Core/Application.hpp"
+#include "Asset/AssetRegistry.hpp"
 
 namespace Butterfly
 {
-	RefPtr<IAssetImporter> IAssetImporter::FindImporter(const std::filesystem::path& path)
+	std::vector<RefPtr<IAssetImporter>> IAssetImporter::CreateImporters()
 	{
-		const std::string extention = path.extension();
+		std::vector<RefPtr<IAssetImporter>> importers;
 
-		if (extention == ".obj")
-		{
+		importers.push_back(MakeRef< OBJImporter>());
 
-		}
+		return importers;
 	}
 }

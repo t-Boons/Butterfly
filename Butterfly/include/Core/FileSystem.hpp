@@ -16,9 +16,10 @@ namespace Butterfly
 
 		static bool WriteText(const std::filesystem::path& path, const std::string& data);
 
-		static void SetAssetPrefixPath(const std::filesystem::path& path) { s_assetPath = path; }
+		static bool Copy(const std::filesystem::path& source, const std::filesystem::path& dest);
 
-	private:
-		inline static std::filesystem::path s_assetPath;
+		static std::filesystem::path ReplaceExtention(const std::filesystem::path& path, const std::string& extention);
+
+		static std::filesystem::path WorkingDirectory();
 	};
 }
