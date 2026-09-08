@@ -53,7 +53,7 @@ namespace Butterfly
 		EventDispatcher<FrameData&> OnImGUIRender;
 		EventDispatcher<ViewportResizeEvent> OnViewportResize;
 
-		void RenderImGUIImage(FrameData& frame, uint32_t viewportIndex);
+		void ImGUIImage(FrameData& frame, uint32_t viewportIndex);
 	private:
 		void InvalidateFrameDatas(const FrameCreateData& createData);
 		void WaitForInflightFrames();

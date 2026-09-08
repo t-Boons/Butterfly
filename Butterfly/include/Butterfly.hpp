@@ -15,8 +15,8 @@
 
 // Scene and Registry
 #include "Scene/Scene.hpp"
-#include "Scene/Registry/Transform.hpp"
-#include "Scene/Registry/MeshRenderer.hpp"
+#include "Scene/Registry/TransformComponent.hpp"
+#include "Scene/Registry/MeshRendererComponent.hpp"
 #include "Scene/Registry/NameComponent.hpp"
 
 #include "Renderer/Renderer.hpp" 

@@ -2,7 +2,7 @@
 
 namespace Butterfly
 {
-	class PendingDestroy
+	class PendingDestroyComponent
 	{
 	};
 }

@@ -19,14 +19,14 @@
 #include "Renderer/D3D12/D3D12Resource.hpp"
 
 #include "Scene/Scene.hpp"
-#include "Scene/Registry/MeshRenderer.hpp"
-#include "Scene/Registry/Transform.hpp"
+#include "Scene/Registry/MeshRendererComponent.hpp"
+#include "Scene/Registry/TransformComponent.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_d3d12.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_internal.h"
 
-#include "../../../ButterflyDemo/src/Tools/Camera.hpp"
+#include "../../../ButterflyEditor/src/Tools/Camera.hpp"
 
 namespace Butterfly
 {
@@ -75,7 +75,7 @@ namespace Butterfly
 		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
 	}
 
-	void Renderer::RenderImGUIImage(FrameData& frame, uint32_t viewportIndex)
+	void Renderer::ImGUIImage(FrameData& frame, uint32_t viewportIndex)
 	{
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		if (size.x < 1.0f) size.x = 1.0f;
@@ -269,7 +269,7 @@ namespace Butterfly
 				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
 
 				BFSampler sampler;
-				auto view = Application::Get().GetScene().GetEntityRegistry().view<Transform, MeshRenderer>();
+				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 				for (auto [entity, transform, meshRenderer] : view.each())
 				{
 					if (!meshRenderer.m_meshLoaded)

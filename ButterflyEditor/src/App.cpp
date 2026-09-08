@@ -24,9 +24,9 @@ namespace Butterfly
 
 		model = Application::Get().GetScene().CreateEntity();
 
-		model.AddComponent<Transform>();
-		model.AddComponent<MeshRenderer>();
-		model.GetComponent<MeshRenderer>().LoadTestModel();
+		model.AddComponent<TransformComponent>();
+		model.AddComponent<MeshRendererComponent>();
+		model.GetComponent<MeshRendererComponent>().LoadTestModel();
 	}
 
 	void SandboxLayer::OnTick()
@@ -43,7 +43,7 @@ namespace Butterfly
 		{
 			m_modelMovementTime += Application::Get().GetTime().DeltaTime();
 
-			Transform& tr = model.GetComponent<Transform>();
+			TransformComponent& tr = model.GetComponent<TransformComponent>();
 
 			glm::vec3 position = tr.GetPosition();
 			position.y = glm::sin(m_modelMovementTime * 3);
@@ -64,18 +64,18 @@ namespace Butterfly
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
 
-		Application::Get().GetRenderer().RenderImGUIImage(data, 0);
+		Application::Get().GetRenderer().ImGUIImage(data, 0);
 
 		ImGui::PopStyleVar(2);
 		ImGui::End();
 
 		ImGui::Begin("Properties");
 
-		Transform& tr = model.GetComponent<Transform>();
+		TransformComponent& tr = model.GetComponent<TransformComponent>();
 
-		if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+		if (ImGui::CollapsingHeader("TransformComponent", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			ImGui::PushID("Transform");
+			ImGui::PushID("TransformComponent");
 
 			glm::vec3 position = tr.GetPosition();
 			if (DrawVec3Control("Position", position, 0.0f, 0.1f))
@@ -100,7 +100,7 @@ namespace Butterfly
 			ImGui::PopID();
 		}
 
-		MeshRenderer& mr = model.GetComponent<MeshRenderer>();
+		MeshRendererComponent& mr = model.GetComponent<MeshRendererComponent>();
 
 		if (ImGui::CollapsingHeader("MeshRenderer", ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -122,7 +122,7 @@ namespace Butterfly
 
 		ImGui::Begin("Scene Hierarchy");
 
-		auto view = registry.view<Transform>();
+		auto view = registry.view<TransformComponent>();
 		int entityCount = 0;
 		for (auto e : view) (void)e, entityCount++;
 

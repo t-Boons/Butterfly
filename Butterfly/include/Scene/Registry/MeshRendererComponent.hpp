@@ -26,7 +26,7 @@
 
 namespace Butterfly
 {
-	class MeshRenderer : public NonCopyable
+	class MeshRendererComponent : public NonCopyable
 	{
 	public:
 		void LoadTestModel()

@@ -1,5 +1,5 @@
 #include "Scene/Scene.hpp"
-#include "Scene/Registry/PendingDestroy.hpp"
+#include "Scene/Registry/PendingDestroyComponent.hpp"
 #include "Scene/Registry/IDComponent.hpp"
 #include "Scene/Registry/NameComponent.hpp"
 
@@ -17,7 +17,7 @@ namespace Butterfly
 		
 	void Scene::DestroyPendingEntities()
 	{
-		auto view = m_entityRegistry.view<PendingDestroy>();
+		auto view = m_entityRegistry.view<PendingDestroyComponent>();
 
 		for (auto& entity : view)
 		{

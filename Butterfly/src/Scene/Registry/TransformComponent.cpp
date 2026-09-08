@@ -1,32 +1,32 @@
-#include "Scene/Registry/Transform.hpp"
+#include "Scene/Registry/TransformComponent.hpp"
 #include "Scene/Entity.hpp"
 
 namespace Butterfly
 {
-	void Transform::SetPosition(const glm::vec3& position)
+	void TransformComponent::SetPosition(const glm::vec3& position)
 	{
 		m_position = position;
 		InvalidateMatrix();
 	}
 
-	void Transform::SetRotation(const glm::quat& rotation)
+	void TransformComponent::SetRotation(const glm::quat& rotation)
 	{
 		m_rotation = rotation;
 		InvalidateMatrix();
 	}
 
-	void Transform::SetScale(const glm::vec3& scale)
+	void TransformComponent::SetScale(const glm::vec3& scale)
 	{
 		m_scale = scale;
 		InvalidateMatrix();
 	}
 
-	void Transform::SetChild(Entity entity)
+	void TransformComponent::SetChild(Entity entity)
 	{
 		m_child = entity;
 	}
 
-	const glm::mat4& Transform::GetMatrix()
+	const glm::mat4& TransformComponent::GetMatrix()
 	{
 		if (m_isMatrixDirty)
 		{
@@ -37,7 +37,7 @@ namespace Butterfly
 
 			if (m_child)
 			{
-				Transform& tr = m_child.GetComponent<Transform>();
+				TransformComponent& tr = m_child.GetComponent<TransformComponent>();
 				m_matrix = tr.GetMatrix() * m_matrix;
 			}	
 
@@ -46,7 +46,7 @@ namespace Butterfly
 		return m_matrix;
 	}
 
-	void Transform::InvalidateMatrix()
+	void TransformComponent::InvalidateMatrix()
 	{
 		m_isMatrixDirty = true;
 	}

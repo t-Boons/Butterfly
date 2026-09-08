@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Common.hpp"
-#include "Scene/Registry/PendingDestroy.hpp"
+#include "Scene/Registry/PendingDestroyComponent.hpp"
 
 namespace Butterfly
 {
@@ -46,7 +46,7 @@ namespace Butterfly
 
 		void Destroy()
 		{
-			m_registry->emplace<PendingDestroy>(m_handle);
+			m_registry->emplace<PendingDestroyComponent>(m_handle);
 		}
 
 	private:

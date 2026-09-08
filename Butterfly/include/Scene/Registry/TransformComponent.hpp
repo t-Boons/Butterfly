@@ -6,7 +6,7 @@ namespace Butterfly
 {
 	class Entity;
 
-	class Transform
+	class TransformComponent
 	{
 	public:
 		void SetPosition(const glm::vec3& position);
