@@ -5,12 +5,4 @@
 
 namespace Butterfly
 {
-	std::vector<RefPtr<IAssetImporter>> IAssetImporter::CreateImporters()
-	{
-		std::vector<RefPtr<IAssetImporter>> importers;
-
-		importers.push_back(MakeRef< OBJImporter>());
-
-		return importers;
-	}
 }

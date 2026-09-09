@@ -4,13 +4,22 @@
 
 namespace Butterfly
 {
+	struct ImportedAsset
+	{
+		UUID ID;
+		AssetType Type;
+		std::shared_ptr<void> Data;
+	};
+
+	struct ImportResult
+	{
+		std::vector<ImportedAsset> Assets;
+	};
+
 	class IAssetImporter
 	{
 	public:
-		static std::vector<RefPtr<IAssetImporter>> CreateImporters();
-
-		virtual RefPtr<IAsset> Import(const std::filesystem::path& path) = 0;
-		virtual bool IsCorrectFileExtention(const std::string& fileExtention) = 0;
-		virtual std::string_view AssetType() = 0;
+		virtual ImportResult Import(const AssetMetadata& path) = 0;
+		virtual bool CanImport(const std::string& fileExtention) const = 0;
 	};
 }

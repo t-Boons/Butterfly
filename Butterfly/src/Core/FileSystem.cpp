@@ -99,4 +99,25 @@ namespace Butterfly
     {
         return path.parent_path() / (path.stem().string() + extention);
     }
+
+    std::vector<std::filesystem::path> FileSystem::WalkDirectoryRecursive(const std::filesystem::path& rootDir)
+    {
+        std::vector<std::filesystem::path> results;
+
+        if (!std::filesystem::exists(rootDir) || !std::filesystem::is_directory(rootDir))
+        {
+            BF_CORE_LOG_ERROR("%ls' is not a valid directory.", rootDir.c_str());
+            return results;
+        }
+
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(rootDir))
+        {
+            if (entry.is_regular_file())
+            {
+                results.push_back(entry.path());
+            }
+        }
+
+        return results;
+    }
 }

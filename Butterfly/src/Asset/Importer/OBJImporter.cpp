@@ -2,18 +2,14 @@
 
 namespace Butterfly
 {
-	bool OBJImporter::IsCorrectFileExtention(const std::string& fileExtention)
+	bool OBJImporter::CanImport(const std::string& fileExtention) const
 	{
 		return fileExtention == ".obj";
 	}
 
-	std::string_view OBJImporter::AssetType()
+	ImportResult OBJImporter::Import(const AssetMetadata& path)
 	{
-		return "Mesh";
-	}
-
-	RefPtr<IAsset> OBJImporter::Import(const std::filesystem::path& path)
-	{
-		return nullptr;
+		ImportResult ret;
+		return ret;
 	}
 }

@@ -14,6 +14,7 @@
 #include "Core/Time.hpp"
 
 // Asset types
+#include "Asset/AssetManager.hpp"
 #include "Asset/AssetRegistry.hpp"
 
 // Scene and Registry

@@ -10,7 +10,7 @@ namespace Butterfly
 	class Time;
 	class Scene;
 	class JobSystem;
-	class AssetRegistry;
+	class AssetManager;
 
 	class Application : public NonCopyable
 	{
@@ -25,7 +25,7 @@ namespace Butterfly
 		Time& GetTime() { return *m_time; }
 		Scene& GetScene() { return *m_scene; }
 		JobSystem& GetJobSystem() { return *m_jobSystem; }
-		AssetRegistry& GetAssetRegistry() { return *m_assetRegistry; }
+		AssetManager& GetAssetManager() { return *m_assetManager; }
 		Blackboard& GetBlackboard() { return *m_blackboard; }
 
 		template<typename T>
@@ -44,7 +44,7 @@ namespace Butterfly
 		Time* m_time;
 		Scene* m_scene;
 		JobSystem* m_jobSystem;
-		AssetRegistry* m_assetRegistry;
+		AssetManager* m_assetManager;
 		Blackboard* m_blackboard;
 	};
 }

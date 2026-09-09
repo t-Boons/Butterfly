@@ -6,7 +6,7 @@
 #include "Core/JobSystem.hpp"
 #include "Core/Time.hpp"
 #include "Scene/Scene.hpp"
-#include "Asset/AssetRegistry.hpp"
+#include "Asset/AssetManager.hpp"
 
 namespace Butterfly
 {
@@ -30,7 +30,7 @@ namespace Butterfly
 		m_time = new Time();
 		m_scene = new Scene();
 		m_jobSystem = new JobSystem();
-		m_assetRegistry = new AssetRegistry();
+		m_assetManager = new AssetManager();
 
 		for (auto& layer : m_layers)
 		{
