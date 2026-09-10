@@ -64,6 +64,8 @@ namespace Butterfly
 			indexOffset += vertexElementCount;
 		}
 
+		mesh->GPULoad();
+
 		ImportedAsset meshAsset;
 		meshAsset.Data = StaticCastRef<void>(mesh);
 		meshAsset.ID = path.ID;

@@ -29,7 +29,7 @@ namespace Butterfly
 	class BFTexture : public BFResource, private NonCopyable
 	{
 	public:
-		static RefPtr<BFTexture> CreateTextureFromCPUBuffer(const BFTextureDesc& desc, const void* data, const std::string& resourceTag);
+		static RefPtr<BFTexture> CreateTextureFromCPUBuffer(const BFTextureDesc& desc, const void* data);
 		static RefPtr<BFTexture> CreateTextureForGPU(const BFTextureDesc& desc);
 
 		~BFTexture();

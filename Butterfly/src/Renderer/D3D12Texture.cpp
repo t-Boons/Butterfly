@@ -47,7 +47,7 @@ namespace Butterfly
 
 	// Texture create functions.
 
-	RefPtr<BFTexture> BFTexture::CreateTextureFromCPUBuffer(const BFTextureDesc& desc, const void* data, const std::string& resourceTag)
+	RefPtr<BFTexture> BFTexture::CreateTextureFromCPUBuffer(const BFTextureDesc& desc, const void* data)
 	{
 		BF_PROFILE_EVENT("BFTexture::BFTexture (Texture upload)");
 
@@ -57,7 +57,7 @@ namespace Butterfly
 			.HeapType(D3D12_HEAP_TYPE_DEFAULT)
 			.InitialState(D3D12_RESOURCE_STATE_COPY_DEST)
 			.Texture2D(desc.Format, desc.Width, desc.Height)
-			.SetName(resourceTag)
+			.SetName(desc.DebugName)
 			.Create();
 
 

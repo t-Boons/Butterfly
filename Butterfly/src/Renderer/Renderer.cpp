@@ -26,6 +26,8 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_internal.h"
 
+#include "Asset/AssetManager.hpp"
+
 #include "../../../ButterflyEditor/src/Tools/Camera.hpp"
 
 namespace Butterfly
@@ -37,6 +39,16 @@ namespace Butterfly
 		// Create resouce cache.
 		m_blackBoard = ScopePtr<Blackboard>(new Blackboard());
 
+
+		BFTextureDesc desc;
+		desc.DebugName = "WhiteTexture";
+		desc.Width = 1;
+		desc.Height = 1;
+		desc.Flags = BFTextureDesc::ShaderResource;
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
+		std::vector<uint8_t> data = { 225, 225, 225, 225 };
+		m_whiteTexture = BFTexture::CreateTextureFromCPUBuffer(desc, data.data());
+
 		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy(); // Because ImGUI takes slot 0;
 
 		Application::Get().GetWindow().Events().OnWindowResize.Subscribe([=](const WindowResizeEvent& ev)
@@ -47,7 +59,7 @@ namespace Butterfly
 
 		Application::Get().GetWindow().Events().OnWindowRefresh.Subscribe([=](const WindowRefreshEvent&)
 			{
-				Render();
+				//Render();
 			});
 
 		FrameCreateData createData;
@@ -170,7 +182,6 @@ namespace Butterfly
 	struct UniformCameraData
 	{
 		glm::mat4 ViewProjection;
-		glm::mat4 Model;
 	};
 
 	void Renderer::InvalidateFrameDatas(const FrameCreateData& createData)
@@ -206,6 +217,15 @@ namespace Butterfly
 
 
 				viewport.UniformCameraDataViewIndex = viewport.Uniforms->AllocView(sizeof(UniformCameraData));
+
+				BFStructuredBufferDesc desc;
+				desc.Data = nullptr;
+				desc.HeapType = BFHeapType::Upload;
+				desc.NumElements = 64;
+				desc.Stride = sizeof(glm::mat4);
+				desc.DebugName = "ModelMatrices";
+
+				viewport.ModelMatrices = MakeRef<BFStructuredBuffer>(desc);
 			}
 		}
 	}
@@ -268,32 +288,36 @@ namespace Butterfly
 
 				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
 
+				uint32_t entityIndex = 0;
 				BFSampler sampler;
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 				for (auto [entity, transform, meshRenderer] : view.each())
 				{
-					if (!meshRenderer.m_meshLoaded)
-					{
-						continue;
-					}
-
 					UniformCameraData cameraData;
-					cameraData.Model = transform.GetMatrix();
 					cameraData.ViewProjection = Application::Get().GetBlackboard().Get<Camera>("ViewCamera")->ViewProjectionMatrix();
 
 					frameData.Viewports[viewportIndex].Uniforms->Write(&cameraData, sizeof(UniformCameraData), viewport.UniformCameraDataViewIndex);
 
+					const glm::mat4 model = transform.GetMatrix();
+					frameData.Viewports[viewportIndex].ModelMatrices->Write(&model, sizeof(glm::mat4), entityIndex * sizeof(glm::mat4));
+
+					AssetManager& as = Application::Get().GetAssetManager();
+					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.MeshHandle);
 					ShaderVariables()
-						.Add(meshRenderer.m_modelPositions->SRV().View())
-						.Add(meshRenderer.m_modelNormals->SRV().View())
-						.Add(meshRenderer.m_modelUVS->SRV().View())
+						.Add(mesh->GPUPositions->SRV().View())
+						.Add(mesh->GPUNormals->SRV().View())
+						.Add(mesh->GPUUVs->SRV().View())
 						.Add(frameData.Viewports[viewportIndex].Uniforms->GetView(viewport.UniformCameraDataViewIndex)->View())
 						.Add(sampler.View())
-						.Add(meshRenderer.m_modelAlbedo->SRV().View())
+						.Add(m_whiteTexture->SRV().View())
+						.Add(frameData.Viewports[viewportIndex].ModelMatrices->SRV().View())
+						.Add(entityIndex)
 						.Submit(list);
 
-					list.List()->IASetIndexBuffer(&meshRenderer.m_modelIndices->IBV());
-					list.List()->DrawIndexedInstanced(meshRenderer.m_modelIndices->NumElements(), 1, 0, 0, 0);
+					list.List()->IASetIndexBuffer(&mesh->GPUIndices->IBV());
+					list.List()->DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);
+
+					entityIndex++;
 				}
 			});
 

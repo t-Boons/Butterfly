@@ -1,7 +1,11 @@
 struct Uniforms
 {
     float4x4 ViewProjection;
-    float4x4 Model;
+};
+
+struct ModelMatrix
+{
+    float4x4 modelMatrix;
 };
 
 struct BufferIndices
@@ -12,6 +16,8 @@ struct BufferIndices
     int uniformIndex;
     int samplerIndex;
     int textureIndex;
+    int modelIndex;
+    int entityIndex;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
@@ -32,15 +38,16 @@ V2P main(uint vertexID : SV_VertexID)
     StructuredBuffer<float3> normals = ResourceDescriptorHeap[resources.normalBuffer];
     StructuredBuffer<float2> texcoords = ResourceDescriptorHeap[resources.texcoordBuffer];
     ConstantBuffer<Uniforms> uniforms = ResourceDescriptorHeap[resources.uniformIndex];
+    StructuredBuffer<ModelMatrix> modelMatrices = ResourceDescriptorHeap[resources.modelIndex];
     
-    float4x4 MVP = mul(uniforms.ViewProjection, uniforms.Model);
+    float4x4 MVP = mul(uniforms.ViewProjection, modelMatrices[resources.entityIndex].modelMatrix);
     
     V2P output;
     output.position = mul(MVP, float4(position[vertexID], 1.0));
-    output.normal = normalize(mul((float3x3) uniforms.Model, normals[vertexID]));
+    output.normal = normalize(mul((float3x3) modelMatrices[resources.entityIndex].modelMatrix, normals[vertexID]));
     output.texCoord = texcoords[vertexID];
     output.samplerIndex = resources.samplerIndex;
     output.textureIndex = resources.textureIndex;
-    output.fragPos = mul(uniforms.Model, float4(position[vertexID], 1.0)).xyz;
+    output.fragPos = mul(modelMatrices[resources.entityIndex].modelMatrix, float4(position[vertexID], 1.0)).xyz;
     return output;
 }

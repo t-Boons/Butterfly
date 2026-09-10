@@ -18,6 +18,12 @@ namespace Butterfly
 
             if (!s_vertBuffer)
             {
+                BFStructuredBufferDesc desc;
+                desc.HeapType = BFHeapType::Default;
+                desc.Data = &s_vertices[0];
+                desc.DebugName = "FullscreenQuad Vertexbuffer";
+                desc.NumElements = 4;
+
                 D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
                 srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
                 srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -27,7 +33,7 @@ namespace Butterfly
                 srvDesc.Buffer.StructureByteStride = sizeof(Vertex);
                 srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-                s_vertBuffer = new BFStructuredBuffer(&s_vertices[0], static_cast<uint32_t>(sizeof(s_vertices)), &srvDesc, "FullscreenQuad Vertexbuffer");
+                s_vertBuffer = new BFStructuredBuffer(desc);
             }
             return s_vertBuffer;
         }

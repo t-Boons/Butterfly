@@ -21,63 +21,78 @@ namespace Butterfly
         }
     }
 
-    BFStructuredBuffer::BFStructuredBuffer(const void* src, uint32_t numBytes, D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc, const std::string& resourceTag)
-        : m_srv(nullptr)
+    BFStructuredBuffer::BFStructuredBuffer(const BFStructuredBufferDesc& bufferDesc)
+        : m_srv(nullptr), m_desc(bufferDesc)
     {
         BF_PROFILE_EVENT();
 
-        BF_CORE_ASSERT(src, "Structured buffer pointer is nullptr.");
+        BF_CORE_ASSERT(!(m_desc.HeapType == BFHeapType::Default && !m_desc.Data), "BFStructuredBuffer::BFStructuredBuffer Structured buffer with HeapType::Default, cannot have its Data be null");
 
-        m_numBytes = numBytes;
+        D3D12_HEAP_TYPE heapType = D3D12_HEAP_TYPE_DEFAULT;
 
-        D3D12Resource* uploadResource = DX12ResourceBuilder()
-            .HeapType(D3D12_HEAP_TYPE_UPLOAD)
-            .InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
-            .Buffer(numBytes)
-            .SetName(resourceTag + " intermediate upload resource.")
-            .Create()
-            ->Write(src, numBytes);
+        if (bufferDesc.HeapType == BFHeapType::Upload) heapType = D3D12_HEAP_TYPE_UPLOAD;
+        if (bufferDesc.HeapType == BFHeapType::Default) heapType = D3D12_HEAP_TYPE_DEFAULT;
 
+        const uint32_t numBytes = bufferDesc.NumElements * bufferDesc.Stride;
 
         m_resource = DX12ResourceBuilder()
-            .HeapType(D3D12_HEAP_TYPE_DEFAULT)
+            .HeapType(heapType)
             .InitialState(D3D12_RESOURCE_STATE_COMMON)
             .Buffer(numBytes)
-            .SetName(resourceTag)
+            .SetName(bufferDesc.DebugName)
             .Create();
 
-        D3D12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
+        if (bufferDesc.Data)
+        {
+            D3D12Resource* uploadResource = DX12ResourceBuilder()
+                .HeapType(D3D12_HEAP_TYPE_UPLOAD)
+                .InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
+                .Buffer(numBytes)
+                .SetName(bufferDesc.DebugName + " intermediate upload resource.")
+                .Create()
+                ->Write(bufferDesc.Data, numBytes);
 
-        m_resource->Transition(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
-        copyList.List()->CopyResource(m_resource->HwResource, uploadResource->HwResource);
-        copyList.Close();
-        D3D12API()->Queue(QueueType::Copy)->Execute(copyList);
-        D3D12API()->Queue(QueueType::Copy)->WaitForFence();
+            D3D12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
 
-        D3D12CommandList transitionList;
-        m_resource->Transition(transitionList, D3D12_RESOURCE_STATE_GENERIC_READ);
+            m_resource->Transition(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
+            copyList.List()->CopyResource(m_resource->HwResource, uploadResource->HwResource);
+            copyList.Close();
+            D3D12API()->Queue(QueueType::Copy)->Execute(copyList);
+            D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
-        transitionList.Close();
-        D3D12API()->Queue(QueueType::Direct)->Execute(transitionList);
-        D3D12API()->Queue(QueueType::Direct)->WaitForFence();
+            D3D12CommandList transitionList;
+            m_resource->Transition(transitionList, D3D12_RESOURCE_STATE_GENERIC_READ);
 
-        if (srvDesc) m_srv = new BFShaderResourceView(*m_resource, *srvDesc);
+            transitionList.Close();
+            D3D12API()->Queue(QueueType::Direct)->Execute(transitionList);
+            D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 
+            FREE(uploadResource);
+        }
 
-        FREE(uploadResource);
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+        srvDesc.Buffer.FirstElement = 0;
+        srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+        srvDesc.Buffer.StructureByteStride = bufferDesc.Stride;
+        srvDesc.Buffer.NumElements = bufferDesc.NumElements;
+
+        m_srv = new BFShaderResourceView(*m_resource, srvDesc);
     }
 
     BFStructuredBuffer::~BFStructuredBuffer()
     {
         BF_PROFILE_EVENT()
 
-            FREE(m_srv);
+        FREE(m_srv);
         FREE(m_resource);
     }
 
-    void BFStructuredBuffer::Write(const void* src, uint32_t numBytes)
+    void BFStructuredBuffer::Write(const void* src, uint32_t numBytes, uint32_t offset)
     {
-        m_resource->Write(src, numBytes);
+        m_resource->Write(src, numBytes, offset);
     }
 
     ID3D12Resource2* BFStructuredBuffer::Resource() const

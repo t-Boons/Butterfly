@@ -9,14 +9,28 @@ namespace Butterfly
 	class BFShaderResourceView;
 	class BFUniformBufferView;
 
+	enum class BFHeapType
+	{
+		Default, Upload
+	};
+
+	struct BFStructuredBufferDesc
+	{
+		uint32_t NumElements = 0;
+		uint32_t Stride = 0;
+		void* Data = nullptr;
+		BFHeapType HeapType = BFHeapType::Default;
+		std::string DebugName = "StructuredBuffer";
+	};
+
 	class BFStructuredBuffer : public BFResource, private NonCopyable
 	{
 	public:
-		BFStructuredBuffer(const void* src, uint32_t numBytes, D3D12_SHADER_RESOURCE_VIEW_DESC* srv, const std::string& resourceTag);
+		BFStructuredBuffer(const BFStructuredBufferDesc& bufferDesc);
 		~BFStructuredBuffer();
 
-		uint32_t NumBytes() const { return m_numBytes; }
-		void Write(const void* src, uint32_t numBytes);
+		uint32_t NumBytes() const { return m_desc.NumElements * m_desc.Stride; }
+		void Write(const void* src, uint32_t numBytes, uint32_t offset = 0);
 
 		ID3D12Resource2* Resource() const;
 		D3D12Resource& DXResource() const;
@@ -24,8 +38,8 @@ namespace Butterfly
 
 	private:
 		D3D12Resource* m_resource;
-		uint32_t m_numBytes;
 		BFShaderResourceView* m_srv;
+		BFStructuredBufferDesc m_desc;
 	};
 
 	class BFUniformBuffer : public BFResource, private NonCopyable

@@ -21,6 +21,8 @@ namespace Butterfly
 		RefPtr<BFUniformBuffer> Uniforms;
 
 		uint32_t UniformCameraDataViewIndex;
+
+		RefPtr<BFStructuredBuffer> ModelMatrices;
 	};
 
 	struct FrameData
@@ -74,5 +76,7 @@ namespace Butterfly
 		glm::ivec2 m_resizeSize;
 
 		uint32_t m_numViewports = 1;
+
+		RefPtr<BFTexture> m_whiteTexture;
 	};
 }

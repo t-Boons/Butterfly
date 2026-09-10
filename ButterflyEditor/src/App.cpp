@@ -21,12 +21,6 @@ namespace Butterfly
 			});
 
 		Application::Get().GetRenderer().OnImGUIRender.Subscribe(BF_BIND_FUNC(&SandboxLayer::ImGUIRender));
-
-		model = Application::Get().GetScene().CreateEntity();
-
-		model.AddComponent<TransformComponent>();
-		model.AddComponent<MeshRendererComponent>();
-		model.GetComponent<MeshRendererComponent>().LoadTestModel();
 	}
 
 	void SandboxLayer::OnTick()
@@ -41,15 +35,18 @@ namespace Butterfly
 
 		if (m_input.IsKeyPressed(BFB_R))
 		{
-			m_modelMovementTime += Application::Get().GetTime().DeltaTime();
+			if (model)
+			{
+				m_modelMovementTime += Application::Get().GetTime().DeltaTime();
 
-			TransformComponent& tr = model.GetComponent<TransformComponent>();
+				TransformComponent& tr = model.GetComponent<TransformComponent>();
 
-			glm::vec3 position = tr.GetPosition();
-			position.y = glm::sin(m_modelMovementTime * 3);
-			tr.SetPosition(position);
+				glm::vec3 position = tr.GetPosition();
+				position.y = glm::sin(m_modelMovementTime * 3);
+				tr.SetPosition(position);
 
-			tr.SetRotation(glm::quat(glm::vec3(0.0f, m_modelMovementTime * 5, 0.0f)));
+				tr.SetRotation(glm::quat(glm::vec3(0.0f, m_modelMovementTime * 5, 0.0f)));
+			}
 		}
 
 		m_input.Poll();
@@ -121,42 +118,52 @@ namespace Butterfly
 
 			ImGui::Begin("Properties");
 
-			TransformComponent& tr = model.GetComponent<TransformComponent>();
-
-			if (ImGui::CollapsingHeader("TransformComponent", ImGuiTreeNodeFlags_DefaultOpen))
+			if (model)
 			{
-				ImGui::PushID("TransformComponent");
+				TransformComponent& tr = model.GetComponent<TransformComponent>();
 
-				glm::vec3 position = tr.GetPosition();
-				if (DrawVec3Control("Position", position, 0.0f, 0.1f))
+				if (ImGui::CollapsingHeader("TransformComponent", ImGuiTreeNodeFlags_DefaultOpen))
 				{
-					tr.SetPosition(position);
+					ImGui::PushID("TransformComponent");
+
+					glm::vec3 position = tr.GetPosition();
+					if (DrawVec3Control("Position", position, 0.0f, 0.1f))
+					{
+						tr.SetPosition(position);
+					}
+
+
+					glm::vec3 eulerRotation = glm::degrees(glm::eulerAngles(tr.GetRotation()));
+					if (DrawVec3Control("Rotation", eulerRotation, 0.0f, 0.5f))
+					{
+						tr.SetRotation(glm::quat(glm::radians(eulerRotation)));
+					}
+
+
+					glm::vec3 scale = tr.GetScale();
+					if (DrawVec3Control("Scale", scale, 1.0f, 0.05f, 0.0001f, 0.0f))
+					{
+						tr.SetScale(scale);
+					}
+
+					ImGui::PopID();
 				}
+			
 
+				MeshRendererComponent& mr = model.GetComponent<MeshRendererComponent>();
 
-				glm::vec3 eulerRotation = glm::degrees(glm::eulerAngles(tr.GetRotation()));
-				if (DrawVec3Control("Rotation", eulerRotation, 0.0f, 0.5f))
+				if (ImGui::CollapsingHeader("MeshRenderer", ImGuiTreeNodeFlags_DefaultOpen))
 				{
-					tr.SetRotation(glm::quat(glm::radians(eulerRotation)));
+					ImGui::PushID("MeshRenderer");
+
+					AssetMetadata meta;
+					if (Application::Get().GetAssetManager().GetAssetRegistry().Find(mr.MeshHandle.ID, meta))
+					{
+						ImGui::Text("%s", std::filesystem::path(meta.Path).stem().string().c_str());
+					}
+
+					ImGui::PopID();
 				}
-
-
-				glm::vec3 scale = tr.GetScale();
-				if (DrawVec3Control("Scale", scale, 1.0f, 0.05f, 0.0001f, 0.0f))
-				{
-					tr.SetScale(scale);
-				}
-
-				ImGui::PopID();
-			}
-
-			MeshRendererComponent& mr = model.GetComponent<MeshRendererComponent>();
-
-			if (ImGui::CollapsingHeader("MeshRenderer", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				ImGui::PushID("MeshRenderer");
-				ImGui::Text("Nothing to see here");
-				ImGui::PopID();
 			}
 
 			ImGui::End();
@@ -218,7 +225,11 @@ namespace Butterfly
 						AssetHandle<MeshAsset> objMesh = Application::Get().GetAssetManager().Acquire<MeshAsset>(meta.ID);
 						MeshAsset* asset = Application::Get().GetAssetManager().Resolve(objMesh);
 
-						BF_LOG_TRACE("%s", std::to_string(asset->Indices.size()));
+						model = Application::Get().GetScene().CreateEntity();
+
+						model.AddComponent<TransformComponent>();
+						model.AddComponent<MeshRendererComponent>();
+						model.GetComponent<MeshRendererComponent>().MeshHandle = objMesh;
 					}
 
 					std::string name = std::filesystem::path(meta.Path).filename().string();
