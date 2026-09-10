@@ -22,3 +22,7 @@ target_compile_definitions(Butterfly PRIVATE
 target_compile_definitions(ButterflyEditor PRIVATE
     $<$<CONFIG:RelWithProfiling>:REL_WITH_PROFILING>
 )
+
+target_link_options(ButterflyEditor PRIVATE
+    "/WHOLEARCHIVE:Butterfly"
+)

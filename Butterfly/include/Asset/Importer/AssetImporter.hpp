@@ -4,6 +4,19 @@
 
 namespace Butterfly
 {
+#define BF_ASSET_IMPORTER(type)							\
+	template<typename T>								\
+	struct ImporterRegistrar							\
+	{													\
+		ImporterRegistrar()								\
+		{												\
+			AssetManager::RegisterImporter<T>();		\
+		}												\
+	};													\
+														\
+	static ImporterRegistrar<type> s_##type##Importer;
+
+
 	struct ImportedAsset
 	{
 		AssetType Type;

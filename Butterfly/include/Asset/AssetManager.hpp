@@ -22,19 +22,29 @@ namespace Butterfly
         template<typename T>
         AssetHandle<T> Acquire(const UUID& id);
 
-        const std::vector<RefPtr<IAssetImporter>>& GetImporters() const { return m_importers; }
+        const std::vector<RefPtr<IAssetImporter>>& GetImporters() const { return s_importers; }
 
 
     private:
         template<typename T>
         friend class AssetHandle;
 
+
+        template<typename T>
+        friend class ImporterRegistrar;
+
+        template<typename T>
+        static void RegisterImporter()
+        {
+            BF_CORE_LOG_INFO("Registering Asset Importer: %s", typeid(T).name());
+            s_importers.push_back(MakeRef<T>());
+        }
+
         void AddRef(const UUID& id);
         void SubtractRef(const UUID& id);
 
-
+        inline static std::vector<RefPtr<IAssetImporter>> s_importers;
         AssetRegistry m_assetRegistry;
-        std::vector<RefPtr<IAssetImporter>> m_importers;
         std::unordered_map<UUID, AssetEntry> m_entries;
 	};
 
@@ -62,7 +72,7 @@ namespace Butterfly
         }
 
         IAssetImporter* importer = nullptr;
-        for (auto& im : m_importers)
+        for (auto& im : s_importers)
         {
             if (im->CanImport(meta.Extention))
             {

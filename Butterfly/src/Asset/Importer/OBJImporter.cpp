@@ -4,6 +4,8 @@
 
 namespace Butterfly
 {
+	BF_ASSET_IMPORTER(OBJImporter);
+
 	bool OBJImporter::CanImport(const std::string& fileExtention) const
 	{
 		return fileExtention == ".obj";
