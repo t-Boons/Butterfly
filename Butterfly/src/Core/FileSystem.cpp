@@ -57,19 +57,50 @@ namespace Butterfly
 
     bool FileSystem::Copy(const std::filesystem::path& source, const std::filesystem::path& dest)
     {
-        std::ifstream  src(source, std::ios::binary);
+        std::ifstream src(source, std::ios::binary);
 
         if (!src.is_open())
         {
-            BF_CORE_LOG_WARN("File does not exist: %ls. Cannot copy file to %ls.", source.c_str(), dest.c_str());
+            BF_CORE_LOG_WARN("Failed to open source file: %ls", source.c_str());
             return false;
         }
 
-        BF_CORE_LOG_TRACE("Copied file: %ls to %ls", source.c_str(), dest.c_str());
+        std::ofstream dst(dest, std::ios::binary | std::ios::trunc);
 
-        std::ofstream  dst(dest, std::ios::binary);
+        if (!dst.is_open())
+        {
+            BF_CORE_LOG_WARN("Failed to open destination file: %ls",dest.c_str());
+            return false;
+        }
 
         dst << src.rdbuf();
+
+        if (src.bad())
+        {
+            BF_CORE_LOG_WARN("Failed while reading source file: %ls", source.c_str());
+            return false;
+        }
+
+        if (dst.fail())
+        {
+            BF_CORE_LOG_WARN("Failed while writing destination file: %ls", dest.c_str());
+            return false;
+        }
+
+        dst.close();
+
+        if (dst.fail())
+        {
+            BF_CORE_LOG_WARN("Failed to finalize destination file: %ls", dest.c_str());
+            return false;
+        }
+
+        BF_CORE_LOG_TRACE(
+            "Copied file: %ls to %ls",
+            source.c_str(),
+            dest.c_str()
+        );
+
         return true;
     }
 

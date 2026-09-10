@@ -16,6 +16,7 @@
 // Asset types
 #include "Asset/AssetManager.hpp"
 #include "Asset/AssetRegistry.hpp"
+#include "Asset/AssetTypes.hpp"
 
 // Scene and Registry
 #include "Scene/Scene.hpp"

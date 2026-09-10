@@ -6,12 +6,6 @@
 
 namespace Butterfly
 {
-    template<typename T>
-    class AssetHandle
-    {
-    public:
-        UUID ID;
-    };
 
 	class AssetManager : public NonCopyableNonMoveable
 	{
@@ -33,8 +27,9 @@ namespace Butterfly
         {
             auto& entry = m_entries[id];
 
-            const AssetMetadata* meta = m_assetRegistry.Find(id);
-            if (!meta)
+            AssetMetadata meta;
+             
+            if (!m_assetRegistry.Find(id, meta))
             {
                 BF_CORE_LOG_ERROR("Meta for ID: %s cannot be found", id.ToString());
                 return {};
@@ -43,30 +38,32 @@ namespace Butterfly
             IAssetImporter* importer = nullptr;
             for (auto& im : m_importers)
             {
-                if (im->CanImport(meta->Extention))
+                if (im->CanImport(meta.Extention))
                 {
-                    importer = im;
+                    importer = im.get();
                     break;
                 }
             }
 
             if (!importer)
             {
-                BF_CORE_LOG_ERROR("No Importer found for filetype: %s", meta->Extention);
+                BF_CORE_LOG_ERROR("No Importer found for filetype: %s", meta.Extention);
                 return {};
             }
 
-            ImportResult result = importer->Import(meta);
+			ImportResult result;
+			if (!importer->Import(meta, result))
+			{
+                BF_CORE_LOG_ERROR("Import for ID failed: %s", meta.ID.ToString());
+                return {};
+			}
 
             entry.RefCount++;
 
-            for (auto& asset : result.Assets)
-            {
-                auto& e = m_entries[asset.ID];
-                e.ID = asset.ID;
-                e.Data = asset.Data;
-                e.Type = asset.Type;
-            }
+            auto& e = m_entries[result.Asset.ID];
+            e.ID = result.Asset.ID;
+            e.Data = result.Asset.Data;
+            e.Type = result.Asset.Type;
 
             return AssetHandle<T>(id);
         }

@@ -170,8 +170,7 @@ namespace Butterfly
 			ImGui::Separator();
 			ImGui::Spacing();
 
-			// --- Grid sizing, Explorer-style: fixed cell size, columns computed from available width ---
-			const float cellSize = 96.0f;       // icon + label footprint per item
+			const float cellSize = 96.0f;
 			const float cellPadding = 8.0f;
 			const float iconSize = 64.0f;
 
@@ -181,7 +180,8 @@ namespace Butterfly
 
 			ImGui::BeginChild("AssetGrid", ImVec2(0, 0), true);
 
-			if (ImGui::BeginTable("AssetGridTable", columnCount, ImGuiTableFlags_SizingFixedFit)) {
+			if (ImGui::BeginTable("AssetGridTable", columnCount, ImGuiTableFlags_SizingFixedFit))
+			{
 				int i = 0;
 				for (auto& [id, meta] : Application::Get().GetAssetManager().GetAssetRegistry().GetAll())
 				{
@@ -189,25 +189,39 @@ namespace Butterfly
 					ImGui::PushID((int)std::hash<Butterfly::UUID>()(id));
 
 					ImVec2 cellStart = ImGui::GetCursorScreenPos();
+					float cellHeight = iconSize + 32.0f;
+
+					ImGui::InvisibleButton("##cell", ImVec2(cellSize, cellHeight));
+					const bool hovered = ImGui::IsItemHovered();
+					const bool doubleClicked = hovered && ImGui::IsMouseDoubleClicked(0);
 
 					ImDrawList* dl = ImGui::GetWindowDrawList();
 					ImU32 iconColor = ImColor(10, 20, 50);
 					float iconOffsetX = (cellSize - iconSize) * 0.5f;
 
-					dl->AddRectFilled(ImVec2(cellStart.x + iconOffsetX, cellStart.y), ImVec2(cellStart.x + iconOffsetX + iconSize, cellStart.y + iconSize), iconColor, 4.0f);
+					dl->AddRectFilled(
+						ImVec2(cellStart.x + iconOffsetX, cellStart.y),
+						ImVec2(cellStart.x + iconOffsetX + iconSize, cellStart.y + iconSize),
+						iconColor, 4.0f);
 
-
-					bool hovered = ImGui::IsItemHovered();
-
-					if (hovered) {
+					if (hovered)
+					{
 						dl->AddRect(
 							ImVec2(cellStart.x, cellStart.y),
-							ImVec2(cellStart.x + cellSize, cellStart.y + iconSize + 32.0f),
+							ImVec2(cellStart.x + cellSize, cellStart.y + cellHeight),
 							IM_COL32(255, 255, 255, 40), 4.0f
 						);
 					}
 
-					std::string name = std::filesystem::path(meta.Path).stem().string();
+					if (doubleClicked)
+					{
+						AssetHandle<MeshAsset> objMesh = Application::Get().GetAssetManager().Acquire<MeshAsset>(meta.ID);
+						MeshAsset* asset = Application::Get().GetAssetManager().Resolve(objMesh);
+
+						BF_LOG_TRACE("%s", std::to_string(asset->Indices.size()));
+					}
+
+					std::string name = std::filesystem::path(meta.Path).filename().string();
 					float textWidth = ImGui::CalcTextSize(name.c_str()).x;
 					float textOffsetX = (cellSize - std::min(textWidth, cellSize)) * 0.5f;
 
@@ -223,7 +237,7 @@ namespace Butterfly
 			}
 
 			ImGui::EndChild();
-			ImGui::End();
+			ImGui::End();    
 		}
 
 		{

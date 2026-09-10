@@ -13,7 +13,7 @@ namespace Butterfly
 		bool ImportFromDisk(const std::filesystem::path& file, AssetMetadata& meta);
 
 		void Scan();
-		AssetMetadata Find(const UUID& id) const;
+		bool Find(const UUID& id, AssetMetadata& meta) const;
 		const std::unordered_map<UUID, AssetMetadata>& GetAll() const { return m_registeredAssets; }
 	private:
 		AssetMetadata WriteNewMetaForFile(const std::filesystem::path& file) const;

@@ -1,5 +1,4 @@
 #pragma once
-#include "tinyobj/tiny_obj_loader.h" 
 #include "Asset/Importer/AssetImporter.hpp"
 
 namespace Butterfly
@@ -7,7 +6,7 @@ namespace Butterfly
 	class OBJImporter : public IAssetImporter
 	{
 	public:
-		virtual ImportResult Import(const AssetMetadata& path);
+		virtual bool Import(const AssetMetadata& path, ImportResult& ret) const;
 		bool CanImport(const std::string& fileExtention) const override;
 	};
 }

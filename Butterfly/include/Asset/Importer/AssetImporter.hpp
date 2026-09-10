@@ -13,13 +13,13 @@ namespace Butterfly
 
 	struct ImportResult
 	{
-		std::vector<ImportedAsset> Assets;
+		ImportedAsset Asset;
 	};
 
 	class IAssetImporter
 	{
 	public:
-		virtual ImportResult Import(const AssetMetadata& path) = 0;
+		virtual bool Import(const AssetMetadata& path, ImportResult& ret) const = 0;
 		virtual bool CanImport(const std::string& fileExtention) const = 0;
 	};
 }

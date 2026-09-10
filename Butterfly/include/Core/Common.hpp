@@ -23,6 +23,7 @@
 #include <string>
 #include <any>
 #include <exception>
+#include <numeric>
 
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"
@@ -74,5 +75,17 @@ namespace Butterfly
     inline uint32_t Align256(uint32_t size)
     {
         return (size + 255) & ~255u;
+    }
+
+    template <typename T, typename... Args>
+    inline RefPtr<T> StaticCastRef(Args&&... args)
+    {
+        return std::static_pointer_cast<T>(std::forward<Args>(args)...);
+    }
+
+    template <typename T, typename... Args>
+    inline RefPtr<T> DynamicCastRef(Args&&... args)
+    {
+        return std::static_pointer_cast<T>(std::forward<Args>(args)...);
     }
 }

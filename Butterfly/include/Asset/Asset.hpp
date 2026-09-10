@@ -5,6 +5,13 @@
 
 namespace Butterfly
 {
+	template<typename T>
+	class AssetHandle
+	{
+	public:
+		UUID ID;
+	};
+
 	struct AssetType
 	{
 		std::string TypeName;
