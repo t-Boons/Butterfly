@@ -293,6 +293,11 @@ namespace Butterfly
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 				for (auto [entity, transform, meshRenderer] : view.each())
 				{
+					if(!meshRenderer.MeshHandle.GetID())
+					{
+						continue;
+					}
+
 					UniformCameraData cameraData;
 					cameraData.ViewProjection = Application::Get().GetBlackboard().Get<Camera>("ViewCamera")->ViewProjectionMatrix();
 

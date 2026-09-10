@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Common.hpp"
-#include "Asset/Asset.hpp"
+#include "Asset/AssetHandle.hpp"
 #include "Renderer/D3D12Buffer.hpp"
 
 namespace Butterfly

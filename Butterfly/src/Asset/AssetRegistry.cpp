@@ -30,6 +30,7 @@ namespace Butterfly
 
 	bool AssetRegistry::Find(const UUID& id, AssetMetadata& out) const
 	{
+		if (!id) return false;
 		auto it = m_registeredAssets.find(id);
 		if (it == m_registeredAssets.end())
 		{

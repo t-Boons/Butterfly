@@ -21,9 +21,10 @@ add_library(Butterfly STATIC
     src/Scene/Scene.cpp
     src/Scene/Registry/TransformComponent.cpp
 
+    src/Asset/Asset.cpp
     src/Asset/AssetRegistry.cpp
     src/Asset/AssetManager.cpp
-    src/Asset/Importer/Assetimporter.cpp
+    src/Asset/Importer/AssetImporter.cpp
     src/Asset/Importer/OBJImporter.cpp
 
     src/Renderer/Renderer.cpp

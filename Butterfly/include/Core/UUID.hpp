@@ -5,18 +5,20 @@ namespace Butterfly
 {
 	struct UUID
 	{
+	public:
 		static UUID Generate();
 		static UUID FromString(const std::string& str);
-		std::string ToString() const;
 
-		bool operator==(const UUID& other) const {
-			return m_high == other.m_high && m_low == other.m_low;
-		}
+		UUID();
+		std::string ToString() const;
+		bool Valid() const;
+		bool operator==(const UUID& other) const;
+		explicit operator bool() const;
 
 	private:
 		friend struct std::hash<UUID>;
-		uint64_t m_high;
-		uint64_t m_low;
+		uint64_t m_high = 0;
+		uint64_t m_low = 0;
 	};
 }
 

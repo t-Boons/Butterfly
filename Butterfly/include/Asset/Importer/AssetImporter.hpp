@@ -6,7 +6,6 @@ namespace Butterfly
 {
 	struct ImportedAsset
 	{
-		UUID ID;
 		AssetType Type;
 		std::shared_ptr<void> Data;
 	};

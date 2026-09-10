@@ -33,6 +33,14 @@ namespace Butterfly
 			Application::Get().GetWindow().SetFullscreen(!Application::Get().GetWindow().Fullscreen());
 		}
 
+		if (m_input.IsKeyDown(BFB_T))
+		{
+			model = Application::Get().GetScene().CreateEntity();
+
+			model.AddComponent<TransformComponent>();
+			model.AddComponent<MeshRendererComponent>();
+		}
+
 		if (m_input.IsKeyPressed(BFB_R))
 		{
 			if (model)
@@ -127,21 +135,21 @@ namespace Butterfly
 					ImGui::PushID("TransformComponent");
 
 					glm::vec3 position = tr.GetPosition();
-					if (DrawVec3Control("Position", position, 0.0f, 0.1f))
+					if (ImGUIHelpers::DrawVec3Control("Position", position))
 					{
 						tr.SetPosition(position);
 					}
 
 
 					glm::vec3 eulerRotation = glm::degrees(glm::eulerAngles(tr.GetRotation()));
-					if (DrawVec3Control("Rotation", eulerRotation, 0.0f, 0.5f))
+					if (ImGUIHelpers::DrawVec3Control("Rotation", eulerRotation))
 					{
 						tr.SetRotation(glm::quat(glm::radians(eulerRotation)));
 					}
 
 
 					glm::vec3 scale = tr.GetScale();
-					if (DrawVec3Control("Scale", scale, 1.0f, 0.05f, 0.0001f, 0.0f))
+					if (ImGUIHelpers::DrawVec3Control("Scale", scale, 1.0f))
 					{
 						tr.SetScale(scale);
 					}
@@ -156,10 +164,25 @@ namespace Butterfly
 				{
 					ImGui::PushID("MeshRenderer");
 
+					ImGui::Button("Drop mesh here", ImVec2(200.0f, 40.0f));
+					if (ImGui::BeginDragDropTarget())
+					{
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET"))
+						{
+							mr.MeshHandle = Application::Get().GetAssetManager().Acquire<MeshAsset>(*(UUID*)payload->Data);
+						}
+
+						ImGui::EndDragDropTarget();
+					}
+
 					AssetMetadata meta;
-					if (Application::Get().GetAssetManager().GetAssetRegistry().Find(mr.MeshHandle.ID, meta))
+					if (Application::Get().GetAssetManager().GetAssetRegistry().Find(mr.MeshHandle.GetID(), meta))
 					{
 						ImGui::Text("%s", std::filesystem::path(meta.Path).stem().string().c_str());
+					}
+					else
+					{
+						ImGui::Text("%s", "No Reference");
 					}
 
 					ImGui::PopID();
@@ -210,6 +233,21 @@ namespace Butterfly
 						ImVec2(cellStart.x + iconOffsetX, cellStart.y),
 						ImVec2(cellStart.x + iconOffsetX + iconSize, cellStart.y + iconSize),
 						iconColor, 4.0f);
+
+					if (ImGui::BeginDragDropSource())
+					{
+						UUID id = meta.ID;
+
+						ImGui::SetDragDropPayload(
+							"ASSET",
+							&id,
+							sizeof(UUID)
+						);
+
+						ImGui::Text("Dragging %s", std::filesystem::path(meta.Path).filename().string().c_str());
+
+						ImGui::EndDragDropSource();
+					}
 
 					if (hovered)
 					{

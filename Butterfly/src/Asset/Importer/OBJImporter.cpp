@@ -68,7 +68,6 @@ namespace Butterfly
 
 		ImportedAsset meshAsset;
 		meshAsset.Data = StaticCastRef<void>(mesh);
-		meshAsset.ID = path.ID;
 		meshAsset.Type = { "Mesh" };
 		ret.Asset = meshAsset;
 
