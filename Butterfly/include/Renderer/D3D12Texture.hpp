@@ -57,4 +57,105 @@ namespace Butterfly
 		BFRenderTargetView* m_rtv = nullptr;
 		BFShaderResourceView* m_srv = nullptr;
 	};
+
+	class BFTextureReadback
+	{
+	public:
+		BFTextureReadback(const RefPtr<BFTexture>& texture)
+			: m_texture(texture)
+		{
+			const auto desc = m_texture->Resource()->HwResource->GetDesc();
+
+			D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
+			UINT numRows = 0;
+			UINT64 rowSize = 0;
+			UINT64 totalSize = 0;
+			D3D12API()->Device()->GetCopyableFootprints(
+				&desc,
+				0,
+				1,
+				0,
+				&footprint,
+				&numRows,
+				&rowSize,
+				&totalSize
+			);
+
+			m_readbackBuffer = DX12ResourceBuilder()
+				.HeapType(D3D12_HEAP_TYPE_READBACK)
+				.Buffer(totalSize)
+				.SetName("ReadbackBuffer")
+				.Create();
+		}
+
+		bool IsReady() const
+		{
+			return m_isReady;
+		}
+
+		void Reset()
+		{
+			m_isReady = false;
+		}
+
+		void MarkReady()
+		{
+			m_isReady = true;
+		}
+
+		void ReadbackCopy(D3D12CommandList& list)
+		{
+			D3D12Resource* src = m_texture->Resource();
+
+			const auto desc = src->HwResource->GetDesc();
+
+			D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
+			UINT numRows = 0;
+			UINT64 rowSize = 0;
+			UINT64 totalSize = 0;
+
+			D3D12API()->Device()->GetCopyableFootprints(
+				&desc,
+				0,
+				1,
+				0,
+				&footprint,
+				&numRows,
+				&rowSize,
+				&totalSize
+			);
+
+
+			src->Transition(list, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+
+			D3D12_TEXTURE_COPY_LOCATION source{};
+			source.pResource = src->HwResource;
+			source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			source.SubresourceIndex = 0;
+
+			D3D12_TEXTURE_COPY_LOCATION destination{};
+			destination.pResource = m_readbackBuffer->HwResource;
+			destination.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			destination.PlacedFootprint = footprint;
+
+			list.List()->CopyTextureRegion(
+				&destination,
+				0, 0, 0,
+				&source,
+				nullptr
+			);
+		}
+
+	private:
+		RefPtr<BFTexture> m_texture;
+		D3D12Resource* m_readbackBuffer = nullptr;
+		bool m_isReady = false;
+
+		uint64_t m_fenceValue = 0;
+
+		uint32_t m_rowPitch = 0;
+		uint32_t m_width = 0;
+		uint32_t m_height = 0;
+	};
 }
