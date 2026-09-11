@@ -222,4 +222,88 @@ namespace Butterfly
 			m_srv = new BFShaderResourceView(*m_resource, srvDesc);
 		}
 	}
+
+	BFTextureReadback::BFTextureReadback(const RefPtr<BFTexture>& texture)
+		: m_texture(texture)
+	{
+		BF_PROFILE_EVENT();
+
+		D3D12Resource* src = m_texture->Resource();
+		const auto desc = src->HwResource->GetDesc();
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
+		UINT numRows = 0;
+		UINT64 rowSize = 0;
+		UINT64 totalSize = 0;
+		D3D12API()->Device()->GetCopyableFootprints(
+			&desc,
+			0,
+			1,
+			0,
+			&footprint,
+			&numRows,
+			&rowSize,
+			&totalSize
+		);
+
+		m_readbackBuffer = DX12ResourceBuilder()
+			.HeapType(D3D12_HEAP_TYPE_READBACK)
+			.InitialState(D3D12_RESOURCE_STATE_COPY_DEST)
+			.Buffer(totalSize)
+			.SetName("Readback Buffer")
+			.Create();
+
+		m_rowPitch = static_cast<uint32_t>(rowSize);
+		m_width = static_cast<uint32_t>(desc.Width);
+		m_height = static_cast<uint32_t>(desc.Height);
+	}
+
+	BFTextureReadback::~BFTextureReadback()
+	{
+		BF_PROFILE_EVENT();
+		FREE(m_readbackBuffer);
+	}
+
+	void BFTextureReadback::ReadbackCopy(D3D12CommandList& list)
+	{
+		D3D12Resource* src = m_texture->Resource();
+
+		const auto desc = src->HwResource->GetDesc();
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
+		UINT numRows = 0;
+		UINT64 rowSize = 0;
+		UINT64 totalSize = 0;
+
+		D3D12API()->Device()->GetCopyableFootprints(
+			&desc,
+			0,
+			1,
+			0,
+			&footprint,
+			&numRows,
+			&rowSize,
+			&totalSize
+		);
+
+
+		src->Transition(list, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+
+		D3D12_TEXTURE_COPY_LOCATION source{};
+		source.pResource = src->HwResource;
+		source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		source.SubresourceIndex = 0;
+
+		D3D12_TEXTURE_COPY_LOCATION destination{};
+		destination.pResource = m_readbackBuffer->HwResource;
+		destination.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		destination.PlacedFootprint = footprint;
+
+		list.List()->CopyTextureRegion(
+			&destination,
+			0, 0, 0,
+			&source,
+			nullptr
+		);
+	}
 }

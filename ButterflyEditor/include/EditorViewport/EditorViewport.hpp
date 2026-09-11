@@ -8,6 +8,8 @@
 
 namespace Butterfly
 {
+
+
 	class EditorViewport
 	{
 	public:
@@ -17,7 +19,7 @@ namespace Butterfly
 
 		EditorViewport()
 		{
-			Application::Get().GetRenderer().OnImGUIRender.Subscribe(BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
+			Application::Get().GetRenderer().OnImGUIRender.Subscribe(BF_BIND_FUNC_PARAM(&EditorViewport::OnRenderImGUI));
 
 
 			Application::Get().GetBlackboard().Register<Camera>(m_spectatorCam.GetCamera(), "ViewCamera");

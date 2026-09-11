@@ -5,14 +5,11 @@ namespace Butterfly
 {
 	UUID UUID::Generate()
 	{
-        static std::random_device rd;
-        static std::mt19937_64 generator(((static_cast<uint64_t>(rd()) << 32) | rd()));
+		UUID uuid;
+		uuid.m_high = Utils::RandomUint64();
+		uuid.m_low = Utils::RandomUint64();
 
-        UUID uuid;
-        uuid.m_high = generator();
-        uuid.m_low = generator();
-
-        return uuid;
+		return uuid;
 	}
 
 	UUID::UUID()

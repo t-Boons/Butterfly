@@ -31,6 +31,11 @@ namespace Butterfly
 	class MeshRendererComponent : public NonCopyable
 	{
 	public:
+		bool ContainsMesh() const
+		{
+			return MeshHandle.Valid();
+		}
+
 		AssetHandle<MeshAsset> MeshHandle;
 	};
 }

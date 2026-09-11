@@ -4,7 +4,7 @@
 #include "ImGUI/ImGUIHelpers.hpp"
 #include "Core/ThumbnailProcessor.hpp"
 #include "Core/EditorCache.hpp"
-#include "Core/EditorViewport.hpp"
+#include "EditorViewport/EditorViewport.hpp"
 
 namespace Butterfly
 {
@@ -20,7 +20,7 @@ namespace Butterfly
 
 	void EditorApplication::OnTick()
 	{
-		BF_PROFILE_FRAME("EditorApplication::OnTick");
+		BF_PROFILE_FRAME();
 
 		m_editorViewport->Tick();
 	}
@@ -28,9 +28,9 @@ namespace Butterfly
 	void EditorApplication::OnShutdown()
 	{
 		BF_PROFILE_EVENT()
+		FullscreenQuad::ShutDown();
 
 		delete m_editorCache;
-
-		FullscreenQuad::ShutDown();
+		delete m_editorViewport;
 	}
 }

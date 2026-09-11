@@ -117,10 +117,8 @@ namespace Butterfly
 		glfwSetWindowRefreshCallback(m_window, [](GLFWwindow* window)
 			{
 				WindowEvents* data = static_cast<WindowEvents*>(glfwGetWindowUserPointer(window));
-				WindowRefreshEvent event;
-				data->OnWindowRefresh.Broadcast(event);
+				data->OnWindowRefresh.Broadcast();
 			});
-
 	}
 
 	void Window::BindEvents()

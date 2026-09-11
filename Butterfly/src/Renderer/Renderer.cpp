@@ -49,18 +49,10 @@ namespace Butterfly
 		std::vector<uint8_t> data = { 225, 225, 225, 225 };
 		m_whiteTexture = BFTexture::CreateTextureFromCPUBuffer(desc, data.data());
 
-		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy(); // Because ImGUI takes slot 0;
+		Application::Get().GetWindow().Events().OnWindowResize.Subscribe(BF_BIND_FUNC_PARAM(&Renderer::OnWindowResize));
+		Application::Get().GetWindow().Events().OnWindowRefresh.Subscribe(BF_BIND_FUNC(&Renderer::OnWindowRefresh));
 
-		Application::Get().GetWindow().Events().OnWindowResize.Subscribe([=](const WindowResizeEvent& ev)
-			{
-				m_resizePending = true;
-				m_resizeSize = { ev.Width, ev.Height };
-			});
-
-		Application::Get().GetWindow().Events().OnWindowRefresh.Subscribe([=](const WindowRefreshEvent&)
-			{
-				Render();
-			});
+		OnRecordRenderPasses.Subscribe(BF_BIND_FUNC_PARAM(&Renderer::RecordCmdList));
 
 		FrameCreateData createData;
 		createData.Size = { Application::Get().GetWindow().Width(), Application::Get().GetWindow().Height() };
@@ -135,28 +127,44 @@ namespace Butterfly
 		FrameData& frame = m_frameDatas[m_frameIndex];
 		frame.FrameIndex = m_frameIndex;
 		frame.Fence->Wait();
+		OnPostRender.Broadcast(frame);
 		frame.CmdList->Reset();
 
 		frame.CmdList->BeginGPUMarker("Render Frame -> " + std::to_string(frame.FrameIndex));
 
+		// Clear composite render target.
 		frame.CmdList->BeginGPUMarker("Composite Clear.");
 		GraphicsCommands::ClearRenderTarget(*frame.CmdList, *frame.RenderTarget, { 0.05f, 0.05f, 0.05f, 1.0f });
 		frame.CmdList->EndGPUMarker();
 
 
+		// New ImGUI Frame.
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
 		OnImGUIRender.Broadcast(frame);
 
-		for (uint32_t i = 0; i < m_numViewports; i++)
+
+		// Record all commands to render all viewports.
+		for (auto& viewport : frame.Viewports)
 		{
-			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(i));
-			RecordCmdList(frame, i);
+			GraphBuilder builder(*viewport.GraphResources);
+
+			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(viewport.ViewportIndex));
+			OnRecordRenderPasses.Broadcast(RecordRenderPassEvent{ builder, viewport });
 			frame.CmdList->EndGPUMarker();
-			frame.Viewports[i].RenderTarget->Resource()->Transition(*frame.CmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+			auto graph = builder.Create();
+			graph->Execute(*frame.CmdList);
+			delete graph;
+
+			viewport.RenderTarget->Resource()->Transition(*frame.CmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
+
 		}
+
+
+		OnRecordCommandList.Broadcast(frame);
 
 
 		ImGui::Render();
@@ -202,18 +210,21 @@ namespace Butterfly
 			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
 			desc.DebugName = "Frame " + std::to_string(i) + " RenderTarget";
 
-			m_frameDatas[i].RenderTarget = BFTexture::CreateTextureForGPU(desc);
+			FrameData& data = m_frameDatas[i];
 
-			m_frameDatas[i].CmdList = MakeRef<D3D12CommandList>();
-			m_frameDatas[i].Fence = MakeRef<D3D12Fence>();
+			data.RenderTarget = BFTexture::CreateTextureForGPU(desc);
 
-			m_frameDatas[i].Viewports.clear();
-			m_frameDatas[i].Viewports.resize(m_numViewports);
+			data.CmdList = MakeRef<D3D12CommandList>();
+			data.Fence = MakeRef<D3D12Fence>();
 
+			data.Viewports.clear();
+			data.Viewports.resize(m_numViewports);
+			data.FrameIndex = i;
 
-			for (uint32_t j = 0; j < m_frameDatas[i].Viewports.size(); j++)
+			for (uint32_t j = 0; j < data.Viewports.size(); j++)
 			{
-				Viewport& viewport = m_frameDatas[i].Viewports[j];
+				Viewport& viewport = data.Viewports[j];
+				viewport.ViewportIndex = j;
 				viewport.GraphResources = MakeRef<GraphTransientResourceCache>();
 				viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(j) + " Uniforms");
 
@@ -240,10 +251,10 @@ namespace Butterfly
 		}
 	}
 
-	void Renderer::RecordCmdList(FrameData& frameData, uint32_t viewportIndex)
+	void Renderer::RecordCmdList(const RecordRenderPassEvent& ev)
 	{
-		Viewport& viewport = frameData.Viewports[viewportIndex];
-		GraphBuilder builder(*frameData.Viewports[viewportIndex].GraphResources);
+		GraphBuilder& builder = ev.Builder;
+		Viewport& viewport = ev.Viewport;
 
 		struct ForwardRenderer
 		{
@@ -261,7 +272,7 @@ namespace Butterfly
 		desc2.Width = viewport.RenderTarget->Width();
 		desc2.Height = viewport.RenderTarget->Height();
 		desc2.Flags = BFTextureDesc::DepthStencilable;
-		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport " + std::to_string(viewportIndex), desc2);
+		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport " + std::to_string(viewport.ViewportIndex), desc2);
 
 		builder.AddPass<ForwardRenderer>("Forward Model",
 			[&](const ForwardRenderer& params, D3D12CommandList& list)
@@ -295,7 +306,7 @@ namespace Butterfly
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 				for (auto [entity, transform, meshRenderer] : view.each())
 				{
-					if(!meshRenderer.MeshHandle.GetID())
+					if(!meshRenderer.ContainsMesh())
 					{
 						continue;
 					}
@@ -303,10 +314,10 @@ namespace Butterfly
 					UniformCameraData cameraData;
 					cameraData.ViewProjection = Application::Get().GetBlackboard().Get<Camera>("ViewCamera")->ViewProjectionMatrix();
 
-					frameData.Viewports[viewportIndex].Uniforms->Write(&cameraData, sizeof(UniformCameraData), viewport.UniformCameraDataViewIndex);
+					viewport.Uniforms->Write(&cameraData, sizeof(UniformCameraData), viewport.UniformCameraDataViewIndex);
 
 					const glm::mat4 model = transform.GetMatrix();
-					frameData.Viewports[viewportIndex].ModelMatrices->Write(&model, sizeof(glm::mat4), entityIndex * sizeof(glm::mat4));
+					viewport.ModelMatrices->Write(&model, sizeof(glm::mat4), entityIndex * sizeof(glm::mat4));
 
 					AssetManager& as = Application::Get().GetAssetManager();
 					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.MeshHandle);
@@ -314,10 +325,10 @@ namespace Butterfly
 						.Add(mesh->GPUPositions->SRV().View())
 						.Add(mesh->GPUNormals->SRV().View())
 						.Add(mesh->GPUUVs->SRV().View())
-						.Add(frameData.Viewports[viewportIndex].Uniforms->GetView(viewport.UniformCameraDataViewIndex)->View())
+						.Add(viewport.Uniforms->GetView(viewport.UniformCameraDataViewIndex)->View())
 						.Add(sampler.View())
 						.Add(m_whiteTexture->SRV().View())
-						.Add(frameData.Viewports[viewportIndex].ModelMatrices->SRV().View())
+						.Add(viewport.ModelMatrices->SRV().View())
 						.Add(entityIndex)
 						.Submit(list);
 
@@ -327,10 +338,17 @@ namespace Butterfly
 					entityIndex++;
 				}
 			});
+	}
 
-		auto graph = builder.Create();
-		graph->Execute(*frameData.CmdList);
-		delete graph;
+	void Renderer::OnWindowResize(const WindowResizeEvent& ev)
+	{
+		m_resizePending = true;
+		m_resizeSize = { ev.Width, ev.Height };
+	}
+
+	void Renderer::OnWindowRefresh()
+	{
+		Render();
 	}
 
 	void Renderer::ApplyResize()

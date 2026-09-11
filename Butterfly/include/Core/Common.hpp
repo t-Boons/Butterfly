@@ -37,7 +37,8 @@
 #define BF_WARNING_PUSH(x) __pragma(warning(push, x))
 #define BF_WARNING_POP     __pragma(warning(pop))
 
-#define BF_BIND_FUNC(name) std::bind(name, this, std::placeholders::_1)
+#define BF_BIND_FUNC_PARAM(name) std::bind(name, this, std::placeholders::_1)
+#define BF_BIND_FUNC(name) std::bind(name, this)
 
 #define FREE(p)         \
     {if (p) {            \
