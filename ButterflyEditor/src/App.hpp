@@ -3,6 +3,7 @@
 #include "Input/Input.hpp"
 #include <string_view>
 #include "Tools/SpectatorCamera.hpp"
+#include "Core/EditorCache.hpp"
 
 namespace Butterfly
 {
@@ -21,5 +22,6 @@ namespace Butterfly
 
 		float m_modelMovementTime = 0;
 		Entity model;
+		EditorCache m_editorCache;
 	};
 }

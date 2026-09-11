@@ -12,6 +12,7 @@
 #include "Core/Window.hpp"
 #include "Core/Application.hpp"
 #include "Core/Time.hpp"
+#include "Core/FileSystem.hpp"
 
 // Asset types
 #include "Asset/AssetManager.hpp"

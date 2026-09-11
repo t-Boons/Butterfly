@@ -2,8 +2,8 @@
 #include "Renderer/ModelLoading/GLTF/ModelImporterGLTF.hpp"
 #include "Renderer/ModelLoading/MikkTSpaceWrapper.hpp"
 
-#include "tinygltf/stb_image_write.h"
-#include "tinygltf/stb_image.h"
+#include "stbimage/stb_image_write.h"
+#include "stbimage/stb_image.h"
 #include "tinygltf/tiny_gltf.h"
 
 namespace Butterfly

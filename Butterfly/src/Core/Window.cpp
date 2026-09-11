@@ -166,8 +166,8 @@ namespace Butterfly
 
 	void Window::Resize(uint32_t width, uint32_t height)
 	{
-		BF_CORE_ASSERT(width > 0, "Width cannot be 0");
-		BF_CORE_ASSERT(height > 0, "Height cannot be 0");
+		BF_CORE_ASSERT(width > 0, "m_width cannot be 0");
+		BF_CORE_ASSERT(height > 0, "m_height cannot be 0");
 		glfwSetWindowSize(m_window, width, height);
 	}
 

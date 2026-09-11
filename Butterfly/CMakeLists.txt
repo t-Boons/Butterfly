@@ -6,6 +6,7 @@ add_subdirectory(lib/glm)
 add_subdirectory(lib/imgui)
 add_subdirectory(lib/MikkTSpace)
 add_subdirectory(lib/optick)
+add_subdirectory(lib/stbimage)
 add_subdirectory(lib/tinygltf)
 add_subdirectory(lib/tinyobj)
 add_subdirectory(lib/yaml-cpp)
@@ -25,6 +26,7 @@ add_library(Butterfly STATIC
     src/Asset/AssetRegistry.cpp
     src/Asset/AssetManager.cpp
     src/Asset/Importer/AssetImporter.cpp
+    src/Asset/Importer/ImageImporter.cpp
     src/Asset/Importer/OBJImporter.cpp
 
     src/Renderer/Renderer.cpp
@@ -48,7 +50,6 @@ add_library(Butterfly STATIC
     src/Renderer/Graph/GraphTypes.cpp
     src/Renderer/ModelLoading/MikkTSpaceWrapper.cpp
     src/Renderer/ModelLoading/ModelImporter.cpp
-    src/Renderer/ModelLoading/TinyGLTFLoader.cpp
     src/Renderer/ModelLoading/GLTF/ModelImporterGLTF.cpp
 )
 

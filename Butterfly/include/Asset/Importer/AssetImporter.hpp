@@ -4,7 +4,7 @@
 
 namespace Butterfly
 {
-#define BF_ASSET_IMPORTER(type)							\
+#define BF_REGISTER_ASSET_IMPORTER(type)				\
 	template<typename T>								\
 	struct ImporterRegistrar							\
 	{													\
@@ -33,5 +33,6 @@ namespace Butterfly
 	public:
 		virtual bool Import(const AssetMetadata& path, ImportResult& ret) const = 0;
 		virtual bool CanImport(const std::string& fileExtention) const = 0;
+		virtual bool CanImportType(const std::type_info& type) const = 0;
 	};
 }

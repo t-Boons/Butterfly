@@ -8,14 +8,14 @@ namespace Butterfly
 	AssetRegistry::AssetRegistry(AssetManager* manager)
 	{
 		m_manager = manager;
-		s_assetPath = FileSystem::WorkingDirectory() / "Assets";
+		m_assetPath = FileSystem::WorkingDirectory() / "Assets";
 
 		Scan();
 	}
 
 	bool AssetRegistry::ImportFromDisk(const std::filesystem::path& file, AssetMetadata& meta)
 	{
-		if (!FileSystem::Copy(file, s_assetPath / file.filename()))
+		if (!FileSystem::Copy(file, m_assetPath / file.filename()))
 		{
 			BF_CORE_LOG_ERROR("Unable to copy file to assets directory.");
 			return false;
@@ -42,7 +42,7 @@ namespace Butterfly
 
 	void AssetRegistry::Scan()
 	{
-		for (auto& file : FileSystem::WalkDirectoryRecursive(s_assetPath))
+		for (auto& file : FileSystem::WalkDirectoryRecursive(m_assetPath))
 		{
 			const std::string extention = file.extension().string();
 			if (extention == ".meta")
@@ -50,7 +50,7 @@ namespace Butterfly
 				continue;
 			}
 
-			const std::filesystem::path metaPath = file.string() + s_metaFileExtention;
+			const std::filesystem::path metaPath = file.string() + m_metaFileExtention;
 			if (FileSystem::Exists(metaPath)) 
 			{
 				AssetMetadata meta = ReadMetaFromFile(file);
@@ -66,7 +66,7 @@ namespace Butterfly
 
 	AssetMetadata AssetRegistry::WriteNewMetaForFile(const std::filesystem::path& file) const
 	{
-		const std::filesystem::path metaPath = file.string() + s_metaFileExtention;
+		const std::filesystem::path metaPath = file.string() + m_metaFileExtention;
 
 		AssetMetadata meta;
 		meta.Path = file.string();
@@ -87,7 +87,7 @@ namespace Butterfly
 
 	AssetMetadata AssetRegistry::ReadMetaFromFile(const std::filesystem::path& file) const
 	{
-		const std::filesystem::path metaPath = file.string() + s_metaFileExtention;
+		const std::filesystem::path metaPath = file.string() + m_metaFileExtention;
 
 		YAML::Node node;
 		node = YAML::LoadFile(metaPath.string());

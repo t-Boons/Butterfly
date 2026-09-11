@@ -3,7 +3,7 @@
 
 namespace Butterfly
 {
-	class OBJImporter : public IAssetImporter
+	class ImageImporter : public IAssetImporter
 	{
 	public:
 		virtual bool Import(const AssetMetadata& path, ImportResult& ret) const override;

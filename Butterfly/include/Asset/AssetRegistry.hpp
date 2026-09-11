@@ -21,7 +21,7 @@ namespace Butterfly
 
 		AssetManager* m_manager;
 		std::unordered_map<UUID, AssetMetadata> m_registeredAssets;
-		inline static std::filesystem::path s_assetPath;
-		inline static const std::string s_metaFileExtention = ".meta";
+		std::filesystem::path m_assetPath;
+		const std::string m_metaFileExtention = ".meta";
 	};
 }

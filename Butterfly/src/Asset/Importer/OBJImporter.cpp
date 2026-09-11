@@ -4,11 +4,19 @@
 
 namespace Butterfly
 {
-	BF_ASSET_IMPORTER(OBJImporter);
+	BF_REGISTER_ASSET_IMPORTER(OBJImporter);
 
 	bool OBJImporter::CanImport(const std::string& fileExtention) const
 	{
-		return fileExtention == ".obj";
+		std::string extension = fileExtention;
+		std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+		return extension == ".obj";
+	}
+
+	bool OBJImporter::CanImportType(const std::type_info& type) const
+	{
+		return type == typeid(MeshAsset) ||
+			   type == typeid(ModelAsset);
 	}
 
 	bool OBJImporter::Import(const AssetMetadata& path, ImportResult& ret) const
@@ -70,7 +78,7 @@ namespace Butterfly
 
 		ImportedAsset meshAsset;
 		meshAsset.Data = StaticCastRef<void>(mesh);
-		meshAsset.Type = { "Mesh" };
+		meshAsset.Type = AssetType{ "Mesh" };
 		ret.Asset = meshAsset;
 
 		return true;

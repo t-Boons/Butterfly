@@ -42,15 +42,23 @@ namespace Butterfly
 
     bool FileSystem::WriteBinary(const std::filesystem::path& path, const std::vector<uint8_t>& data)
     {
+        const auto parent = path.parent_path();
+
+        if (!parent.empty() && !std::filesystem::exists(parent))
+            std::filesystem::create_directories(parent);
+
         std::ofstream file(path, std::ios::binary);
- 
+
         if (!file)
         {
-            BF_CORE_LOG_WARN("Directory does not exist: %ls. Cannot write binary.", path.c_str());
+            BF_CORE_LOG_WARN("Cannot write binary: %ls", path.c_str());
             return false;
         }
 
-        file.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
+        file.write(
+            reinterpret_cast<const char*>(data.data()),
+            static_cast<std::streamsize>(data.size())
+        );
 
         return file.good();
     }
@@ -106,6 +114,11 @@ namespace Butterfly
 
     bool FileSystem::WriteText(const std::filesystem::path& path, const std::string& data)
     {
+        const auto parent = path.parent_path();
+
+        if (!parent.empty() && !std::filesystem::exists(parent))
+            std::filesystem::create_directories(parent);
+
         std::ofstream file(path);
 
         if (!file.is_open())
@@ -116,7 +129,11 @@ namespace Butterfly
 
         file.write(data.data(), static_cast<std::streamsize>(data.size()));
 
-        BF_CORE_LOG_TRACE("FileSystem::WriteText -> %ls %u", path.c_str(), data.length());
+        BF_CORE_LOG_TRACE(
+            "FileSystem::WriteText -> %ls %u",
+            path.c_str(),
+            static_cast<unsigned>(data.length())
+        );
 
         return file.good();
     }

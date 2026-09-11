@@ -2,6 +2,7 @@
 #include "Core/Common.hpp"
 #include "Asset/AssetHandle.hpp"
 #include "Renderer/D3D12Buffer.hpp"
+#include "Renderer/D3D12Texture.hpp"
 
 namespace Butterfly
 {
@@ -59,6 +60,12 @@ namespace Butterfly
 
 			GPULoaded = true;
 		}
+	};
+
+
+	struct TextureAsset
+	{
+		RefPtr<BFTexture> Texture;
 	};
 
 	struct ModelAsset

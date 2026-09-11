@@ -20,7 +20,7 @@ namespace Butterfly
         T* Resolve(const AssetHandle<T>& handle) const;
 
         template<typename T>
-        AssetHandle<T> Acquire(const UUID& id);
+        bool Acquire(const UUID& id, AssetHandle<T>& ret);
 
         const std::vector<RefPtr<IAssetImporter>>& GetImporters() const { return s_importers; }
 
@@ -59,22 +59,29 @@ namespace Butterfly
     }
 
     template<typename T>
-    AssetHandle<T> AssetManager::Acquire(const UUID& id)
+    bool AssetManager::Acquire(const UUID& id, AssetHandle<T>& ret)
     {
         auto& entry = m_entries[id];
+
+		// For now return if the asset is already loaded. In the future we may want to check if the type matches and return an error if it doesn't.
+        if(entry.Data)
+        {
+			ret = AssetHandle<T>(this, id);
+			return true;
+		}
 
         AssetMetadata meta;
 
         if (!m_assetRegistry.Find(id, meta))
         {
             BF_CORE_LOG_ERROR("Meta for ID: %s cannot be found", id.ToString());
-            return {};
+            return false;
         }
 
         IAssetImporter* importer = nullptr;
         for (auto& im : s_importers)
         {
-            if (im->CanImport(meta.Extention))
+            if (im->CanImport(meta.Extention) && im->CanImportType(typeid(T)))
             {
                 importer = im.get();
                 break;
@@ -83,24 +90,23 @@ namespace Butterfly
 
         if (!importer)
         {
-            BF_CORE_LOG_ERROR("No Importer found for filetype: %s", meta.Extention.c_str());
-            return {};
+            BF_CORE_LOG_ERROR("No Importer found for filetype: %s and type: %s", meta.Extention.c_str(), typeid(T).name());
+            return false;
         }
 
         ImportResult result;
         if (!importer->Import(meta, result))
         {
             BF_CORE_LOG_ERROR("Import for ID failed: %s", meta.ID.ToString().c_str());
-            return {};
+            return false;
         }
-
-        entry.RefCount++;
 
         auto& e = m_entries[id];
         e.ID = id;
         e.Data = result.Asset.Data;
         e.Type = result.Asset.Type;
 
-        return AssetHandle<T>(this, id);
+        ret = AssetHandle<T>(this, id);
+        return true;
     }
 }

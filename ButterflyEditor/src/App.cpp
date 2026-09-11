@@ -2,6 +2,7 @@
 #include "glm/gtx/quaternion.hpp"
 #include <numeric>
 #include "ImGUI/ImGUIHelpers.hpp"
+#include "Core/ImageProcessor.hpp"
 
 namespace Butterfly
 {
@@ -169,7 +170,7 @@ namespace Butterfly
 					{
 						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET"))
 						{
-							mr.MeshHandle = Application::Get().GetAssetManager().Acquire<MeshAsset>(*(UUID*)payload->Data);
+							Application::Get().GetAssetManager().Acquire<MeshAsset>(*(UUID*)payload->Data, mr.MeshHandle);
 						}
 
 						ImGui::EndDragDropTarget();
@@ -229,11 +230,6 @@ namespace Butterfly
 					ImU32 iconColor = ImColor(10, 20, 50);
 					float iconOffsetX = (cellSize - iconSize) * 0.5f;
 
-					dl->AddRectFilled(
-						ImVec2(cellStart.x + iconOffsetX, cellStart.y),
-						ImVec2(cellStart.x + iconOffsetX + iconSize, cellStart.y + iconSize),
-						iconColor, 4.0f);
-
 					if (ImGui::BeginDragDropSource())
 					{
 						UUID id = meta.ID;
@@ -260,7 +256,8 @@ namespace Butterfly
 
 					if (doubleClicked)
 					{
-						AssetHandle<MeshAsset> objMesh = Application::Get().GetAssetManager().Acquire<MeshAsset>(meta.ID);
+						AssetHandle<MeshAsset> objMesh;
+						Application::Get().GetAssetManager().Acquire<MeshAsset>(meta.ID, objMesh);
 						MeshAsset* asset = Application::Get().GetAssetManager().Resolve(objMesh);
 
 						model = Application::Get().GetScene().CreateEntity();
@@ -268,6 +265,33 @@ namespace Butterfly
 						model.AddComponent<TransformComponent>();
 						model.AddComponent<MeshRendererComponent>();
 						model.GetComponent<MeshRendererComponent>().MeshHandle = objMesh;
+					}
+
+
+					if (ThumbnailProcessor::IsSupportedImageType(meta.Path) && !m_editorCache.Exists(meta.ID))
+					{
+						RefPtr<Thumbnail> thumbnail = ThumbnailProcessor::GetThumbnailFromFile(meta.Path);
+						thumbnail = ThumbnailProcessor::Resize(*thumbnail, 64, 64);
+						ThumbnailCacheEntry entry(thumbnail);
+						m_editorCache.Add<ThumbnailCacheEntry>(meta.ID, entry);
+						BF_CORE_LOG_INFO("Awooof");
+					}
+
+
+					ThumbnailCacheEntry cacheEntry;
+					if (m_editorCache.Get<ThumbnailCacheEntry>(meta.ID, cacheEntry))
+					{
+						RefPtr<Thumbnail> thumbnail = cacheEntry.GetThumbnail();
+						ImGui::SetCursorScreenPos({ cellStart.x + iconOffsetX, cellStart.y });
+
+						ImGui::Image(thumbnail->GetImGUITextureID(), {iconSize, iconSize});
+					}
+					else
+					{
+						dl->AddRectFilled(
+							ImVec2(cellStart.x + iconOffsetX, cellStart.y),
+							ImVec2(cellStart.x + iconOffsetX + iconSize, cellStart.y + iconSize),
+							iconColor, 4.0f);
 					}
 
 					std::string name = std::filesystem::path(meta.Path).filename().string();
