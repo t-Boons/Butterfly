@@ -1,10 +1,10 @@
 #include "Butterfly.hpp"
-#include "App.hpp"
+#include "EditorApplication.hpp"
 
 int main()
 {
 	Butterfly::Application* app = new Butterfly::Application();
-	app->AttachLayer<Butterfly::SandboxLayer>();
+	app->SetApplicationExtention(new Butterfly::EditorApplication());
 	app->Init();
 	delete app;
 }

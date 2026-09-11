@@ -19,6 +19,8 @@ add_library(Butterfly STATIC
     src/Core/FileSystem.cpp
     src/Core/JobSystem.cpp
 
+    src/Input/Input.cpp
+
     src/Scene/Scene.cpp
     src/Scene/Registry/TransformComponent.cpp
 

@@ -14,6 +14,8 @@
 #include "Core/Time.hpp"
 #include "Core/FileSystem.hpp"
 
+#include "Input/Input.hpp"
+
 // Asset types
 #include "Asset/AssetManager.hpp"
 #include "Asset/AssetRegistry.hpp"

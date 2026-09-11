@@ -55,7 +55,7 @@ namespace Butterfly
 
 		newTexture->m_resource = DX12ResourceBuilder()
 			.HeapType(D3D12_HEAP_TYPE_DEFAULT)
-			.InitialState(D3D12_RESOURCE_STATE_COPY_DEST)
+			.InitialState(D3D12_RESOURCE_STATE_COMMON)
 			.Texture2D(desc.Format, desc.Width, desc.Height)
 			.SetName(desc.DebugName)
 			.Create();
@@ -92,23 +92,13 @@ namespace Butterfly
 		{
 			D3D12CommandList list(D3D12_COMMAND_LIST_TYPE_COPY);
 
-			newTexture->m_resource->Transition(list, D3D12_RESOURCE_STATE_COMMON);
 
+			//newTexture->m_resource->Transition(list, D3D12_RESOURCE_STATE_COMMON);
 			list.List()->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
 
 			list.Close();
 			D3D12API()->Queue(QueueType::Copy)->Execute(list);
 			D3D12API()->Queue(QueueType::Copy)->WaitForFence();
-		}
-
-		{
-			D3D12CommandList list;
-
-			newTexture->m_resource->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-			list.Close();
-			D3D12API()->Queue(QueueType::Direct)->Execute(list);
-			D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 		}
 
 		delete uploadResource;

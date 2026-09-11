@@ -7,6 +7,7 @@
 #include "Core/Time.hpp"
 #include "Scene/Scene.hpp"
 #include "Asset/AssetManager.hpp"
+#include "Input/Input.hpp"
 
 namespace Butterfly
 {
@@ -32,9 +33,12 @@ namespace Butterfly
 		m_jobSystem = new JobSystem();
 		m_assetManager = new AssetManager();
 
-		for (auto& layer : m_layers)
+		m_input = new Input();
+		m_input->Init(m_window);
+
+		if (m_applicationExtention)
 		{
-			layer->OnInit();
+			m_applicationExtention->OnInit();
 		}
 
 		while (m_running)
@@ -51,25 +55,27 @@ namespace Butterfly
 		m_time->Tick();
 		m_scene->Tick();
 
-		for (auto& layer : m_layers)
+		if (m_applicationExtention)
 		{
-			layer->OnTick();
+			m_applicationExtention->OnTick();
 		}
 
 		if (m_window->ShouldClose())
 		{
 			Quit();
 		}
+		m_input->Poll();
 	}
 
 	void Application::Quit()
 	{
 		m_running = false;
-		for (auto& layer : m_layers)
+		if (m_applicationExtention)
 		{
-			layer->OnShutdown();
+			m_applicationExtention->OnShutdown();
 		}
 
+		delete m_applicationExtention;
 		delete m_jobSystem;
 		delete m_scene;
 		delete m_time;

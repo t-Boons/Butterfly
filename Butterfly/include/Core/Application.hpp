@@ -1,6 +1,5 @@
 #pragma once
 #include "Common.hpp"
-#include "Core/Layer.hpp"
 
 namespace Butterfly
 {
@@ -11,6 +10,17 @@ namespace Butterfly
 	class Scene;
 	class JobSystem;
 	class AssetManager;
+	class Input;
+
+	class D3D12CommandList;
+	class IApplicationExtention : public NonCopyableNonMoveable
+	{
+	public:
+		virtual void OnInit() {}
+		virtual void OnTick() {}
+		virtual void OnShutdown() {}
+		virtual void OnRender(D3D12CommandList& list) {}
+	};
 
 	class Application : public NonCopyable
 	{
@@ -27,17 +37,15 @@ namespace Butterfly
 		JobSystem& GetJobSystem() { return *m_jobSystem; }
 		AssetManager& GetAssetManager() { return *m_assetManager; }
 		Blackboard& GetBlackboard() { return *m_blackboard; }
+		Input& GetInput() { return *m_input; }
 
-		template<typename T>
-		void AttachLayer()
-		{
-			m_layers.push_back(MakeRef<T>());
-		}
+		void SetApplicationExtention(IApplicationExtention* extention) { m_applicationExtention = extention; }
 
 	private:
 		inline static Application* s_instance;
 		bool m_running = true;
-		std::vector<RefPtr<Layer>> m_layers;
+		
+		IApplicationExtention* m_applicationExtention;
 
 		Window* m_window;
 		Renderer* m_renderer;
@@ -46,5 +54,6 @@ namespace Butterfly
 		JobSystem* m_jobSystem;
 		AssetManager* m_assetManager;
 		Blackboard* m_blackboard;
+		Input* m_input;
 	};
 }
