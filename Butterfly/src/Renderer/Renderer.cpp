@@ -59,7 +59,7 @@ namespace Butterfly
 
 		Application::Get().GetWindow().Events().OnWindowRefresh.Subscribe([=](const WindowRefreshEvent&)
 			{
-				//Render();
+				Render();
 			});
 
 		FrameCreateData createData;
@@ -69,6 +69,8 @@ namespace Butterfly
 
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
+		io.IniFilename = "Editor/DefaultLayout.ini";
+
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		ImGui_ImplGlfw_InitForOther(Application::Get().GetWindow().GLFWWindow(), true);
