@@ -18,6 +18,8 @@ namespace Butterfly
 		SpectatorCamera m_spectatorCam;
 		ViewportHandle m_viewportHandle;
 
+		bool m_renderFullscreenViewport = false;
+
 		EditorViewport()
 		{
 			Application::Get().GetRenderer().GetImGUIRenderEvent().Subscribe(BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
@@ -60,6 +62,11 @@ namespace Butterfly
 				model.AddComponent<MeshRendererComponent>();
 			}
 
+			if (Application::Get().GetInput().IsKeyDown(BFB_F))
+			{
+				m_renderFullscreenViewport = !m_renderFullscreenViewport;
+			}
+
 			if (Application::Get().GetInput().IsKeyPressed(BFB_R))
 			{
 				if (model)
@@ -79,6 +86,38 @@ namespace Butterfly
 
 		void OnRenderImGUI()
 		{
+			if (m_renderFullscreenViewport)
+			{
+				ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+				ImGui::SetNextWindowPos(viewport->WorkPos);
+				ImGui::SetNextWindowSize(viewport->WorkSize);
+				ImGui::SetNextWindowViewport(viewport->ID);
+
+				ImGuiWindowFlags windowFlags =
+					ImGuiWindowFlags_NoDecoration |
+					ImGuiWindowFlags_NoMove |
+					ImGuiWindowFlags_NoSavedSettings |
+					ImGuiWindowFlags_NoBringToFrontOnFocus |
+					ImGuiWindowFlags_NoFocusOnAppearing;
+
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+				ImGui::Begin("Fullscreen Viewport", nullptr, windowFlags);
+
+				if (m_viewportHandle.Valid())
+				{
+					Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);
+				}
+
+				ImGui::End();
+
+				ImGui::PopStyleVar(2);
+
+				return; 
+			}
+
 			{
 				if (ImGui::BeginMainMenuBar())
 				{
