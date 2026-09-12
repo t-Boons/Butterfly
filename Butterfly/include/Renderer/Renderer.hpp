@@ -14,36 +14,46 @@
 
 namespace Butterfly
 {
-	struct Viewport
-	{
-		RefPtr<BFTexture> RenderTarget;
-		RefPtr<GraphTransientResourceCache> GraphResources;
-		RefPtr<BFUniformBuffer> Uniforms;
-		uint32_t ViewportIndex = 0;
-
-		uint32_t UniformCameraDataViewIndex;
-
-		RefPtr<BFStructuredBuffer> ModelMatrices;
-	};
-
-	struct FrameData
-	{
-		RefPtr<BFTexture> RenderTarget;
-		RefPtr<D3D12CommandList> CmdList;
-		RefPtr<D3D12Fence> Fence;
-		uint32_t FrameIndex;
-		std::vector<Viewport> Viewports;
-	};
-
+	class GraphBuilder;
+	class Viewport;
 	struct RecordRenderPassEvent
 	{
 		GraphBuilder& Builder;
 		Viewport& Viewport;
 	};
 
-	struct FrameCreateData
+
+	struct ViewportHandle
 	{
-		glm::ivec2 Size;
+	public:
+		bool Valid() const { return Index != 0; }
+	private:
+		friend class Renderer;
+		uint32_t Index = 0;
+	};
+
+	struct Viewport
+	{
+	public:
+		RefPtr<BFTexture> RenderTarget;
+		RefPtr<BFUniformBuffer> Uniforms;
+
+		uint32_t UniformCameraDataViewIndex;
+		RefPtr<BFStructuredBuffer> ModelMatrices;
+		
+	private:
+		friend class Renderer;
+		RefPtr<GraphTransientResourceCache> GraphResources;
+		ViewportHandle Handle;
+	};
+
+	struct FrameData
+	{
+		RefPtr<BFTexture> CompositeRenderTarget;
+		RefPtr<D3D12CommandList> CmdList;
+		RefPtr<D3D12Fence> Fence;
+		uint32_t FrameIndex;
+		std::unordered_map<uint32_t, Viewport> Viewports;
 	};
 
 	struct ViewportResizeEvent
@@ -51,26 +61,31 @@ namespace Butterfly
 		glm::ivec2 Size;
 	};
 
+	struct ViewportEvents
+	{
+		EventDispatcher<ViewportResizeEvent> OnResize;
+		EventDispatcher<RecordRenderPassEvent> OnRender;
+	};
+
 	class Renderer : public NonCopyable
 	{
 	public:
 		Renderer();
+		~Renderer();
 
 		void Render();
 
-		~Renderer();
+		ViewportHandle AddViewport();
+		void RemoveViewport(const ViewportHandle& handle);
+		ViewportEvents& GetViewportEvents(const ViewportHandle& handle);
 
-		EventDispatcher<FrameData&> OnPreRender;
-		EventDispatcher<FrameData&> OnPostRender;
-		EventDispatcher<FrameData&> OnRecordCommandList;
-		EventDispatcher<FrameData&> OnImGUIRender;
-		EventDispatcher<ViewportResizeEvent> OnViewportResize;
+		FrameData& CurrentFrameData() { return m_frameDatas[m_frameIndex]; }
 
-		EventDispatcher<RecordRenderPassEvent> OnRecordRenderPasses;
+		EventDispatcher<>& GetImGUIRenderEvent() { return m_ImGuiRenderEvent; }
+		void ImGUIImage(const ViewportHandle& handle);
 
-		void ImGUIImage(FrameData& frame, uint32_t viewportIndex);
 	private:
-		void InvalidateFrameDatas(const FrameCreateData& createData);
+		void InvalidateFrameDatas();
 		void WaitForInflightFrames();
 		void ApplyResize();
 
@@ -78,20 +93,22 @@ namespace Butterfly
 		void OnWindowResize(const WindowResizeEvent& ev);
 		void OnWindowRefresh();
 
-
-
-		std::vector<FrameData> m_frameDatas;
-
-		ScopePtr<Blackboard> m_blackBoard;
+		RefPtr<BFTexture> m_whiteTexture;
 
 		uint32_t m_frameIndex = 0;
 		uint32_t m_previousFrame = 0;
 
+		std::vector<FrameData> m_frameDatas;
+
+
 		bool m_resizePending = false;
 		glm::ivec2 m_resizeSize;
 
-		uint32_t m_numViewports = 1;
 
-		RefPtr<BFTexture> m_whiteTexture;
+		std::vector<ViewportHandle> m_existingViewportHandles;
+		std::unordered_map<uint32_t, ViewportEvents> m_viewportEvents;
+		uint32_t m_index = 1;
+
+		EventDispatcher<> m_ImGuiRenderEvent;
 	};
 }

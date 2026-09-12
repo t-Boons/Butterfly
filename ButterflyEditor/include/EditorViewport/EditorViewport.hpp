@@ -16,15 +16,16 @@ namespace Butterfly
 		Entity model;
 		float m_modelMovementTime = 0;
 		SpectatorCamera m_spectatorCam;
+		ViewportHandle m_viewportHandle;
 
 		EditorViewport()
 		{
-			Application::Get().GetRenderer().OnImGUIRender.Subscribe(BF_BIND_FUNC_PARAM(&EditorViewport::OnRenderImGUI));
-
+			Application::Get().GetRenderer().GetImGUIRenderEvent().Subscribe(BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
 
 			Application::Get().GetBlackboard().Register<Camera>(m_spectatorCam.GetCamera(), "ViewCamera");
 
-			Application::Get().GetRenderer().OnViewportResize.Subscribe([&](const ViewportResizeEvent& ev)
+			m_viewportHandle = Application::Get().GetRenderer().AddViewport();
+			Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize.Subscribe([&](const ViewportResizeEvent& ev)
 				{
 					auto p = m_spectatorCam.GetCamera()->Projection();
 					p.AspectRatio = static_cast<float>(ev.Size.x) / static_cast<float>(ev.Size.y);
@@ -41,6 +42,15 @@ namespace Butterfly
 				Application::Get().GetWindow().SetFullscreen(!Application::Get().GetWindow().Fullscreen());
 			}
 
+			if (Application::Get().GetInput().IsKeyDown(BFB_V))
+			{
+				m_viewportHandle = Application::Get().GetRenderer().AddViewport();
+			}
+
+			if (Application::Get().GetInput().IsKeyDown(BFB_B))
+			{
+				Application::Get().GetRenderer().RemoveViewport(m_viewportHandle);
+			}
 
 			if (Application::Get().GetInput().IsKeyDown(BFB_T))
 			{
@@ -67,7 +77,7 @@ namespace Butterfly
 			}
 		}
 
-		void OnRenderImGUI(FrameData& data)
+		void OnRenderImGUI()
 		{
 			{
 				if (ImGui::BeginMainMenuBar())
@@ -126,7 +136,10 @@ namespace Butterfly
 				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 				ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
 
-				Application::Get().GetRenderer().ImGUIImage(data, 0);
+				if (m_viewportHandle.Valid())
+				{
+					Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);
+				}
 
 				ImGui::PopStyleVar(2);
 				ImGui::End();

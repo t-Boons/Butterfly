@@ -64,6 +64,12 @@ namespace Butterfly
 			}
 		}
 
+		void Clear()
+		{
+			m_funcs.clear();
+			m_nextEventID = 1;
+		}
+
 	private:
 		struct Event
 		{
@@ -112,6 +118,12 @@ namespace Butterfly
 		{
 			for (auto& event : m_funcs)
 				event.Func();
+		}
+
+		void Clear()
+		{
+			m_funcs.clear();
+			m_nextEventID = 1;
 		}
 
 	private:

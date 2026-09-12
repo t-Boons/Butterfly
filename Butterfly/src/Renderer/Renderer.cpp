@@ -36,10 +36,6 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		// Create resouce cache.
-		m_blackBoard = ScopePtr<Blackboard>(new Blackboard());
-
-
 		BFTextureDesc desc;
 		desc.DebugName = "WhiteTexture";
 		desc.Width = 1;
@@ -52,11 +48,8 @@ namespace Butterfly
 		Application::Get().GetWindow().Events().OnWindowResize.Subscribe(BF_BIND_FUNC_PARAM(&Renderer::OnWindowResize));
 		Application::Get().GetWindow().Events().OnWindowRefresh.Subscribe(BF_BIND_FUNC(&Renderer::OnWindowRefresh));
 
-		OnRecordRenderPasses.Subscribe(BF_BIND_FUNC_PARAM(&Renderer::RecordCmdList));
-
-		FrameCreateData createData;
-		createData.Size = { Application::Get().GetWindow().Width(), Application::Get().GetWindow().Height() };
-		InvalidateFrameDatas(createData);
+		m_resizeSize = { Application::Get().GetWindow().Width(), Application::Get().GetWindow().Height() };
+		InvalidateFrameDatas();
 
 
 		ImGui::CreateContext();
@@ -81,37 +74,47 @@ namespace Butterfly
 		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
 	}
 
-	void Renderer::ImGUIImage(FrameData& frame, uint32_t viewportIndex)
+	void Renderer::ImGUIImage(const ViewportHandle& handle)
 	{
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		if (size.x < 1.0f) size.x = 1.0f;
 		if (size.y < 1.0f) size.y = 1.0f;
 
-		// When one of the viewports gets resized.
-		if (!frame.Viewports[viewportIndex].RenderTarget || frame.Viewports[viewportIndex].RenderTarget->Width() != size.x || frame.Viewports[viewportIndex].RenderTarget->Height() != size.y)
+		BF_CORE_ASSERT(handle.Valid(), "Renderer::ImGUIImage: ViewportHandle is invalid.");
+
+		if (CurrentFrameData().Viewports.empty())
 		{
-			if (frame.Viewports[viewportIndex].RenderTarget)
+			BF_CORE_LOG_WARN("Renderer::ImGUIImage: No viewports found.");
+			return;
+		}
+
+		auto it = CurrentFrameData().Viewports.find(handle.Index);
+
+		// When one of the viewports gets resized.
+		if (it == CurrentFrameData().Viewports.end() || !it->second.RenderTarget || it->second.RenderTarget->Width() != size.x || it->second.RenderTarget->Height() != size.y)
+		{
+			if (it != CurrentFrameData().Viewports.end() && it->second.RenderTarget)
 			{
 				WaitForInflightFrames();
-				frame.Viewports[viewportIndex].RenderTarget.reset();
+				it->second.RenderTarget.reset();
 			}
 
-			frame.Viewports[viewportIndex].GraphResources->Flush();
+			it->second.GraphResources->Flush();
 
 			BFTextureDesc desc;
 			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			desc.Width = size.x;
 			desc.Height = size.y;
 			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
-			desc.DebugName = "Viewport " + std::to_string(viewportIndex) + " RenderTarget";
+			desc.DebugName = "Viewport " + std::to_string(handle.Index) + " RenderTarget";
 
-			frame.Viewports[viewportIndex].RenderTarget = BFTexture::CreateTextureForGPU(desc);
+			it->second.RenderTarget = BFTexture::CreateTextureForGPU(desc);
 
-			OnViewportResize.Broadcast(ViewportResizeEvent({ size.x, size.y }));
+			GetViewportEvents(handle).OnResize.Broadcast(ViewportResizeEvent({ size.x, size.y }));
 		}
 
 
-		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(frame.Viewports[viewportIndex].RenderTarget->SRV().View()).ptr;
+		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(it->second.RenderTarget->SRV().View()).ptr;
 		ImGui::Image(textureID, { size.x, size.y });
 	}
 
@@ -127,14 +130,14 @@ namespace Butterfly
 		FrameData& frame = m_frameDatas[m_frameIndex];
 		frame.FrameIndex = m_frameIndex;
 		frame.Fence->Wait();
-		OnPostRender.Broadcast(frame);
+
 		frame.CmdList->Reset();
 
 		frame.CmdList->BeginGPUMarker("Render Frame -> " + std::to_string(frame.FrameIndex));
 
 		// Clear composite render target.
 		frame.CmdList->BeginGPUMarker("Composite Clear.");
-		GraphicsCommands::ClearRenderTarget(*frame.CmdList, *frame.RenderTarget, { 0.05f, 0.05f, 0.05f, 1.0f });
+		GraphicsCommands::ClearRenderTarget(*frame.CmdList, *frame.CompositeRenderTarget, { 0.05f, 0.05f, 0.05f, 1.0f });
 		frame.CmdList->EndGPUMarker();
 
 
@@ -143,16 +146,24 @@ namespace Butterfly
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		OnImGUIRender.Broadcast(frame);
+		m_ImGuiRenderEvent.Broadcast();
 
 
 		// Record all commands to render all viewports.
-		for (auto& viewport : frame.Viewports)
+		for (auto& it : frame.Viewports)
 		{
+			Viewport& viewport = it.second;
+
+			if (!viewport.RenderTarget)
+			{
+				BF_CORE_LOG_WARN("Renderer::Render: Viewport %u has no render target. Skipping.", viewport.Handle.Index);
+				continue;
+			}
+
 			GraphBuilder builder(*viewport.GraphResources);
 
-			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(viewport.ViewportIndex));
-			OnRecordRenderPasses.Broadcast(RecordRenderPassEvent{ builder, viewport });
+			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.Index));
+			GetViewportEvents(viewport.Handle).OnRender.Broadcast(RecordRenderPassEvent{ builder, viewport });
 			frame.CmdList->EndGPUMarker();
 
 			auto graph = builder.Create();
@@ -160,20 +171,15 @@ namespace Butterfly
 			delete graph;
 
 			viewport.RenderTarget->Resource()->Transition(*frame.CmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
-
 		}
-
-
-		OnRecordCommandList.Broadcast(frame);
-
 
 		ImGui::Render();
 		ID3D12DescriptorHeap* heaps[] = { D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get() };
 		frame.CmdList->List()->SetDescriptorHeaps(_countof(heaps), heaps);
-		GraphicsCommands::SetRenderTargets(*frame.CmdList, { frame.RenderTarget.get()}, nullptr);
+		GraphicsCommands::SetRenderTargets(*frame.CmdList, { frame.CompositeRenderTarget.get()}, nullptr);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), frame.CmdList->List());
 
-		Application::Get().GetWindow().Context().RecordCopyToBackBuffer(*frame.RenderTarget->Resource(), *frame.CmdList);
+		Application::Get().GetWindow().Context().RecordCopyToBackBuffer(*frame.CompositeRenderTarget->Resource(), *frame.CmdList);
 
 
 		frame.CmdList->EndGPUMarker();
@@ -189,12 +195,57 @@ namespace Butterfly
 		m_frameIndex = m_frameIndex % NUM_RENDER_BUFFERS;
 	}
 
+	ViewportEvents& Renderer::GetViewportEvents(const ViewportHandle& handle)
+	{
+		BF_CORE_ASSERT(handle.Valid(), "Renderer::GetViewportEvents: ViewportHandle is invalid.");
+		auto it = m_viewportEvents.find(handle.Index);
+		BF_CORE_ASSERT(it != m_viewportEvents.end(), "Renderer::GetViewportEvents: ViewportHandle does not exist.");
+		return it->second;
+	}
+
+	ViewportHandle Renderer::AddViewport()
+	{
+		ViewportHandle handle;
+		handle.Index = m_index++;
+		m_existingViewportHandles.push_back(handle);
+
+		InvalidateFrameDatas();
+
+		m_viewportEvents[handle.Index] = ViewportEvents();
+
+		// Temp add the default render pipeline.
+		GetViewportEvents(handle).OnRender.Subscribe(BF_BIND_FUNC_PARAM(&Renderer::RecordCmdList));
+
+
+		return handle;
+	}
+
+
+	void Renderer::RemoveViewport(const ViewportHandle& handle)
+	{
+		auto it = std::find_if(m_existingViewportHandles.begin(), m_existingViewportHandles.end(),
+			[&](const ViewportHandle& h)
+			{
+				return h.Index == handle.Index;
+			});
+
+		if (it != m_existingViewportHandles.end())
+		{
+			m_existingViewportHandles.erase(it);
+			InvalidateFrameDatas();
+		}
+		else
+		{
+			BF_CORE_LOG_WARN("Renderer::RemoveViewport: ViewportHandle does not exist. Index: {}", handle.Index);
+		}
+	}
+
 	struct UniformCameraData
 	{
 		glm::mat4 ViewProjection;
 	};
 
-	void Renderer::InvalidateFrameDatas(const FrameCreateData& createData)
+	void Renderer::InvalidateFrameDatas()
 	{
 		WaitForInflightFrames();
 
@@ -205,28 +256,31 @@ namespace Butterfly
 		{
 			BFTextureDesc desc;
 			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			desc.Width = createData.Size.x;
-			desc.Height = createData.Size.y;
+			desc.Width = m_resizeSize.x;
+			desc.Height = m_resizeSize.y;
 			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
 			desc.DebugName = "Frame " + std::to_string(i) + " RenderTarget";
 
 			FrameData& data = m_frameDatas[i];
 
-			data.RenderTarget = BFTexture::CreateTextureForGPU(desc);
+			data.CompositeRenderTarget = BFTexture::CreateTextureForGPU(desc);
 
 			data.CmdList = MakeRef<D3D12CommandList>();
 			data.Fence = MakeRef<D3D12Fence>();
 
 			data.Viewports.clear();
-			data.Viewports.resize(m_numViewports);
-			data.FrameIndex = i;
 
-			for (uint32_t j = 0; j < data.Viewports.size(); j++)
+
+			// Recreate all viewports for this frame.
+			for (uint32_t j = 0; j < m_existingViewportHandles.size(); ++j)
 			{
-				Viewport& viewport = data.Viewports[j];
-				viewport.ViewportIndex = j;
+				ViewportHandle& handle = m_existingViewportHandles[j];
+				Viewport& viewport = data.Viewports[handle.Index];
+
+				viewport.Handle = handle;
+
 				viewport.GraphResources = MakeRef<GraphTransientResourceCache>();
-				viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(j) + " Uniforms");
+				viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(handle.Index) + " Uniforms");
 
 
 				viewport.UniformCameraDataViewIndex = viewport.Uniforms->AllocView(sizeof(UniformCameraData));
@@ -272,7 +326,7 @@ namespace Butterfly
 		desc2.Width = viewport.RenderTarget->Width();
 		desc2.Height = viewport.RenderTarget->Height();
 		desc2.Flags = BFTextureDesc::DepthStencilable;
-		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport " + std::to_string(viewport.ViewportIndex), desc2);
+		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport " + std::to_string(viewport.Handle.Index), desc2);
 
 		builder.AddPass<ForwardRenderer>("Forward Model",
 			[&](const ForwardRenderer& params, D3D12CommandList& list)
@@ -355,10 +409,7 @@ namespace Butterfly
 	{
 		m_resizePending = false;
 
-		FrameCreateData createData;
-		createData.Size = m_resizeSize;
-
-		InvalidateFrameDatas(createData);
+		InvalidateFrameDatas();
 	}
 
 	Renderer::~Renderer()
