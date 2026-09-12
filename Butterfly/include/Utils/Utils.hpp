@@ -4,6 +4,8 @@
 #include <random>
 #include <algorithm>
 
+#define HASH(str) Utils::HashString(str)
+
 namespace Butterfly
 {
 	namespace Utils
@@ -63,6 +65,7 @@ namespace Butterfly
 		};
 
 		constexpr Hasher<uint64_t> g_hasher;
+		constexpr Hasher<uint32_t> g_i32hasher;
 
 		inline uint64_t Hash(uint64_t val)
 		{
@@ -72,6 +75,18 @@ namespace Butterfly
 		inline void SumHash(uint64_t& in, uint64_t val)
 		{
 			in ^= g_hasher(val);
+		}
+
+		consteval uint32_t HashString(std::string_view str)
+		{
+			uint32_t hash = 2166136261u;
+
+			for (char c : str)
+			{
+				hash = (hash ^ static_cast<uint8_t>(c)) * 16777619u;
+			}
+
+			return hash;
 		}
 	}
 

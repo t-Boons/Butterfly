@@ -1,4 +1,4 @@
-#include "Camera.hpp"
+#include "Renderer/Camera.hpp"
 
 namespace Butterfly
 {

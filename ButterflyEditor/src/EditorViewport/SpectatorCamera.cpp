@@ -1,4 +1,4 @@
-#include "SpectatorCamera.hpp"
+#include "EditorViewport/SpectatorCamera.hpp"
 
 namespace Butterfly
 {

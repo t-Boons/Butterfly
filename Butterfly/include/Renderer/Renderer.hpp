@@ -24,6 +24,11 @@ namespace Butterfly
 		std::unordered_map<ViewportHandle, Viewport> Viewports;
 	};
 
+	struct CameraData
+	{
+		glm::mat4 ViewProjection;
+	};
+
 	class Renderer : public NonCopyable
 	{
 	public:

@@ -31,9 +31,7 @@ namespace Butterfly
 		RefPtr<BFTexture> RenderTarget;
 		RefPtr<BFUniformBuffer> Uniforms;
 
-		uint32_t UniformCameraDataViewIndex;
 		RefPtr<BFStructuredBuffer> ModelMatrices;
-
 	private:
 		friend class Renderer;
 		RefPtr<GraphTransientResourceCache> GraphResources;
@@ -53,9 +51,15 @@ namespace Butterfly
 		Viewport& Viewport;
 	};
 
+	struct ViewportPrerenderEvent
+	{
+		Viewport& Viewport;
+	};
+
 	struct ViewportEvents
 	{
 		EventDispatcher<ViewportResizeEvent> OnResize;
+		EventDispatcher<ViewportPrerenderEvent> OnPreRender;
 		EventDispatcher<ViewportRenderEvent> OnRender;
 	};
 }

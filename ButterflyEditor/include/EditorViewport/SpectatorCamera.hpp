@@ -1,6 +1,5 @@
 #pragma once
 #include "Butterfly.hpp"
-#include "Camera.hpp"
 #include <glm/glm.hpp>
 
 namespace Butterfly

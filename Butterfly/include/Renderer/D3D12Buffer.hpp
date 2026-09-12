@@ -48,17 +48,17 @@ namespace Butterfly
 		BFUniformBuffer(uint32_t numBytes, const std::string& resourceTag);
 		~BFUniformBuffer();
 
-		uint32_t AllocView(uint32_t sizeInBytes);
+		uint32_t GetOrCreateView(uint32_t sizeInBytes, uint32_t hashedName);
 
-		const RefPtr<BFUniformBufferView> GetView(uint32_t viewIndex) const;
-		uint32_t GetViewOffset(uint32_t viewIndex) const;
-		void Write(const void* src, uint32_t numBytes, uint32_t viewIndex);
+		const RefPtr<BFUniformBufferView>& GetView(uint32_t viewName) const;
+		uint32_t GetViewOffset(uint32_t viewName) const;
+		void Write(const void* src, uint32_t numBytes, uint32_t viewName);
 
 	private:
 		uint32_t m_numBytes;
 		uint32_t m_bytesAllocated;
 		RefPtr<D3D12Resource> m_resource;
-		std::vector<RefPtr<BFUniformBufferView>> m_cbvs;
+		std::unordered_map<uint32_t, RefPtr<BFUniformBufferView>> m_cbvs;
 		void* m_mappedData;
 	};
 

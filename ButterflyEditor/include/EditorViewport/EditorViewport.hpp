@@ -4,55 +4,34 @@
 #include "ImGui/ImGUIHelpers.hpp"
 #include "EditorApplication.hpp"
 #include "Core/ThumbnailProcessor.hpp"
-#include "Tools/SpectatorCamera.hpp"
+#include "EditorViewport/SceneViewport.hpp"
+#include "EditorViewport/EditorViewportExtention.hpp"
 
 namespace Butterfly
 {
-
-
 	class EditorViewport
 	{
 	public:
-		Entity model;
-		float m_modelMovementTime = 0;
-		SpectatorCamera m_spectatorCam;
-		ViewportHandle m_viewportHandle;
-
-		bool m_renderFullscreenViewport = false;
-
 		EditorViewport()
 		{
 			Application::Get().GetRenderer().GetImGUIRenderEvent().Subscribe(BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
 
-			Application::Get().GetBlackboard().Register<Camera>(m_spectatorCam.GetCamera(), "ViewCamera");
 
-			m_viewportHandle = Application::Get().GetRenderer().AddViewport();
-			Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize.Subscribe([&](const ViewportResizeEvent& ev)
-				{
-					auto p = m_spectatorCam.GetCamera()->Projection();
-					p.AspectRatio = static_cast<float>(ev.Size.x) / static_cast<float>(ev.Size.y);
-					m_spectatorCam.GetCamera()->SetProjection(p);
-				});
+			m_viewportExtentions.push_back(MakeRef<SceneViewport>());
 		}
 
 		void Tick()
 		{
-			m_spectatorCam.Tick(Application::Get().GetInput(), Application::Get().GetTime().DeltaTime());
+			for (auto& ext : m_viewportExtentions)
+			{
+				ext->OnTick();
+			}
 
 			if (Application::Get().GetInput().IsKeyDown(BFB_F11))
 			{
 				Application::Get().GetWindow().SetFullscreen(!Application::Get().GetWindow().Fullscreen());
 			}
 
-			if (Application::Get().GetInput().IsKeyDown(BFB_V))
-			{
-				m_viewportHandle = Application::Get().GetRenderer().AddViewport();
-			}
-
-			if (Application::Get().GetInput().IsKeyDown(BFB_B))
-			{
-				Application::Get().GetRenderer().RemoveViewport(m_viewportHandle);
-			}
 
 			if (Application::Get().GetInput().IsKeyDown(BFB_T))
 			{
@@ -60,11 +39,6 @@ namespace Butterfly
 
 				model.AddComponent<TransformComponent>();
 				model.AddComponent<MeshRendererComponent>();
-			}
-
-			if (Application::Get().GetInput().IsKeyDown(BFB_F))
-			{
-				m_renderFullscreenViewport = !m_renderFullscreenViewport;
 			}
 
 			if (Application::Get().GetInput().IsKeyPressed(BFB_R))
@@ -86,36 +60,9 @@ namespace Butterfly
 
 		void OnRenderImGUI()
 		{
-			if (m_renderFullscreenViewport)
+			for (auto& ext : m_viewportExtentions)
 			{
-				ImGuiViewport* viewport = ImGui::GetMainViewport();
-
-				ImGui::SetNextWindowPos(viewport->WorkPos);
-				ImGui::SetNextWindowSize(viewport->WorkSize);
-				ImGui::SetNextWindowViewport(viewport->ID);
-
-				ImGuiWindowFlags windowFlags =
-					ImGuiWindowFlags_NoDecoration |
-					ImGuiWindowFlags_NoMove |
-					ImGuiWindowFlags_NoSavedSettings |
-					ImGuiWindowFlags_NoBringToFrontOnFocus |
-					ImGuiWindowFlags_NoFocusOnAppearing;
-
-				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-				ImGui::Begin("Fullscreen Viewport", nullptr, windowFlags);
-
-				if (m_viewportHandle.Valid())
-				{
-					Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);
-				}
-
-				ImGui::End();
-
-				ImGui::PopStyleVar(2);
-
-				return; 
+				ext->OnRenderImGUI();
 			}
 
 			{
@@ -168,21 +115,6 @@ namespace Butterfly
 			}
 
 			{
-				ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_NoWindowMenuButton;
-				ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspaceFlags);
-
-				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-				ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
-
-				if (m_viewportHandle.Valid())
-				{
-					Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);
-				}
-
-				ImGui::PopStyleVar(2);
-				ImGui::End();
-
 				ImGui::Begin("Properties");
 
 				if (model)
@@ -420,7 +352,9 @@ namespace Butterfly
 		}
 
 	private:
-		ImVec2 m_viewportSize;
-		ImVec2 m_viewportPos;
+		Entity model;
+		float m_modelMovementTime = 0;
+
+		std::vector<RefPtr<IEditorViewportExtention>> m_viewportExtentions;
 	};
 }

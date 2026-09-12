@@ -198,17 +198,18 @@ namespace Butterfly
     {
         BF_PROFILE_EVENT()
 
-            for (uint32_t i = 0; i < m_cbvs.size(); ++i)
-            {
-                m_cbvs[i].reset();
-            }
-
+        m_cbvs.clear();
         m_resource.reset();
     }
 
-    uint32_t BFUniformBuffer::AllocView(uint32_t sizeInBytes)
+    uint32_t BFUniformBuffer::GetOrCreateView(uint32_t sizeInBytes, uint32_t hashedName)
     {
         BF_PROFILE_EVENT();
+
+		if (m_cbvs.find(hashedName) != m_cbvs.end())
+		{
+			return hashedName;
+		}
 
 		const uint32_t alignedSize = Align256(sizeInBytes);
         BF_CORE_ASSERT(m_bytesAllocated + alignedSize <= m_numBytes, "Not enough space in uniform buffer to allocate view.");
@@ -216,24 +217,24 @@ namespace Butterfly
         uint32_t offset = m_bytesAllocated;
         m_bytesAllocated += alignedSize;
         RefPtr<BFUniformBufferView> view = MakeRef<BFUniformBufferView>(*m_resource, alignedSize, offset);
-        m_cbvs.push_back(view);
-        return static_cast<uint32_t>(m_cbvs.size() - 1);
+        m_cbvs[hashedName] = view;
+        return hashedName;
     }
 
-    const RefPtr<BFUniformBufferView> BFUniformBuffer::GetView(uint32_t viewIndex) const
+    const RefPtr<BFUniformBufferView>& BFUniformBuffer::GetView(uint32_t viewName) const
     {
-        BF_CORE_ASSERT(viewIndex < m_cbvs.size(), "Invalid view index");
-        return m_cbvs[viewIndex];
+        BF_CORE_ASSERT(m_cbvs.find(viewName) != m_cbvs.end(), "Invalid view name");
+        return m_cbvs.at(viewName);
     }
 
-    uint32_t BFUniformBuffer::GetViewOffset(uint32_t viewIndex) const
+    uint32_t BFUniformBuffer::GetViewOffset(uint32_t viewName) const
     {
-        return GetView(viewIndex)->Offset();
+        return GetView(viewName)->Offset();
     }
 
-    void BFUniformBuffer::Write(const void* src, uint32_t numBytes, uint32_t viewIndex)
+    void BFUniformBuffer::Write(const void* src, uint32_t numBytes, uint32_t viewName)
     {
-        BF_CORE_ASSERT(numBytes <= GetView(viewIndex)->NumBytes(), "Not enough space in uniform buffer view to write data.");
+        BF_CORE_ASSERT(numBytes <= GetView(viewName)->NumBytes(), "Not enough space in uniform buffer view to write data.");
 
         memcpy(m_mappedData, src, numBytes);
     }

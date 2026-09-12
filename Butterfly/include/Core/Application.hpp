@@ -5,7 +5,6 @@ namespace Butterfly
 {
 	class Window;
 	class Renderer;
-	class Blackboard;
 	class Time;
 	class Scene;
 	class JobSystem;
@@ -22,7 +21,7 @@ namespace Butterfly
 		virtual void OnRender(D3D12CommandList& list) {}
 	};
 
-	class Application : public NonCopyable
+	class Application : public NonCopyableNonMoveable
 	{
 	public:
 		void Init();
@@ -36,7 +35,6 @@ namespace Butterfly
 		Scene& GetScene() { return *m_scene; }
 		JobSystem& GetJobSystem() { return *m_jobSystem; }
 		AssetManager& GetAssetManager() { return *m_assetManager; }
-		Blackboard& GetBlackboard() { return *m_blackboard; }
 		Input& GetInput() { return *m_input; }
 
 		void SetApplicationExtention(IApplicationExtention* extention) { m_applicationExtention = extention; }
@@ -53,7 +51,6 @@ namespace Butterfly
 		Scene* m_scene;
 		JobSystem* m_jobSystem;
 		AssetManager* m_assetManager;
-		Blackboard* m_blackboard;
 		Input* m_input;
 	};
 }

@@ -26,10 +26,10 @@
 #include <numeric>
 
 #include "glm/glm.hpp"
-#include "glm/gtc/quaternion.hpp"
+#include "glm/gtx/quaternion.hpp"
 #include "entt/entt.hpp"
 
-#include "Core//Log.hpp"
+#include "Core/Log.hpp"
 #include "Utils/Utils.hpp"
 #include "Utils/Profiler.hpp"
 
@@ -41,7 +41,7 @@
 #define BF_BIND_FUNC(name) std::bind(name, this)
 
 #define FREE(p)         \
-    {if (p) {            \
+    {if (p) {           \
         delete p;       \
         p = nullptr;    \
     }}

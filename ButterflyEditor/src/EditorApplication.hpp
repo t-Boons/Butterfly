@@ -1,6 +1,5 @@
 #pragma once
 #include "Butterfly.hpp"
-#include "Input/Input.hpp"
 #include <string_view>
 
 namespace Butterfly

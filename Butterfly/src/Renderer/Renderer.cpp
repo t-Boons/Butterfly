@@ -27,8 +27,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "Asset/AssetManager.hpp"
-
-#include "../../../ButterflyEditor/src/Tools/Camera.hpp"
+#include "Renderer/Camera.hpp"
 
 namespace Butterfly
 {
@@ -163,14 +162,15 @@ namespace Butterfly
 			GraphBuilder builder(*viewport.GraphResources);
 
 			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.m_index));
+			GetViewportEvents(viewport.Handle).OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
 			GetViewportEvents(viewport.Handle).OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
-			frame.CmdList->EndGPUMarker();
 
 			auto graph = builder.Create();
 			graph->Execute(*frame.CmdList);
 			delete graph;
 
 			viewport.RenderTarget->Resource()->Transition(*frame.CmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
+			frame.CmdList->EndGPUMarker();
 		}
 
 		ImGui::Render();
@@ -236,11 +236,6 @@ namespace Butterfly
 		}
 	}
 
-	struct UniformCameraData
-	{
-		glm::mat4 ViewProjection;
-	};
-
 	void Renderer::InvalidateFrameDatas()
 	{
 		WaitForInflightFrames();
@@ -277,9 +272,6 @@ namespace Butterfly
 
 				viewport.GraphResources = MakeRef<GraphTransientResourceCache>();
 				viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(handle.m_index) + " Uniforms");
-
-
-				viewport.UniformCameraDataViewIndex = viewport.Uniforms->AllocView(sizeof(UniformCameraData));
 
 				BFStructuredBufferDesc desc;
 				desc.Data = nullptr;
@@ -324,6 +316,20 @@ namespace Butterfly
 		desc2.Flags = BFTextureDesc::DepthStencilable;
 		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport", desc2);
 
+		uint32_t entityIndex = 0;
+		auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+		for (auto [entity, transform, meshRenderer] : view.each())
+		{
+			if (!meshRenderer.ContainsMesh())
+			{
+				continue;
+			}
+
+			const glm::mat4 model = transform.GetMatrix();
+			viewport.ModelMatrices->Write(&model, sizeof(glm::mat4), entityIndex * sizeof(glm::mat4));
+			entityIndex++;
+		}
+
 		builder.AddPass<ForwardRenderer>("Forward Model",
 			[&](const ForwardRenderer& params, D3D12CommandList& list)
 			{
@@ -361,21 +367,13 @@ namespace Butterfly
 						continue;
 					}
 
-					UniformCameraData cameraData;
-					cameraData.ViewProjection = Application::Get().GetBlackboard().Get<Camera>("ViewCamera")->ViewProjectionMatrix();
-
-					viewport.Uniforms->Write(&cameraData, sizeof(UniformCameraData), viewport.UniformCameraDataViewIndex);
-
-					const glm::mat4 model = transform.GetMatrix();
-					viewport.ModelMatrices->Write(&model, sizeof(glm::mat4), entityIndex * sizeof(glm::mat4));
-
 					AssetManager& as = Application::Get().GetAssetManager();
 					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.MeshHandle);
 					ShaderVariables()
 						.Add(mesh->GPUPositions->SRV().View())
 						.Add(mesh->GPUNormals->SRV().View())
 						.Add(mesh->GPUUVs->SRV().View())
-						.Add(viewport.Uniforms->GetView(viewport.UniformCameraDataViewIndex)->View())
+						.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
 						.Add(sampler.View())
 						.Add(m_whiteTexture->SRV().View())
 						.Add(viewport.ModelMatrices->SRV().View())

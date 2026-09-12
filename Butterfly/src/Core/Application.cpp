@@ -26,7 +26,6 @@ namespace Butterfly
 		GraphicsAPI::Init(GraphicsAPIType::D3D12, useDebug);
 		m_window = new Window("Butterfly Renderer", 1280, 720);
 
-		m_blackboard = new Blackboard();
 		m_renderer = new Renderer();
 		m_time = new Time();
 		m_scene = new Scene();
@@ -81,6 +80,5 @@ namespace Butterfly
 		delete m_time;
 		delete m_renderer;
 		delete m_window;
-		delete m_blackboard;
 	}
 }
