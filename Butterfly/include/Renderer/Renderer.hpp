@@ -8,63 +8,20 @@
 #include "Renderer/Graph/Blackboard.hpp"
 #include "Core/Window.hpp"
 #include "Core/EventDispatcher.hpp"
-
+#include "Renderer/Viewport.hpp"
 
 #define NUM_RENDER_BUFFERS 3
 
+
 namespace Butterfly
 {
-	class GraphBuilder;
-	class Viewport;
-	struct RecordRenderPassEvent
-	{
-		GraphBuilder& Builder;
-		Viewport& Viewport;
-	};
-
-
-	struct ViewportHandle
-	{
-	public:
-		bool Valid() const { return Index != 0; }
-	private:
-		friend class Renderer;
-		uint32_t Index = 0;
-	};
-
-	struct Viewport
-	{
-	public:
-		RefPtr<BFTexture> RenderTarget;
-		RefPtr<BFUniformBuffer> Uniforms;
-
-		uint32_t UniformCameraDataViewIndex;
-		RefPtr<BFStructuredBuffer> ModelMatrices;
-		
-	private:
-		friend class Renderer;
-		RefPtr<GraphTransientResourceCache> GraphResources;
-		ViewportHandle Handle;
-	};
-
 	struct FrameData
 	{
 		RefPtr<BFTexture> CompositeRenderTarget;
 		RefPtr<D3D12CommandList> CmdList;
 		RefPtr<D3D12Fence> Fence;
 		uint32_t FrameIndex;
-		std::unordered_map<uint32_t, Viewport> Viewports;
-	};
-
-	struct ViewportResizeEvent
-	{
-		glm::ivec2 Size;
-	};
-
-	struct ViewportEvents
-	{
-		EventDispatcher<ViewportResizeEvent> OnResize;
-		EventDispatcher<RecordRenderPassEvent> OnRender;
+		std::unordered_map<ViewportHandle, Viewport> Viewports;
 	};
 
 	class Renderer : public NonCopyable
@@ -75,12 +32,14 @@ namespace Butterfly
 
 		void Render();
 
+		// Viewport functions.
 		ViewportHandle AddViewport();
 		void RemoveViewport(const ViewportHandle& handle);
 		ViewportEvents& GetViewportEvents(const ViewportHandle& handle);
 
 		FrameData& CurrentFrameData() { return m_frameDatas[m_frameIndex]; }
 
+		// ImGui Helper functions.
 		EventDispatcher<>& GetImGUIRenderEvent() { return m_ImGuiRenderEvent; }
 		void ImGUIImage(const ViewportHandle& handle);
 
@@ -89,7 +48,7 @@ namespace Butterfly
 		void WaitForInflightFrames();
 		void ApplyResize();
 
-		void RecordCmdList(const RecordRenderPassEvent& ev);
+		void RecordCmdList(const ViewportRenderEvent& ev);
 		void OnWindowResize(const WindowResizeEvent& ev);
 		void OnWindowRefresh();
 
@@ -106,8 +65,8 @@ namespace Butterfly
 
 
 		std::vector<ViewportHandle> m_existingViewportHandles;
-		std::unordered_map<uint32_t, ViewportEvents> m_viewportEvents;
-		uint32_t m_index = 1;
+		std::unordered_map<ViewportHandle, ViewportEvents> m_viewportEvents;
+		uint32_t m_viewportHandleIndex = 1;
 
 		EventDispatcher<> m_ImGuiRenderEvent;
 	};

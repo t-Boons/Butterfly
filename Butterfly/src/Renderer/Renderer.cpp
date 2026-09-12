@@ -88,7 +88,7 @@ namespace Butterfly
 			return;
 		}
 
-		auto it = CurrentFrameData().Viewports.find(handle.Index);
+		auto it = CurrentFrameData().Viewports.find(handle);
 
 		// When one of the viewports gets resized.
 		if (it == CurrentFrameData().Viewports.end() || !it->second.RenderTarget || it->second.RenderTarget->Width() != size.x || it->second.RenderTarget->Height() != size.y)
@@ -106,7 +106,7 @@ namespace Butterfly
 			desc.Width = size.x;
 			desc.Height = size.y;
 			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
-			desc.DebugName = "Viewport " + std::to_string(handle.Index) + " RenderTarget";
+			desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " RenderTarget";
 
 			it->second.RenderTarget = BFTexture::CreateTextureForGPU(desc);
 
@@ -156,14 +156,14 @@ namespace Butterfly
 
 			if (!viewport.RenderTarget)
 			{
-				BF_CORE_LOG_WARN("Renderer::Render: Viewport %u has no render target. Skipping.", viewport.Handle.Index);
+				BF_CORE_LOG_WARN("Renderer::Render: Viewport %u has no render target. Skipping.", viewport.Handle.m_index);
 				continue;
 			}
 
 			GraphBuilder builder(*viewport.GraphResources);
 
-			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.Index));
-			GetViewportEvents(viewport.Handle).OnRender.Broadcast(RecordRenderPassEvent{ builder, viewport });
+			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.m_index));
+			GetViewportEvents(viewport.Handle).OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
 			frame.CmdList->EndGPUMarker();
 
 			auto graph = builder.Create();
@@ -198,7 +198,7 @@ namespace Butterfly
 	ViewportEvents& Renderer::GetViewportEvents(const ViewportHandle& handle)
 	{
 		BF_CORE_ASSERT(handle.Valid(), "Renderer::GetViewportEvents: ViewportHandle is invalid.");
-		auto it = m_viewportEvents.find(handle.Index);
+		auto it = m_viewportEvents.find(handle);
 		BF_CORE_ASSERT(it != m_viewportEvents.end(), "Renderer::GetViewportEvents: ViewportHandle does not exist.");
 		return it->second;
 	}
@@ -206,12 +206,12 @@ namespace Butterfly
 	ViewportHandle Renderer::AddViewport()
 	{
 		ViewportHandle handle;
-		handle.Index = m_index++;
+		handle.m_index = m_viewportHandleIndex++;
 		m_existingViewportHandles.push_back(handle);
 
 		InvalidateFrameDatas();
 
-		m_viewportEvents[handle.Index] = ViewportEvents();
+		m_viewportEvents[handle] = ViewportEvents();
 
 		// Temp add the default render pipeline.
 		GetViewportEvents(handle).OnRender.Subscribe(BF_BIND_FUNC_PARAM(&Renderer::RecordCmdList));
@@ -223,11 +223,7 @@ namespace Butterfly
 
 	void Renderer::RemoveViewport(const ViewportHandle& handle)
 	{
-		auto it = std::find_if(m_existingViewportHandles.begin(), m_existingViewportHandles.end(),
-			[&](const ViewportHandle& h)
-			{
-				return h.Index == handle.Index;
-			});
+		auto it = std::find(m_existingViewportHandles.begin(), m_existingViewportHandles.end(), handle);
 
 		if (it != m_existingViewportHandles.end())
 		{
@@ -236,7 +232,7 @@ namespace Butterfly
 		}
 		else
 		{
-			BF_CORE_LOG_WARN("Renderer::RemoveViewport: ViewportHandle does not exist. Index: {}", handle.Index);
+			BF_CORE_LOG_WARN("Renderer::RemoveViewport: ViewportHandle does not exist. Index: %u", handle.m_index);
 		}
 	}
 
@@ -275,12 +271,12 @@ namespace Butterfly
 			for (uint32_t j = 0; j < m_existingViewportHandles.size(); ++j)
 			{
 				ViewportHandle& handle = m_existingViewportHandles[j];
-				Viewport& viewport = data.Viewports[handle.Index];
+				Viewport& viewport = data.Viewports[handle];
 
 				viewport.Handle = handle;
 
 				viewport.GraphResources = MakeRef<GraphTransientResourceCache>();
-				viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(handle.Index) + " Uniforms");
+				viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(handle.m_index) + " Uniforms");
 
 
 				viewport.UniformCameraDataViewIndex = viewport.Uniforms->AllocView(sizeof(UniformCameraData));
@@ -305,7 +301,7 @@ namespace Butterfly
 		}
 	}
 
-	void Renderer::RecordCmdList(const RecordRenderPassEvent& ev)
+	void Renderer::RecordCmdList(const ViewportRenderEvent& ev)
 	{
 		GraphBuilder& builder = ev.Builder;
 		Viewport& viewport = ev.Viewport;
@@ -326,7 +322,7 @@ namespace Butterfly
 		desc2.Width = viewport.RenderTarget->Width();
 		desc2.Height = viewport.RenderTarget->Height();
 		desc2.Flags = BFTextureDesc::DepthStencilable;
-		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport " + std::to_string(viewport.Handle.Index), desc2);
+		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport", desc2);
 
 		builder.AddPass<ForwardRenderer>("Forward Model",
 			[&](const ForwardRenderer& params, D3D12CommandList& list)
