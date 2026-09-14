@@ -125,7 +125,7 @@ namespace Butterfly
 
 		// Get an existing resource.
 		RefPtr<Type> out = std::any_cast<const RefPtr<Type>&>(it->second);
-
+			
 		// Reset the resource's lifetime.
 		m_lifetimes[key] = GRAPHRESOURCE_LIFETIME;
 

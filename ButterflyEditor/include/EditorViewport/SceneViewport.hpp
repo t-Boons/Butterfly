@@ -19,6 +19,7 @@ namespace Butterfly
 		void RenderObjectPicker(const ViewportRenderEvent& event);
 
 	private:
+		entt::entity m_selectedEntity = entt::null;
 		RefPtr<BFTextureReadback> m_objectPickerReadback;
 		ViewportHandle m_viewportHandle;
 		SpectatorCamera m_spectatorCam;

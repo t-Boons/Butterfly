@@ -4,10 +4,19 @@
 
 namespace Butterfly
 {
+	struct ObjectPickerPassData
+	{
+		BFRGTexture* DepthStencil;
+		BFRGTexture* RenderTarget;
+	};
+
 	SceneViewport::SceneViewport()
 	{
 		m_viewportHandle = Application::Get().GetRenderer().AddViewport();
-		//Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::RenderObjectPicker));
+
+		m_objectPickerReadback = MakeRef<BFTextureReadback>();
+
+		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::RenderObjectPicker));
 		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
 		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
 	}
@@ -47,6 +56,17 @@ namespace Butterfly
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
 
+		uint32_t entityID = 0;
+		glm::ivec2 mousePos = glm::ivec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
+		glm::ivec2 contentPos = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
+
+		glm::ivec2 relativePos = mousePos - contentPos;
+
+		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_objectPickerReadback->ReadPixel(relativePos, entityID))
+		{
+			BF_LOG_INFO("%u", entityID);
+		}
+
 		if (m_viewportHandle.Valid())
 		{
 			Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);
@@ -60,12 +80,6 @@ namespace Butterfly
 	{
 		GraphBuilder& builder = event.Builder;
 		Viewport& viewport = event.Viewport;
-
-		struct ObjectPickerPassData
-		{
-			BFRGTexture* DepthStencil;
-			BFRGTexture* RenderTarget;
-		};
 
 		ObjectPickerPassData* params = builder.AllocParameters<ObjectPickerPassData>();
 
@@ -83,9 +97,9 @@ namespace Butterfly
 		desc2.Flags = BFTextureDesc::DepthStencilable;
 		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport objectpicker", desc2);
 
+
 		event.Builder.AddPass<ObjectPickerPassData>("RenderObjectPickerPass", [&](const ObjectPickerPassData& data, D3D12CommandList& list)
 			{
-
 				BFTexture& rt = *data.RenderTarget->Resource();
 
 				// Default Init stuff.
@@ -100,7 +114,7 @@ namespace Butterfly
 
 				BFPipelineBuilder psoBuilder;
 				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-				psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
+				psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R32_UINT });
 				psoBuilder.DepthStencilFormat({ DXGI_FORMAT_D24_UNORM_S8_UINT });
 				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_vert.hlsl", ShaderType::Vertex));
 				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_frag.hlsl", ShaderType::Pixel));
@@ -129,6 +143,8 @@ namespace Butterfly
 					list.List()->IASetIndexBuffer(&mesh->GPUIndices->IBV());
 					list.List()->DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);
 				}
+
+				m_objectPickerReadback->ReadbackCopy(list, data.RenderTarget->Resource());
 			});
 	}
 }

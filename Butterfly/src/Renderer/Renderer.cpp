@@ -164,7 +164,7 @@ namespace Butterfly
 			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.m_index));
 			GetViewportEvents(viewport.Handle).OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
 			GetViewportEvents(viewport.Handle).OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
-
+			GetViewportEvents(viewport.Handle).OnPostRender.Broadcast(ViewportPostRenderEvent{ builder, viewport });
 			auto graph = builder.Create();
 			graph->Execute(*frame.CmdList);
 			delete graph;
@@ -187,6 +187,8 @@ namespace Butterfly
 		frame.CmdList->Close();
 		D3D12API()->Queue(QueueType::Direct)->Execute(*frame.CmdList);
 		frame.Fence->Signal(*D3D12API()->Queue(QueueType::Direct));
+
+		m_renderFinishedEvent.Broadcast();
 
 		Application::Get().GetWindow().Context().Present();
 

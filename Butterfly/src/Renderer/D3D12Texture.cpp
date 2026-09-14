@@ -223,12 +223,22 @@ namespace Butterfly
 		}
 	}
 
-	BFTextureReadback::BFTextureReadback(const RefPtr<BFTexture>& texture)
-		: m_texture(texture)
+	BFTextureReadback::BFTextureReadback()
+	{
+
+	}
+
+	BFTextureReadback::~BFTextureReadback()
+	{
+		BF_PROFILE_EVENT();
+		FREE(m_readbackBuffer);
+	}
+
+	void BFTextureReadback::ValidateBuffer(const RefPtr<BFTexture>& texture)
 	{
 		BF_PROFILE_EVENT();
 
-		D3D12Resource* src = m_texture->Resource();
+		D3D12Resource* src = texture->Resource();
 		const auto desc = src->HwResource->GetDesc();
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
 		UINT numRows = 0;
@@ -245,6 +255,13 @@ namespace Butterfly
 			&totalSize
 		);
 
+		if (m_readbackBuffer && m_rowPitch == footprint.Footprint.RowPitch && m_width == desc.Width && m_height == desc.Height)
+		{
+			return;
+		}
+
+		FREE(m_readbackBuffer);
+
 		m_readbackBuffer = DX12ResourceBuilder()
 			.HeapType(D3D12_HEAP_TYPE_READBACK)
 			.InitialState(D3D12_RESOURCE_STATE_COPY_DEST)
@@ -252,20 +269,36 @@ namespace Butterfly
 			.SetName("Readback Buffer")
 			.Create();
 
-		m_rowPitch = static_cast<uint32_t>(rowSize);
+		m_totalSize = static_cast<uint32_t>(totalSize);
+		m_rowPitch = static_cast<uint32_t>(footprint.Footprint.RowPitch);
 		m_width = static_cast<uint32_t>(desc.Width);
 		m_height = static_cast<uint32_t>(desc.Height);
 	}
 
-	BFTextureReadback::~BFTextureReadback()
+	bool BFTextureReadback::ReadPixel(const glm::ivec2& pixel, uint32_t& out)
 	{
-		BF_PROFILE_EVENT();
-		FREE(m_readbackBuffer);
+		if (!m_readbackBuffer || pixel.x < 0 || pixel.y < 0 || pixel.x >= m_width || pixel.y >= m_height)
+		{
+			return false;
+		}
+
+		const uint8_t* data = static_cast<const uint8_t*>(m_readbackBuffer->Map());
+		const uint8_t* row = data + m_rowPitch * pixel.y;
+		const uint32_t* pixelData = reinterpret_cast<const uint32_t*>(row) + pixel.x;
+
+		out = *pixelData;
+
+		m_readbackBuffer->Unmap();
+		return true;
 	}
 
-	void BFTextureReadback::ReadbackCopy(D3D12CommandList& list)
+	void BFTextureReadback::ReadbackCopy(D3D12CommandList& list, const RefPtr<BFTexture>& texture)
 	{
-		D3D12Resource* src = m_texture->Resource();
+		ValidateBuffer(texture);
+
+		D3D12Resource* src = texture->Resource();
+
+		m_textureDesc = texture->Desc();
 
 		const auto desc = src->HwResource->GetDesc();
 

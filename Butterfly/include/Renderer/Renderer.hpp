@@ -46,6 +46,7 @@ namespace Butterfly
 
 		// ImGui Helper functions.
 		EventDispatcher<>& GetImGUIRenderEvent() { return m_ImGuiRenderEvent; }
+		EventDispatcher<>& GetRenderFinishedEvent() { return m_renderFinishedEvent; }
 		void ImGUIImage(const ViewportHandle& handle);
 
 	private:
@@ -74,5 +75,6 @@ namespace Butterfly
 		uint32_t m_viewportHandleIndex = 1;
 
 		EventDispatcher<> m_ImGuiRenderEvent;
+		EventDispatcher<> m_renderFinishedEvent;
 	};
 }

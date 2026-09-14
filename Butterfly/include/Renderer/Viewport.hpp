@@ -56,10 +56,17 @@ namespace Butterfly
 		Viewport& Viewport;
 	};
 
+	struct ViewportPostRenderEvent
+	{
+		GraphBuilder& Builder;
+		Viewport& Viewport;
+	};
+
 	struct ViewportEvents
 	{
 		EventDispatcher<ViewportResizeEvent> OnResize;
 		EventDispatcher<ViewportPrerenderEvent> OnPreRender;
+		EventDispatcher<ViewportPostRenderEvent> OnPostRender;
 		EventDispatcher<ViewportRenderEvent> OnRender;
 	};
 }

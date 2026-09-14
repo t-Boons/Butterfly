@@ -64,33 +64,23 @@ namespace Butterfly
 	class BFTextureReadback
 	{
 	public:
-		BFTextureReadback(const RefPtr<BFTexture>& texture);
+		BFTextureReadback();
 		~BFTextureReadback();
 
-		bool IsReady() const
-		{
-			return m_isReady;
-		}
+		bool ReadPixel(const glm::ivec2& pixel, uint32_t& out);
 
-		void Reset()
-		{
-			m_isReady = false;
-		}
-
-		void MarkReady()
-		{
-			m_isReady = true;
-		}
-
-		void ReadbackCopy(D3D12CommandList& list);
+		void ReadbackCopy(D3D12CommandList& list, const RefPtr<BFTexture>& texture);
 
 	private:
-		RefPtr<BFTexture> m_texture;
+		void ValidateBuffer(const RefPtr<BFTexture>& texture);
+
+		BFTextureDesc m_textureDesc;
 		D3D12Resource* m_readbackBuffer = nullptr;
 		bool m_isReady = false;
 
 		uint64_t m_fenceValue = 0;
 
+		uint32_t m_totalSize = 0;
 		uint32_t m_rowPitch = 0;
 		uint32_t m_width = 0;
 		uint32_t m_height = 0;
