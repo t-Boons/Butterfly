@@ -6,11 +6,12 @@ namespace Butterfly
 {
 	struct EventHandle
 	{
+	public:
+		EventHandle() = default;
 	private:
 		template <typename InType>
 		friend class EventDispatcher;
 
-		EventHandle() = default;
 
 		uint64_t DispatcherID = 0;
 		uint64_t EventID = 0;
@@ -35,6 +36,8 @@ namespace Butterfly
 
 			m_funcs.push_back({handle, func});
 
+			BF_CORE_LOG_TRACE("EventDispatcher::Subscribe: DispatcherID: %llu, EventID: %llu", handle.DispatcherID, handle.EventID);
+
 			return handle;
 		}
 
@@ -53,6 +56,7 @@ namespace Butterfly
 			if (it != m_funcs.end())
 			{
 				m_funcs.erase(it);
+				BF_CORE_LOG_TRACE("EventDispatcher::Unsubscribe: DispatcherID: %llu, EventID: %llu", handle.DispatcherID, handle.EventID);
 			}
 		}
 
@@ -96,6 +100,8 @@ namespace Butterfly
 
 			m_funcs.push_back({ handle, func });
 
+			BF_CORE_LOG_TRACE("EventDispatcher::Subscribe: DispatcherID: %llu, EventID: %llu", handle.DispatcherID, handle.EventID);
+
 			return handle;
 		}
 
@@ -111,7 +117,10 @@ namespace Butterfly
 				});
 
 			if (it != m_funcs.end())
+			{
 				m_funcs.erase(it);
+				BF_CORE_LOG_TRACE("EventDispatcher::Unsubscribe: DispatcherID: %llu, EventID: %llu", handle.DispatcherID, handle.EventID);
+			}
 		}
 
 		void Broadcast()

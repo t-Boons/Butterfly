@@ -28,6 +28,14 @@ namespace Butterfly
 			return generator();
 		}
 
+		inline uint32_t RandomUint32()
+		{
+			static std::random_device rd;
+			static std::mt19937 generator(rd());
+
+			return generator();
+		}
+
 		template<typename Type>
 		inline bool IsArrayPtrValid(uint32_t numElements, Type* ptr)
 		{

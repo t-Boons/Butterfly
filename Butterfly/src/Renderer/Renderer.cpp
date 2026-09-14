@@ -213,6 +213,8 @@ namespace Butterfly
 
 		InvalidateFrameDatas();
 
+		BF_CORE_ASSERT(m_viewportEvents.find(handle) == m_viewportEvents.end(), "Renderer::AddViewport: ViewportHandle already exists.");
+
 		m_viewportEvents[handle] = ViewportEvents();
 
 		// Temp add the default render pipeline.

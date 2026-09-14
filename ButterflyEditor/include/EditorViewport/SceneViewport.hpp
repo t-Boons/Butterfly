@@ -23,5 +23,10 @@ namespace Butterfly
 		RefPtr<BFTextureReadback> m_objectPickerReadback;
 		ViewportHandle m_viewportHandle;
 		SpectatorCamera m_spectatorCam;
+
+		EventHandle m_viewportResizeReceiver;
+		EventHandle m_viewportRenderReceiver;
+		EventHandle m_viewportPrerenderReceiver;
+
 	};
 }

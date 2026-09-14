@@ -16,14 +16,17 @@ namespace Butterfly
 
 		m_objectPickerReadback = MakeRef<BFTextureReadback>();
 
-		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::RenderObjectPicker));
-		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
-		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
+		m_viewportResizeReceiver = Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
+		m_viewportRenderReceiver = Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::RenderObjectPicker));
+		m_viewportPrerenderReceiver = Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
 	}
 
 	SceneViewport::~SceneViewport()
 	{
 		Application::Get().GetRenderer().RemoveViewport(m_viewportHandle);
+		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize.Unsubscribe(m_viewportResizeReceiver);
+		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender.Unsubscribe(m_viewportRenderReceiver);
+		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender.Unsubscribe(m_viewportPrerenderReceiver);
 	}
 
 	void SceneViewport::OnTick()
@@ -56,17 +59,30 @@ namespace Butterfly
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
 
-		uint32_t entityID = 0;
-		glm::ivec2 mousePos = glm::ivec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
-		glm::ivec2 contentPos = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
-
-		glm::ivec2 relativePos = mousePos - contentPos;
-
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_objectPickerReadback->ReadPixel(relativePos, entityID))
+		// Object selection.
+		const glm::ivec2 mousePos = glm::ivec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
+		const glm::ivec2 contentPos = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
+		const glm::ivec2 relativePos = mousePos - contentPos;
+		uint32_t readbackID = 0;
+		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_objectPickerReadback->ReadPixel(relativePos, readbackID))
 		{
-			BF_LOG_INFO("%u", entityID);
+
+			if (readbackID > 0)
+			{
+				// We do -1 because the rendred readbackID increments the entity count for entity 0.
+				// Thus entity 0 is entity 1
+				const uint32_t sceneEntityID = readbackID - 1; 
+				m_selectedEntity = static_cast<entt::entity>(sceneEntityID);
+				BF_LOG_INFO("Selected entity: %u", sceneEntityID);
+			}
+			else
+			{
+				m_selectedEntity = entt::null;
+			}
 		}
 
+
+		// Viewport rendering.
 		if (m_viewportHandle.Valid())
 		{
 			Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);

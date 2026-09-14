@@ -16,7 +16,6 @@ namespace Butterfly
 		{
 			Application::Get().GetRenderer().GetImGUIRenderEvent().Subscribe(BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
 
-
 			m_viewportExtentions.push_back(MakeRef<SceneViewport>());
 		}
 
