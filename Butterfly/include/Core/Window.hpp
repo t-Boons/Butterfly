@@ -89,5 +89,7 @@ namespace Butterfly
 		bool m_fullscreen = false;
 		glm::ivec2 m_preFullScreenPos;
 		glm::ivec2 m_preFullScreenSize;
+
+		EventReceiver<WindowResizeEvent> m_windowResizeReceiver;
 	};
 }

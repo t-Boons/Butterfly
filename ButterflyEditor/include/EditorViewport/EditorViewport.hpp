@@ -14,7 +14,7 @@ namespace Butterfly
 	public:
 		EditorViewport()
 		{
-			Application::Get().GetRenderer().GetImGUIRenderEvent().Subscribe(BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
+			m_ImGUIRenderReceiver.Subscribe(Application::Get().GetRenderer().GetImGUIRenderEvent(), BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
 
 			m_viewportExtentions.push_back(MakeRef<SceneViewport>());
 		}
@@ -355,5 +355,6 @@ namespace Butterfly
 		float m_modelMovementTime = 0;
 
 		std::vector<RefPtr<IEditorViewportExtention>> m_viewportExtentions;
+		EventReceiver<> m_ImGUIRenderReceiver;
 	};
 }

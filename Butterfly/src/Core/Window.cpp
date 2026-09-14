@@ -125,14 +125,10 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		m_events.OnWindowResize.Subscribe([&](const WindowResizeEvent& ev)
+		m_windowResizeReceiver.Subscribe(m_events.OnWindowResize, [&](const WindowResizeEvent& ev)
 			{
 				m_width = ev.Width;
 				m_height = ev.Height;
-			});
-
-		m_events.OnWindowResize.Subscribe([&](const WindowResizeEvent& ev)
-			{
 				m_context->Resize(ev.Width, ev.Height);
 			});
 	}

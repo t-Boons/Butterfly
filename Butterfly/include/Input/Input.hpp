@@ -60,5 +60,10 @@ namespace Butterfly
 		float m_oldMouseX = 0;
 		float m_oldMouseY = 0;
 		int m_scrollDelta = 0;
+
+		EventReceiver<KeyEvent> m_keyReceiver;
+		EventReceiver<MouseButtonEvent> m_mouseReceiver;
+		EventReceiver<MouseScrollEvent> m_scrollReceiver;
+		EventReceiver<MousePointerEvent> m_pointerReceiver;
 	};
 }

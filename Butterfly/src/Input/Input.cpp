@@ -4,21 +4,22 @@ namespace Butterfly
 {
 	void Input::Init(Window* window)
 	{
-		window->Events().OnKeyEvent.Subscribe([this](KeyEvent event)
+
+		m_keyReceiver.Subscribe(window->Events().OnKeyEvent, [this](KeyEvent event)
 			{
 				UpdateKey(event.Key, event.Pressed);
 			});
 
-		window->Events().OnMouseEvent.Subscribe([this](MouseButtonEvent event)
+		m_mouseReceiver.Subscribe(window->Events().OnMouseEvent, [this](MouseButtonEvent event)
 			{
 				UpdateMouseButton(event.Button, event.Pressed);
 			});
 
-		window->Events().OnScrollEvent.Subscribe([this](MouseScrollEvent event)
+		m_scrollReceiver.Subscribe(window->Events().OnScrollEvent, [this](MouseScrollEvent event)
 			{
 				UpdateScrollDelta(event.Delta);
 			});
-		window->Events().OnPointerEvent.Subscribe([this](MousePointerEvent event)
+		m_pointerReceiver.Subscribe(window->Events().OnPointerEvent, [this](MousePointerEvent event)
 			{
 				UpdatePointer(event.X, event.Y);
 			});

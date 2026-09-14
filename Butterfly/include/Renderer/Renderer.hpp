@@ -76,5 +76,8 @@ namespace Butterfly
 
 		EventDispatcher<> m_ImGuiRenderEvent;
 		EventDispatcher<> m_renderFinishedEvent;
+
+		EventReceiver<WindowResizeEvent> m_windowResizeReceiver;
+		EventReceiver<> m_windowRefreshReceiver;
 	};
 }

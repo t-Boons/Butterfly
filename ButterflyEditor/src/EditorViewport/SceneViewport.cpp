@@ -16,17 +16,14 @@ namespace Butterfly
 
 		m_objectPickerReadback = MakeRef<BFTextureReadback>();
 
-		m_viewportResizeReceiver = Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
-		m_viewportRenderReceiver = Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::RenderObjectPicker));
-		m_viewportPrerenderReceiver = Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender.Subscribe(BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
+		m_viewportResizeReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
+		m_viewportRenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender, BF_BIND_FUNC_PARAM(&SceneViewport::RenderObjectPicker));
+		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
 	}
-
+	
 	SceneViewport::~SceneViewport()
 	{
 		Application::Get().GetRenderer().RemoveViewport(m_viewportHandle);
-		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize.Unsubscribe(m_viewportResizeReceiver);
-		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender.Unsubscribe(m_viewportRenderReceiver);
-		Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender.Unsubscribe(m_viewportPrerenderReceiver);
 	}
 
 	void SceneViewport::OnTick()

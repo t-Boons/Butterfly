@@ -24,9 +24,9 @@ namespace Butterfly
 		ViewportHandle m_viewportHandle;
 		SpectatorCamera m_spectatorCam;
 
-		EventHandle m_viewportResizeReceiver;
-		EventHandle m_viewportRenderReceiver;
-		EventHandle m_viewportPrerenderReceiver;
+		EventReceiver<ViewportResizeEvent> m_viewportResizeReceiver;
+		EventReceiver<ViewportRenderEvent> m_viewportRenderReceiver;
+		EventReceiver<ViewportPrerenderEvent> m_viewportPrerenderReceiver;
 
 	};
 }

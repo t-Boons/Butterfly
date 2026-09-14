@@ -44,8 +44,8 @@ namespace Butterfly
 		std::vector<uint8_t> data = { 225, 225, 225, 225 };
 		m_whiteTexture = BFTexture::CreateTextureFromCPUBuffer(desc, data.data());
 
-		Application::Get().GetWindow().Events().OnWindowResize.Subscribe(BF_BIND_FUNC_PARAM(&Renderer::OnWindowResize));
-		Application::Get().GetWindow().Events().OnWindowRefresh.Subscribe(BF_BIND_FUNC(&Renderer::OnWindowRefresh));
+		m_windowResizeReceiver.Subscribe(Application::Get().GetWindow().Events().OnWindowResize, BF_BIND_FUNC_PARAM(&Renderer::OnWindowResize));
+		m_windowRefreshReceiver.Subscribe(Application::Get().GetWindow().Events().OnWindowRefresh, BF_BIND_FUNC(&Renderer::OnWindowRefresh));
 
 		m_resizeSize = { Application::Get().GetWindow().Width(), Application::Get().GetWindow().Height() };
 		InvalidateFrameDatas();
@@ -163,6 +163,7 @@ namespace Butterfly
 
 			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.m_index));
 			GetViewportEvents(viewport.Handle).OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
+			RecordCmdList(ViewportRenderEvent{ builder, viewport });
 			GetViewportEvents(viewport.Handle).OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
 			GetViewportEvents(viewport.Handle).OnPostRender.Broadcast(ViewportPostRenderEvent{ builder, viewport });
 			auto graph = builder.Create();
@@ -216,10 +217,6 @@ namespace Butterfly
 		BF_CORE_ASSERT(m_viewportEvents.find(handle) == m_viewportEvents.end(), "Renderer::AddViewport: ViewportHandle already exists.");
 
 		m_viewportEvents[handle] = ViewportEvents();
-
-		// Temp add the default render pipeline.
-		GetViewportEvents(handle).OnRender.Subscribe(BF_BIND_FUNC_PARAM(&Renderer::RecordCmdList));
-
 
 		return handle;
 	}
