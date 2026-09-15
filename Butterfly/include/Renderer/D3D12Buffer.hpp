@@ -59,7 +59,7 @@ namespace Butterfly
 		uint32_t m_bytesAllocated;
 		RefPtr<D3D12Resource> m_resource;
 		std::unordered_map<uint32_t, RefPtr<BFUniformBufferView>> m_cbvs;
-		void* m_mappedData;
+		uint8_t* m_mappedData;
 	};
 
 	class BFIndexBuffer : public BFResource, private NonCopyable

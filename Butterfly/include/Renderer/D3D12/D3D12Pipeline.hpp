@@ -44,6 +44,10 @@ namespace Butterfly
 		BFPipelineBuilder& PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE type);
 		BFPipelineBuilder& EnableBlending();
 
+		BFPipelineBuilder& DepthEnable(bool enable);
+		BFPipelineBuilder& DepthWriteMask(D3D12_DEPTH_WRITE_MASK mask);
+		BFPipelineBuilder& DepthFunc(D3D12_COMPARISON_FUNC func);
+
 		const DX12Pipeline& Create();
 
 	private:

@@ -41,65 +41,94 @@ namespace Butterfly
 			srvDesc.Texture2D.MipLevels = 1;
 			srvDesc.Texture2D.PlaneSlice = 0;
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+			if (desc.Type == BFTextureType::Texture2DArray)
+			{
+				BF_CORE_ASSERT(desc.ArraySize > 1, "Texture2DArray must have ArraySize > 1.");
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+				srvDesc.Texture2DArray.ArraySize = desc.ArraySize;
+				srvDesc.Texture2DArray.FirstArraySlice = 0;
+				srvDesc.Texture2DArray.MostDetailedMip = 0;
+				srvDesc.Texture2DArray.MipLevels = 1;
+			}
+
+			if (desc.Type == BFTextureType::Cubemap)
+			{
+				BF_CORE_ASSERT(desc.ArraySize == 6, "Cubemap must have 6 faces.");
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+				srvDesc.TextureCube.MostDetailedMip = 0;
+				srvDesc.TextureCube.MipLevels = 1;
+				srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+			}
 			return srvDesc;
 		}
 	}
 
 	// Texture create functions.
 
-	RefPtr<BFTexture> BFTexture::CreateTextureFromCPUBuffer(const BFTextureDesc& desc, const void* data)
+	RefPtr<BFTexture> BFTexture::CreateTextureFromCPUBuffer(const BFTextureDesc& desc)
 	{
 		BF_PROFILE_EVENT("BFTexture::BFTexture (Texture upload)");
 
 		RefPtr<BFTexture> newTexture = RefPtr<BFTexture>(new BFTexture());
 
-		newTexture->m_resource = DX12ResourceBuilder()
-			.HeapType(D3D12_HEAP_TYPE_DEFAULT)
-			.InitialState(D3D12_RESOURCE_STATE_COMMON)
-			.Texture2D(desc.Format, desc.Width, desc.Height)
-			.SetName(desc.DebugName)
-			.Create();
+		DX12ResourceBuilder builder;
+		builder.HeapType(D3D12_HEAP_TYPE_DEFAULT);
+		builder.InitialState(D3D12_RESOURCE_STATE_COMMON);
+		builder.Texture(desc.Format, desc.Width, desc.Height, desc.ArraySize);
+		builder.SetName(desc.DebugName);
 
+		newTexture->m_resource = builder.Create();
 
-		UINT64 totalSize = 0;
-		UINT64 rowPitch = 0;
-		UINT numRows = 0;
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
 		D3D12_RESOURCE_DESC textureDesc = newTexture->m_resource->HwResource->GetDesc();
-		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, 1, 0, &footprint, &numRows, &rowPitch, &totalSize);
+		const uint32_t numSubresources = textureDesc.DepthOrArraySize;
+		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numSubresources);
+		std::vector<UINT> numRows(numSubresources);
+		std::vector<UINT64> rowSizes(numSubresources);
+		uint64_t totalSize;
+		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
 
+		std::vector<D3D12_SUBRESOURCE_DATA> subresources(desc.ArraySize);
 
 		D3D12Resource* uploadResource = DX12ResourceBuilder()
 			.HeapType(D3D12_HEAP_TYPE_UPLOAD)
 			.InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
 			.Buffer(totalSize)
 			.SetName("Intermediate texture.")
-			.Create()
-			->Write(data, static_cast<uint32_t>(totalSize));
+			.Create();
 
-
-		D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-		srcLocation.pResource = uploadResource->HwResource;
-		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		srcLocation.PlacedFootprint = footprint;
-
-		D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
-		dstLocation.pResource = newTexture->m_resource->HwResource;
-		dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		dstLocation.SubresourceIndex = 0;
-		dstLocation.PlacedFootprint = footprint;
-
+		for (uint32_t slice = 0; slice < desc.ArraySize; ++slice)
 		{
-			D3D12CommandList list(D3D12_COMMAND_LIST_TYPE_COPY);
-
-
-			//newTexture->m_resource->Transition(list, D3D12_RESOURCE_STATE_COMMON);
-			list.List()->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
-
-			list.Close();
-			D3D12API()->Queue(QueueType::Copy)->Execute(list);
-			D3D12API()->Queue(QueueType::Copy)->WaitForFence();
+			const uint8_t* src = static_cast<const uint8_t*>(desc.Data) + slice * (desc.Width * desc.Height * 4);
+			const auto& footprint = footprints[slice];
+			uploadResource->Write(src, footprint.Footprint.RowPitch * desc.Height, static_cast<uint32_t>(footprint.Offset));
 		}
+
+		D3D12CommandList list(D3D12_COMMAND_LIST_TYPE_COPY);
+
+		for (uint32_t slice = 0; slice < desc.ArraySize; ++slice)
+		{
+			D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+			srcLocation.pResource = uploadResource->HwResource;
+			srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			srcLocation.PlacedFootprint = footprints[slice];
+
+			D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+			dstLocation.pResource = newTexture->m_resource->HwResource;
+			dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			dstLocation.SubresourceIndex = slice;
+
+			list.List()->CopyTextureRegion(
+				&dstLocation,
+				0, 0, 0,
+				&srcLocation,
+				nullptr
+			);
+		}
+
+		list.Close();
+		D3D12API()->Queue(QueueType::Copy)->Execute(list);
+		D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
 		delete uploadResource;
 		newTexture->CreateViews(desc);
@@ -151,7 +180,7 @@ namespace Butterfly
 			float col[] = { 0,0,0,0 };
 			newTexture->m_resource = DX12ResourceBuilder()
 				.HeapType(D3D12_HEAP_TYPE_DEFAULT)
-				.Texture2D(desc.Format, desc.Width, desc.Height)
+				.Texture(desc.Format, desc.Width, desc.Height, 1)
 				.InitialState(D3D12_RESOURCE_STATE_GENERIC_READ)
 				.SetName(desc.DebugName)
 				.Create();

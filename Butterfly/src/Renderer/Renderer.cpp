@@ -42,7 +42,8 @@ namespace Butterfly
 		desc.Flags = BFTextureDesc::ShaderResource;
 		desc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
 		std::vector<uint8_t> data = { 225, 225, 225, 225 };
-		m_whiteTexture = BFTexture::CreateTextureFromCPUBuffer(desc, data.data());
+		desc.Data = data.data();
+		m_whiteTexture = BFTexture::CreateTextureFromCPUBuffer(desc);
 
 		m_windowResizeReceiver.Subscribe(Application::Get().GetWindow().Events().OnWindowResize, BF_BIND_FUNC_PARAM(&Renderer::OnWindowResize));
 		m_windowRefreshReceiver.Subscribe(Application::Get().GetWindow().Events().OnWindowRefresh, BF_BIND_FUNC(&Renderer::OnWindowRefresh));
@@ -214,8 +215,6 @@ namespace Butterfly
 
 		InvalidateFrameDatas();
 
-		BF_CORE_ASSERT(m_viewportEvents.find(handle) == m_viewportEvents.end(), "Renderer::AddViewport: ViewportHandle already exists.");
-
 		m_viewportEvents[handle] = ViewportEvents();
 
 		return handle;
@@ -298,12 +297,6 @@ namespace Butterfly
 	{
 		GraphBuilder& builder = ev.Builder;
 		Viewport& viewport = ev.Viewport;
-
-		struct ForwardRenderer
-		{
-			BFRGTexture* DepthStencil;
-			BFTexture* Comp;
-		};
 
 		ForwardRenderer* params = builder.AllocParameters<ForwardRenderer>();
 
@@ -397,7 +390,7 @@ namespace Butterfly
 
 	void Renderer::OnWindowRefresh()
 	{
-		Render();
+		//Render();
 	}
 
 	void Renderer::ApplyResize()

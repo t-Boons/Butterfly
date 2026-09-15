@@ -57,6 +57,8 @@
 #include "Renderer/Graph/GraphTransientResourceCache.hpp"
 
 // Utils.
-#include "Utils/FullscreenQuad.hpp"
 #include "Utils/Utils.hpp"
 #include "Utils/Profiler.hpp"
+
+
+#include "Renderer/Skybox.hpp"

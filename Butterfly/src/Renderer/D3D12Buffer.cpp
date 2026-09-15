@@ -191,7 +191,7 @@ namespace Butterfly
 		m_resource = RefPtr<D3D12Resource>(resource);
 
 
-        m_mappedData = m_resource->Map();
+        m_mappedData = static_cast<uint8_t*>(m_resource->Map());
     }
 
     BFUniformBuffer::~BFUniformBuffer()
@@ -235,7 +235,6 @@ namespace Butterfly
     void BFUniformBuffer::Write(const void* src, uint32_t numBytes, uint32_t viewName)
     {
         BF_CORE_ASSERT(numBytes <= GetView(viewName)->NumBytes(), "Not enough space in uniform buffer view to write data.");
-
-        memcpy(m_mappedData, src, numBytes);
+        memcpy(static_cast<void*>(m_mappedData + GetView(viewName)->Offset()), src, numBytes);
     }
 }

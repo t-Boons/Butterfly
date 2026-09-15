@@ -10,7 +10,6 @@ namespace Butterfly
 			ss << "D3D12Resource::Write -> " << DebugName;
 			BF_PROFILE_EVENT_DYNAMIC(ss.str().c_str());
 
-
 			void* pData;
 			HwResource->Map(0, nullptr, &pData);
 			memcpy((char*)pData + offset, src, numBytes);
@@ -180,9 +179,9 @@ namespace Butterfly
 			return *this;
 		}
 
-		DX12ResourceBuilder& DX12ResourceBuilder::Texture2D(DXGI_FORMAT format, uint32_t width, uint32_t height)
+		DX12ResourceBuilder& DX12ResourceBuilder::Texture(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize)
 		{
-			m_resource->BufferDescription = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height);
+			m_resource->BufferDescription = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, arraySize, 1);
 			return *this;
 		}
 

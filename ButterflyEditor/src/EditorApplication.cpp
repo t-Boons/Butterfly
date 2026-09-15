@@ -18,6 +18,8 @@ namespace Butterfly
 		m_editorViewport = new EditorViewport();
 	}
 
+
+
 	void EditorApplication::OnTick()
 	{
 		BF_PROFILE_FRAME();
@@ -28,7 +30,6 @@ namespace Butterfly
 	void EditorApplication::OnShutdown()
 	{
 		BF_PROFILE_EVENT()
-		FullscreenQuad::ShutDown();
 
 		delete m_editorCache;
 		delete m_editorViewport;

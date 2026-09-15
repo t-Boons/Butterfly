@@ -130,8 +130,41 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		m_pss.pRootSignature = D3D12API()->BindlessRootSignature();
+		m_pss.RootSignature = D3D12API()->BindlessRootSignature();
 
 		return BFPipelineCache::GetOrCreatePipeline(m_hash, &m_pss);
+	}
+
+	BFPipelineBuilder& BFPipelineBuilder::DepthEnable(bool enable)
+	{
+		BF_PROFILE_EVENT();
+
+		CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc(m_pss.DepthStencilState);
+		depthStencilDesc.DepthEnable = enable;
+		m_pss.DepthStencilState = depthStencilDesc;
+		Utils::SumHash(m_hash, static_cast<uint64_t>(enable));
+		return *this;
+	}
+
+	BFPipelineBuilder& BFPipelineBuilder::DepthWriteMask(D3D12_DEPTH_WRITE_MASK mask)
+	{
+		BF_PROFILE_EVENT();
+
+		CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc(m_pss.DepthStencilState);
+		depthStencilDesc.DepthWriteMask = mask;
+		m_pss.DepthStencilState = depthStencilDesc;
+		Utils::SumHash(m_hash, static_cast<uint64_t>(mask));
+		return *this;
+	}
+
+	BFPipelineBuilder& BFPipelineBuilder::DepthFunc(D3D12_COMPARISON_FUNC func)
+	{
+		BF_PROFILE_EVENT();
+
+		CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc(m_pss.DepthStencilState);
+		depthStencilDesc.DepthFunc = func;
+		m_pss.DepthStencilState = depthStencilDesc;
+		Utils::SumHash(m_hash, static_cast<uint64_t>(func));
+		return *this;
 	}
 }

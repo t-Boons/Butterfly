@@ -29,6 +29,19 @@ namespace Butterfly
 		glm::mat4 ViewProjection;
 	};
 
+	struct InverseCameraData
+	{
+		glm::mat4 InverseView;
+		glm::mat4 InverseProjection;
+	};
+
+	class BFRGTexture;
+	struct ForwardRenderer
+	{
+		BFRGTexture* DepthStencil;
+		BFTexture* Comp;
+	};
+
 	class Renderer : public NonCopyable
 	{
 	public:

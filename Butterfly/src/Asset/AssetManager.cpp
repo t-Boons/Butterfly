@@ -7,6 +7,32 @@ namespace Butterfly
     {
     }
 
+	void AssetManager::Tick()
+	{
+		if (m_tickCounter % 60 == 0)
+		{
+			GarbageCollect();
+		}
+
+		m_tickCounter++;
+	}
+
+	void AssetManager::GarbageCollect()
+	{
+		for (auto it = m_entries.begin(); it != m_entries.end();)
+		{
+			if (it->second.RefCount == 0)
+			{
+				BF_CORE_LOG_TRACE("Garbage collecting asset: %s", it->first.ToString().c_str());
+				it = m_entries.erase(it);
+			}
+			else
+			{
+				it++;
+			}
+		}
+	}
+
 	void AssetManager::AddRef(const UUID& id)
 	{
 		auto it = m_entries.find(id);

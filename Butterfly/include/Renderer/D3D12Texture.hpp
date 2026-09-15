@@ -9,13 +9,23 @@ namespace Butterfly
 	class BFRenderTargetView;
 	class BFShaderResourceView;
 
+	enum class BFTextureType
+	{
+		Texture2D,
+		Texture2DArray,
+		Cubemap,
+	};
+
 	struct BFTextureDesc
 	{
+		BFTextureType Type = BFTextureType::Texture2D;
 		DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
 		uint32_t Width = 0;
 		uint32_t Height = 0;
+		uint32_t ArraySize = 1;
 		uint32_t Flags = None;
 		std::string DebugName = "Texture";
+		void* Data;
 
 		enum Flag : uint32_t
 		{
@@ -29,7 +39,7 @@ namespace Butterfly
 	class BFTexture : public BFResource, private NonCopyable
 	{
 	public:
-		static RefPtr<BFTexture> CreateTextureFromCPUBuffer(const BFTextureDesc& desc, const void* data);
+		static RefPtr<BFTexture> CreateTextureFromCPUBuffer(const BFTextureDesc& desc);
 		static RefPtr<BFTexture> CreateTextureForGPU(const BFTextureDesc& desc);
 
 		~BFTexture();

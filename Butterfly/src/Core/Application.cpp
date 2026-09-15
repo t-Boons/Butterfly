@@ -53,6 +53,7 @@ namespace Butterfly
 
 		m_time->Tick();
 		m_scene->Tick();
+		m_assetManager->Tick();
 
 		if (m_applicationExtention)
 		{

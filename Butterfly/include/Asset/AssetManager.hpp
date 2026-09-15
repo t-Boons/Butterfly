@@ -14,6 +14,8 @@ namespace Butterfly
     public:
         AssetManager();
 
+		void Tick();
+
         AssetRegistry& GetAssetRegistry() { return m_assetRegistry; }
 
         template<typename T>
@@ -24,6 +26,7 @@ namespace Butterfly
 
         const std::vector<RefPtr<IAssetImporter>>& GetImporters() const { return s_importers; }
 
+		void GarbageCollect();
 
     private:
         template<typename T>
@@ -46,6 +49,7 @@ namespace Butterfly
         inline static std::vector<RefPtr<IAssetImporter>> s_importers;
         AssetRegistry m_assetRegistry;
         std::unordered_map<UUID, AssetEntry> m_entries;
+		uint32_t  m_tickCounter = 0;
 	};
 
 

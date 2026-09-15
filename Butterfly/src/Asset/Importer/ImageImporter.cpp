@@ -44,10 +44,10 @@ namespace Butterfly
 		textureDesc.DebugName = std::filesystem::path(path.Path).filename().string();
 		textureDesc.Flags = BFTextureDesc::Flag::ShaderResource;
 		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-
+		textureDesc.Data = pixels;
 
 		RefPtr<TextureAsset> textureAsset = MakeRef<TextureAsset>();
-		textureAsset->Texture = BFTexture::CreateTextureFromCPUBuffer(textureDesc, pixels);
+		textureAsset->Texture = BFTexture::CreateTextureFromCPUBuffer(textureDesc);
 
 		ret.Asset.Data = StaticCastRef<void>(textureAsset);
 		ret.Asset.Type = AssetType{ "Texture" };

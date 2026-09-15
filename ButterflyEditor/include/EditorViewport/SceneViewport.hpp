@@ -27,6 +27,7 @@ namespace Butterfly
 		EventReceiver<ViewportResizeEvent> m_viewportResizeReceiver;
 		EventReceiver<ViewportRenderEvent> m_viewportRenderReceiver;
 		EventReceiver<ViewportPrerenderEvent> m_viewportPrerenderReceiver;
+		EventReceiver<ViewportRenderEvent> m_skyboxRender;
 
 	};
 }

@@ -10,6 +10,8 @@ namespace Butterfly
 		BFRGTexture* RenderTarget;
 	};
 
+	Skybox skybox;
+
 	SceneViewport::SceneViewport()
 	{
 		m_viewportHandle = Application::Get().GetRenderer().AddViewport();
@@ -19,6 +21,21 @@ namespace Butterfly
 		m_viewportResizeReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
 		m_viewportRenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender, BF_BIND_FUNC_PARAM(&SceneViewport::RenderObjectPicker));
 		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
+
+
+		skybox.LoadSkybox({
+			"Assets/Skybox/pos_x.png",
+			"Assets/Skybox/neg_x.png",
+			"Assets/Skybox/pos_y.png",
+			"Assets/Skybox/neg_y.png",
+			"Assets/Skybox/pos_z.png",
+			"Assets/Skybox/neg_z.png",
+			});
+
+		m_skyboxRender.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender, [&](const ViewportRenderEvent& event)
+			{
+				skybox.SkyboxPass(event);
+			});
 	}
 	
 	SceneViewport::~SceneViewport()
@@ -42,9 +59,15 @@ namespace Butterfly
 	{
 		CameraData cameraData;
 		cameraData.ViewProjection = m_spectatorCam.GetCamera()->ViewProjectionMatrix();
-
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
+
+		InverseCameraData data;
+		data.InverseView = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ViewMatrix()));
+		data.InverseProjection = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ProjectionMatrix()));
+
+		event.Viewport.Uniforms->GetOrCreateView(sizeof(InverseCameraData), HASH("InverseCameraData"));
+		event.Viewport.Uniforms->Write(&data, sizeof(InverseCameraData), HASH("InverseCameraData"));
 	}
 
 	void SceneViewport::OnRenderImGUI()
