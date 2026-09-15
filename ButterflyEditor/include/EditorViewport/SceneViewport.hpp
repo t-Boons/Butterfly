@@ -13,7 +13,6 @@ namespace Butterfly
 
 		virtual void OnTick() override;
 		virtual void OnRenderImGUI() override;
-
 		void OnResize(const ViewportResizeEvent& event);
 		void OnPrerender(const ViewportPrerenderEvent& event);
 		void RenderObjectPicker(const ViewportRenderEvent& event);

@@ -1,45 +1,38 @@
 #pragma once
 #include "Renderer/D3D12Texture.hpp"
 #include "stbimage/stb_image.h"
+#include "Scene/Registry/SkyboxComponent.hpp"
 
 namespace Butterfly
 {
 	class Skybox
 	{
 	public:
-		void LoadSkybox(const std::vector<std::string>& paths)
+		void LoadSkybox(const SkyboxComponent& component)
 		{
-			std::vector<stbi_uc*> skyboxData(6);
-
-			int width, height, channels;
+			std::array<RefPtr<BFTexture>, 6> textures;
 			for (uint32_t i = 0; i < 6; ++i)
 			{
-				skyboxData[i] = stbi_load(paths[i].c_str(), &width, &height, &channels, 4);
+				TextureAsset* asset = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.TextureHandle[i]);
+				if (asset)
+				{
+					textures[i] = asset->Texture;
+				}
 			}
 
-			uint8_t* data = new uint8_t[width * height * 4 * 6];
-			for (uint32_t i = 0; i < 6; ++i)
-			{
-				memcpy(data + i * width * height * 4, skyboxData[i], width * height * 4);
-				stbi_image_free(skyboxData[i]);
-			}
+			m_skyboxTexture = BFTexture::CreateCubemap(textures);
+		}
 
-			m_skyboxTexture = BFTexture::CreateTextureFromCPUBuffer({
-				.Type = BFTextureType::Cubemap,
-				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
-				.Width =  static_cast<uint32_t>(width),
-				.Height = static_cast<uint32_t>(height),
-				.ArraySize = 6,
-				.Flags = BFTextureDesc::ShaderResource,
-				.DebugName = "SkyboxTexture",
-				.Data = data // Load data from paths
-				});
-
-			delete[] data;
+		void DeleteSkybox()
+		{
+			m_skyboxTexture.reset();
 		}
 
 		void SkyboxPass(const ViewportRenderEvent& ev)
 		{
+			if(!m_skyboxTexture)
+				return;
+
 			GraphBuilder& builder = ev.Builder;
 			Viewport& viewport = ev.Viewport;
 
@@ -101,6 +94,7 @@ namespace Butterfly
 				});
 		}
 
+	private:
 		RefPtr<BFTexture> m_skyboxTexture;
 	};
 }

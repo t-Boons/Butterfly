@@ -2,7 +2,7 @@
 #include "Butterfly.hpp"
 #include "imgui/imgui.h"
 #include "ImGui/ImGUIHelpers.hpp"
-#include "EditorApplication.hpp"
+#include "Core/EditorApplication.hpp"
 #include "Core/ThumbnailProcessor.hpp"
 #include "EditorViewport/SceneViewport.hpp"
 #include "EditorViewport/EditorViewportExtention.hpp"
@@ -12,6 +12,9 @@ namespace Butterfly
 	class EditorViewport
 	{
 	public:
+
+		Skybox skybox;
+
 		EditorViewport()
 		{
 			m_ImGUIRenderReceiver.Subscribe(Application::Get().GetRenderer().GetImGUIRenderEvent(), BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
@@ -38,6 +41,7 @@ namespace Butterfly
 
 				model.AddComponent<TransformComponent>();
 				model.AddComponent<MeshRendererComponent>();
+				model.AddComponent<SkyboxComponent>();
 			}
 
 			if (Application::Get().GetInput().IsKeyPressed(BFB_R))
@@ -177,11 +181,53 @@ namespace Butterfly
 
 						ImGui::PopID();
 					}
+
+					SkyboxComponent& sb = model.GetComponent<SkyboxComponent>();
+
+					if (ImGui::CollapsingHeader("SkyboxComponent", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::PushID("SkyboxComponent");
+						for (int i = 0; i < 6; i++)
+						{
+							std::string faceName;
+							switch (i)
+							{
+							case 0: faceName = "Right"; break;
+							case 1: faceName = "Left"; break;
+							case 2: faceName = "Top"; break;
+							case 3: faceName = "Bottom"; break;
+							case 4: faceName = "Front"; break;
+							case 5: faceName = "Back"; break;
+							}
+							ImGui::Text("%s", faceName.c_str());
+							ImGui::SameLine();
+							ImGui::Button("Drop texture here", ImVec2(200.0f, 20.0f));
+							if (ImGui::BeginDragDropTarget())
+							{
+								if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET"))
+								{
+									Application::Get().GetAssetManager().Acquire<TextureAsset>(*(UUID*)payload->Data, sb.TextureHandle[i]);
+									skybox.LoadSkybox(sb);
+									sb.TextureHandle[i] = sb.TextureHandle[i];
+								}
+								ImGui::EndDragDropTarget();
+							}
+							AssetMetadata meta;
+							if (Application::Get().GetAssetManager().GetAssetRegistry().Find(sb.TextureHandle[i].GetID(), meta))
+							{
+								ImGui::Text("%s", std::filesystem::path(meta.Path).stem().string().c_str());
+							}
+							else
+							{
+								ImGui::Text("%s", "No Reference");
+							}
+						}
+						ImGui::PopID();
+					}
 				}
 
 				ImGui::End();
 			}
-
 
 			{
 				ImGui::Begin("Asset View");
@@ -194,15 +240,17 @@ namespace Butterfly
 				const float cellPadding = 8.0f;
 				const float iconSize = 64.0f;
 
-				float panelWidth = ImGui::GetContentRegionAvail().x;
-				int columnCount = (int)(panelWidth / (cellSize + cellPadding));
-				if (columnCount < 1) columnCount = 1;
-
 				ImGui::BeginChild("AssetGrid", ImVec2(0, 0), true);
 
-				if (ImGui::BeginTable("AssetGridTable", columnCount, ImGuiTableFlags_SizingFixedFit))
+				const float panelWidth = ImGui::GetContentRegionAvail().x;
+				int columnCount = (int)((panelWidth + cellPadding) / (cellSize + cellPadding));
+				if (columnCount < 1) columnCount = 1;
+
+				if (ImGui::BeginTable("AssetGridTable", columnCount, ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_NoBordersInBody))
 				{
-					int i = 0;
+					for (int column = 0; column < columnCount; ++column)
+						ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed, cellSize);
+
 					for (auto& [id, meta] : Application::Get().GetAssetManager().GetAssetRegistry().GetAll())
 					{
 						ImGui::TableNextColumn();
@@ -212,6 +260,7 @@ namespace Butterfly
 						float cellHeight = iconSize + 32.0f;
 
 						ImGui::InvisibleButton("##cell", ImVec2(cellSize, cellHeight));
+
 						const bool hovered = ImGui::IsItemHovered();
 						const bool doubleClicked = hovered && ImGui::IsMouseDoubleClicked(0);
 
@@ -223,12 +272,7 @@ namespace Butterfly
 						{
 							UUID id = meta.ID;
 
-							ImGui::SetDragDropPayload(
-								"ASSET",
-								&id,
-								sizeof(UUID)
-							);
-
+							ImGui::SetDragDropPayload("ASSET", &id, sizeof(UUID));
 							ImGui::Text("Dragging %s", std::filesystem::path(meta.Path).filename().string().c_str());
 
 							ImGui::EndDragDropSource();
@@ -236,65 +280,53 @@ namespace Butterfly
 
 						if (hovered)
 						{
-							dl->AddRect(
-								ImVec2(cellStart.x, cellStart.y),
-								ImVec2(cellStart.x + cellSize, cellStart.y + cellHeight),
-								IM_COL32(255, 255, 255, 40), 4.0f
-							);
+							dl->AddRect(ImVec2(cellStart.x, cellStart.y), ImVec2(cellStart.x + cellSize, cellStart.y + cellHeight), IM_COL32(255, 255, 255, 40), 4.0f);
 						}
 
 						if (doubleClicked)
 						{
 							AssetHandle<MeshAsset> objMesh;
 							Application::Get().GetAssetManager().Acquire<MeshAsset>(meta.ID, objMesh);
-							MeshAsset* asset = Application::Get().GetAssetManager().Resolve(objMesh);
 
 							model = Application::Get().GetScene().CreateEntity();
-
 							model.AddComponent<TransformComponent>();
 							model.AddComponent<MeshRendererComponent>();
 							model.GetComponent<MeshRendererComponent>().MeshHandle = objMesh;
 						}
 
-
 						if (ThumbnailProcessor::IsSupportedImageType(meta.Path) && !EditorApplication::Get().GetEditorCache().Exists(meta.ID))
 						{
 							RefPtr<Thumbnail> thumbnail = ThumbnailProcessor::GetThumbnailFromFile(meta.Path);
 							thumbnail = ThumbnailProcessor::Resize(*thumbnail, 64, 64);
+
 							ThumbnailCacheEntry entry(thumbnail);
 							EditorApplication::Get().GetEditorCache().Add<ThumbnailCacheEntry>(meta.ID, entry);
-							BF_CORE_LOG_INFO("Awooof");
 						}
 
-
 						ThumbnailCacheEntry cacheEntry;
+
 						if (EditorApplication::Get().GetEditorCache().Get<ThumbnailCacheEntry>(meta.ID, cacheEntry))
 						{
 							RefPtr<Thumbnail> thumbnail = cacheEntry.GetThumbnail();
-							ImGui::SetCursorScreenPos({ cellStart.x + iconOffsetX, cellStart.y });
 
-							ImGui::Image(thumbnail->GetImGUITextureID(), { iconSize, iconSize });
+							ImGui::SetCursorScreenPos(ImVec2(cellStart.x + iconOffsetX, cellStart.y));
+							ImGui::Image(thumbnail->GetImGUITextureID(), ImVec2(iconSize, iconSize));
 						}
 						else
 						{
-							dl->AddRectFilled(
-								ImVec2(cellStart.x + iconOffsetX, cellStart.y),
-								ImVec2(cellStart.x + iconOffsetX + iconSize, cellStart.y + iconSize),
-								iconColor, 4.0f);
+							dl->AddRectFilled(ImVec2(cellStart.x + iconOffsetX, cellStart.y), ImVec2(cellStart.x + iconOffsetX + iconSize, cellStart.y + iconSize), iconColor, 4.0f);
 						}
 
 						std::string name = std::filesystem::path(meta.Path).filename().string();
-						float textWidth = ImGui::CalcTextSize(name.c_str()).x;
-						float textOffsetX = (cellSize - std::min(textWidth, cellSize)) * 0.5f;
 
-						ImGui::SetCursorScreenPos(ImVec2(cellStart.x + std::max(textOffsetX, 0.0f), cellStart.y + iconSize + 4.0f));
+						ImGui::SetCursorScreenPos(ImVec2(cellStart.x, cellStart.y + iconSize + 4.0f));
 						ImGui::PushTextWrapPos(cellStart.x + cellSize);
 						ImGui::TextWrapped("%s", name.c_str());
 						ImGui::PopTextWrapPos();
 
 						ImGui::PopID();
-						i++;
 					}
+
 					ImGui::EndTable();
 				}
 

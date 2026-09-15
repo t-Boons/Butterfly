@@ -1,6 +1,8 @@
 #include "EditorViewport/SceneViewport.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
+#include "Core/EditorApplication.hpp"
+#include "EditorViewport/EditorViewport.hpp"
 
 namespace Butterfly
 {
@@ -9,8 +11,6 @@ namespace Butterfly
 		BFRGTexture* DepthStencil;
 		BFRGTexture* RenderTarget;
 	};
-
-	Skybox skybox;
 
 	SceneViewport::SceneViewport()
 	{
@@ -22,19 +22,9 @@ namespace Butterfly
 		m_viewportRenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender, BF_BIND_FUNC_PARAM(&SceneViewport::RenderObjectPicker));
 		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
 
-
-		skybox.LoadSkybox({
-			"Assets/Skybox/pos_x.png",
-			"Assets/Skybox/neg_x.png",
-			"Assets/Skybox/pos_y.png",
-			"Assets/Skybox/neg_y.png",
-			"Assets/Skybox/pos_z.png",
-			"Assets/Skybox/neg_z.png",
-			});
-
 		m_skyboxRender.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender, [&](const ViewportRenderEvent& event)
 			{
-				skybox.SkyboxPass(event);
+				EditorApplication::Get().GetEditorViewport().skybox.SkyboxPass(event);
 			});
 	}
 	
@@ -42,7 +32,7 @@ namespace Butterfly
 	{
 		Application::Get().GetRenderer().RemoveViewport(m_viewportHandle);
 	}
-
+		
 	void SceneViewport::OnTick()
 	{
 		m_spectatorCam.Tick(Application::Get().GetInput(), Application::Get().GetTime().DeltaTime());

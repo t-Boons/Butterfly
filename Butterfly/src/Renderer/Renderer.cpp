@@ -390,7 +390,7 @@ namespace Butterfly
 
 	void Renderer::OnWindowRefresh()
 	{
-		//Render();
+		Render();
 	}
 
 	void Renderer::ApplyResize()

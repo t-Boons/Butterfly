@@ -42,6 +42,8 @@ namespace Butterfly
 		static RefPtr<BFTexture> CreateTextureFromCPUBuffer(const BFTextureDesc& desc);
 		static RefPtr<BFTexture> CreateTextureForGPU(const BFTextureDesc& desc);
 
+		static RefPtr<BFTexture> CreateCubemap(const std::array<RefPtr<BFTexture>, 6>& textures);
+
 		~BFTexture();
 
 		BFTextureDesc Desc() const { return m_desc; }

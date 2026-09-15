@@ -1,5 +1,5 @@
 #include "Butterfly.hpp"
-#include "EditorApplication.hpp"
+#include "Core/EditorApplication.hpp"
 
 int main()
 {

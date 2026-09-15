@@ -18,7 +18,6 @@ namespace Butterfly
 		virtual void OnInit() {}
 		virtual void OnTick() {}
 		virtual void OnShutdown() {}
-		virtual void OnRender(D3D12CommandList& list) {}
 	};
 
 	class Application : public NonCopyableNonMoveable

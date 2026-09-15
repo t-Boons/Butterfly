@@ -1,4 +1,4 @@
-#include "EditorApplication.hpp"
+#include "Core/EditorApplication.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include <numeric>
 #include "ImGUI/ImGUIHelpers.hpp"

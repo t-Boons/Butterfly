@@ -26,6 +26,7 @@
 #include "Scene/Registry/TransformComponent.hpp"
 #include "Scene/Registry/MeshRendererComponent.hpp"
 #include "Scene/Registry/NameComponent.hpp"
+#include "Scene/Registry/SkyboxComponent.hpp"
 
 #include "Renderer/Renderer.hpp" 
 #include "Renderer/Camera.hpp"
