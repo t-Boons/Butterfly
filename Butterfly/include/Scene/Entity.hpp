@@ -9,21 +9,11 @@ namespace Butterfly
 	class Entity
 	{
 	public:
-		Entity()
-			: m_registry(nullptr)
-		{
-
-		}
-
-		Entity(entt::registry* registry)
-			: m_registry(registry)
-		{
-			m_handle = m_registry->create();
-		}
+		Entity();
 
 		explicit operator bool() const
 		{
-			return m_registry && m_registry->valid(m_handle);
+			return m_registry->valid(m_handle);
 		}
 
 		template<typename T, typename... Args>

@@ -1,5 +1,8 @@
 #include "Scene/Registry/TransformComponent.hpp"
+#include "Scene/Registry/IDComponent.hpp"
 #include "Scene/Entity.hpp"
+#include "Core/Application.hpp"
+#include "Scene/Scene.hpp"
 
 namespace Butterfly
 {
@@ -37,14 +40,28 @@ namespace Butterfly
 
 			if (m_child)
 			{
-				TransformComponent& tr = m_child.GetComponent<TransformComponent>();
-				m_matrix = tr.GetMatrix() * m_matrix;
+				m_matrix *= m_child.GetComponent<TransformComponent>().GetMatrix();
 			}	
 
 			m_isMatrixDirty = false;
 		}
 		return m_matrix;
 	}
+
+	void TransformComponent::SetChildUUID(const UUID& uuid)
+	{
+		m_childUUID = uuid;
+	}
+	UUID TransformComponent::GetChildUUID() const
+	{
+		return m_childUUID;
+	}
+
+	void TransformComponent::ValidateChildren()
+	{
+
+	}
+
 
 	void TransformComponent::InvalidateMatrix()
 	{

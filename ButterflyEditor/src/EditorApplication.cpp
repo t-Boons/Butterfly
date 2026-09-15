@@ -18,8 +18,6 @@ namespace Butterfly
 		m_editorViewport = new EditorViewport();
 	}
 
-
-
 	void EditorApplication::OnTick()
 	{
 		BF_PROFILE_FRAME();

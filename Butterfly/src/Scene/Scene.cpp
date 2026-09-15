@@ -27,7 +27,7 @@ namespace Butterfly
 
 	Entity Scene::CreateEntity()
 	{
-		Entity entity(&m_entityRegistry);
+		Entity entity;
 		entity.AddComponent<IDComponent>().Value = UUID::Generate();
 		
 		NameComponent name;

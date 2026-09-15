@@ -21,17 +21,17 @@
 #define BF_CORE_ASSERT(...) {}
 #endif
 
-#define BF_CORE_LOG_TRACE(...)    Log::Trace("[CORE] ", __VA_ARGS__)
-#define BF_CORE_LOG_INFO(...)     Log::Info("[CORE] ", __VA_ARGS__)
-#define BF_CORE_LOG_WARN(...)     Log::Warn("[CORE] ", __VA_ARGS__)
-#define BF_CORE_LOG_ERROR(...)    Log::Error("[CORE] ", __VA_ARGS__)
-#define BF_CORE_LOG_CRITICAL(...) Log::Critical("[CORE] ", __VA_ARGS__)
+#define BF_CORE_LOG_TRACE(...)    Butterfly::Log::Trace("[CORE] ", __VA_ARGS__)
+#define BF_CORE_LOG_INFO(...)     Butterfly::Log::Info("[CORE] ", __VA_ARGS__)
+#define BF_CORE_LOG_WARN(...)     Butterfly::Log::Warn("[CORE] ", __VA_ARGS__)
+#define BF_CORE_LOG_ERROR(...)    Butterfly::Log::Error("[CORE] ", __VA_ARGS__)
+#define BF_CORE_LOG_CRITICAL(...) Butterfly::Log::Critical("[CORE] ", __VA_ARGS__)
 
-#define BF_LOG_TRACE(...)    Log::Trace("", __VA_ARGS__)
-#define BF_LOG_INFO(...)     Log::Info("", __VA_ARGS__)
-#define BF_LOG_WARN(...)     Log::Warn("", __VA_ARGS__)
-#define BF_LOG_ERROR(...)    Log::Error("", __VA_ARGS__)
-#define BF_LOG_CRITICAL(...) Log::Critical("", __VA_ARGS__)
+#define BF_LOG_TRACE(...)    Butterfly::Log::Trace("", __VA_ARGS__)
+#define BF_LOG_INFO(...)     Butterfly::Log::Info("", __VA_ARGS__)
+#define BF_LOG_WARN(...)     Butterfly::Log::Warn("", __VA_ARGS__)
+#define BF_LOG_ERROR(...)    Butterfly::Log::Error("", __VA_ARGS__)
+#define BF_LOG_CRITICAL(...) Butterfly::Log::Critical("", __VA_ARGS__)
 
 namespace Butterfly
 {

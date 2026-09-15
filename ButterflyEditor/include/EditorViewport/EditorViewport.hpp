@@ -17,6 +17,27 @@ namespace Butterfly
 
 		EditorViewport()
 		{
+			UUID objID;
+			auto a = Application::Get().GetAssetManager().GetAssetRegistry().GetAll();
+			for (auto& [id, meta] : a)
+			{
+				if(std::filesystem::path(meta.Path).extension() == ".obj")
+				{
+					objID = id;
+				}
+			}
+
+			AssetHandle<MeshAsset> handle;
+
+			Application::Get().GetAssetManager().Acquire(objID, handle);
+
+			MeshRendererComponent meshRenderer;
+			meshRenderer.SetMeshHandle(std::move(handle));
+			YAML::Node node = ComponentRegistry::SerializeComponent(meshRenderer);
+
+			MeshRendererComponent meshRenderer2;
+			ComponentRegistry::DeserializeComponent(node, meshRenderer2);
+
 			m_ImGUIRenderReceiver.Subscribe(Application::Get().GetRenderer().GetImGUIRenderEvent(), BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
 
 			m_viewportExtentions.push_back(MakeRef<SceneViewport>());
@@ -163,14 +184,16 @@ namespace Butterfly
 						{
 							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET"))
 							{
-								Application::Get().GetAssetManager().Acquire<MeshAsset>(*(UUID*)payload->Data, mr.MeshHandle);
+								AssetHandle<MeshAsset> handle;
+								Application::Get().GetAssetManager().Acquire<MeshAsset>(*(UUID*)payload->Data, handle);
+								mr.SetMeshHandle(handle);
 							}
 
 							ImGui::EndDragDropTarget();
 						}
 
 						AssetMetadata meta;
-						if (Application::Get().GetAssetManager().GetAssetRegistry().Find(mr.MeshHandle.GetID(), meta))
+						if (Application::Get().GetAssetManager().GetAssetRegistry().Find(mr.GetMeshHandle().GetID(), meta))
 						{
 							ImGui::Text("%s", std::filesystem::path(meta.Path).stem().string().c_str());
 						}
@@ -291,7 +314,7 @@ namespace Butterfly
 							model = Application::Get().GetScene().CreateEntity();
 							model.AddComponent<TransformComponent>();
 							model.AddComponent<MeshRendererComponent>();
-							model.GetComponent<MeshRendererComponent>().MeshHandle = objMesh;
+							model.GetComponent<MeshRendererComponent>().SetMeshHandle(objMesh);
 						}
 
 						if (ThumbnailProcessor::IsSupportedImageType(meta.Path) && !EditorApplication::Get().GetEditorCache().Exists(meta.ID))

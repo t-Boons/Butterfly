@@ -152,13 +152,13 @@ namespace Butterfly
 
 				for (auto [entity, transform, meshRenderer] : view.each())
 				{
-					if (!meshRenderer.ContainsMesh())
+					if (!meshRenderer.GetMeshHandle())
 					{
 						continue;
 					}
 
 					AssetManager& as = Application::Get().GetAssetManager();
-					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.MeshHandle);
+					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
 					ShaderVariables()
 						.Add(mesh->GPUPositions->SRV().View())
 						.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())

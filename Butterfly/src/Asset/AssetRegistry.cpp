@@ -2,6 +2,7 @@
 #include "Asset/AssetManager.hpp"
 #include "Core/UUID.hpp"
 #include "Core/FileSystem.hpp"
+#include "Serialization/YAML/SerializeAssetMetaData.hpp"
 
 namespace Butterfly
 {

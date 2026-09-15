@@ -28,6 +28,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include "entt/entt.hpp"
+#include "yaml-cpp/yaml.h"
 
 #include "Core/Log.hpp"
 #include "Utils/Utils.hpp"
@@ -39,6 +40,9 @@
 
 #define BF_BIND_FUNC_PARAM(name) std::bind(name, this, std::placeholders::_1)
 #define BF_BIND_FUNC(name) std::bind(name, this)
+
+#define BF_CONCAT_IMPL(a, b) a##b
+#define BF_CONCAT(a, b) BF_CONCAT_IMPL(a, b)
 
 #define FREE(p)         \
     {if (p) {           \

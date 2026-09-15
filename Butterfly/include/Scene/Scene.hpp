@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Common.hpp"
 #include "Scene/Entity.hpp"
+#include "entt/entt.hpp"
 
 namespace Butterfly
 {

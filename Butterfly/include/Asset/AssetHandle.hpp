@@ -18,6 +18,8 @@ namespace Butterfly
 		AssetHandle<T>& operator=(const AssetHandle<T>& other);
 		AssetHandle<T>& operator=(AssetHandle<T>&& other) noexcept;
 
+		operator bool() const { return Valid(); }
+
 		~AssetHandle();
 
 	private:

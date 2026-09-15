@@ -42,6 +42,8 @@
 #include "Renderer/D3D12/D3D12Shader.hpp"
 #include "Renderer/D3D12/D3D12ShaderVariables.hpp"
 
+#include "Serialization/ENTT/ComponentRegistry.hpp"
+
 // Model loading.
 #include "Renderer/ModelLoading/ModelImporter.hpp"
 
