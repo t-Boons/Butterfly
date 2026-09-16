@@ -17,27 +17,6 @@ namespace Butterfly
 
 		EditorViewport()
 		{
-			UUID objID;
-			auto a = Application::Get().GetAssetManager().GetAssetRegistry().GetAll();
-			for (auto& [id, meta] : a)
-			{
-				if(std::filesystem::path(meta.Path).extension() == ".obj")
-				{
-					objID = id;
-				}
-			}
-
-			AssetHandle<MeshAsset> handle;
-
-			Application::Get().GetAssetManager().Acquire(objID, handle);
-
-			MeshRendererComponent meshRenderer;
-			meshRenderer.SetMeshHandle(std::move(handle));
-			YAML::Node node = ComponentRegistry::SerializeComponent(meshRenderer);
-
-			MeshRendererComponent meshRenderer2;
-			ComponentRegistry::DeserializeComponent(node, meshRenderer2);
-
 			m_ImGUIRenderReceiver.Subscribe(Application::Get().GetRenderer().GetImGUIRenderEvent(), BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
 
 			m_viewportExtentions.push_back(MakeRef<SceneViewport>());
@@ -63,6 +42,13 @@ namespace Butterfly
 				model.AddComponent<TransformComponent>();
 				model.AddComponent<MeshRendererComponent>();
 				model.AddComponent<SkyboxComponent>();
+			}
+
+			if (Application::Get().GetInput().IsKeyDown(BFB_Y))
+			{
+				auto node = Application::Get().GetScene().Serialize();
+				
+
 			}
 
 			if (Application::Get().GetInput().IsKeyPressed(BFB_R))
@@ -205,51 +191,63 @@ namespace Butterfly
 						ImGui::PopID();
 					}
 
-					SkyboxComponent& sb = model.GetComponent<SkyboxComponent>();
-
-					if (ImGui::CollapsingHeader("SkyboxComponent", ImGuiTreeNodeFlags_DefaultOpen))
+					SkyboxComponent* sb = model.TryGetComponent<SkyboxComponent>();
+					if(sb)
 					{
-						ImGui::PushID("SkyboxComponent");
-						for (int i = 0; i < 6; i++)
-						{
-							std::string faceName;
-							switch (i)
-							{
-							case 0: faceName = "Right"; break;
-							case 1: faceName = "Left"; break;
-							case 2: faceName = "Top"; break;
-							case 3: faceName = "Bottom"; break;
-							case 4: faceName = "Front"; break;
-							case 5: faceName = "Back"; break;
-							}
-							ImGui::Text("%s", faceName.c_str());
-							ImGui::SameLine();
-							ImGui::Button("Drop texture here", ImVec2(200.0f, 20.0f));
-							if (ImGui::BeginDragDropTarget())
-							{
-								if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET"))
-								{
-									Application::Get().GetAssetManager().Acquire<TextureAsset>(*(UUID*)payload->Data, sb.TextureHandle[i]);
-									skybox.LoadSkybox(sb);
-									sb.TextureHandle[i] = sb.TextureHandle[i];
-								}
-								ImGui::EndDragDropTarget();
-							}
-							AssetMetadata meta;
-							if (Application::Get().GetAssetManager().GetAssetRegistry().Find(sb.TextureHandle[i].GetID(), meta))
-							{
-								ImGui::Text("%s", std::filesystem::path(meta.Path).stem().string().c_str());
-							}
-							else
-							{
-								ImGui::Text("%s", "No Reference");
-							}
-						}
+						 if (ImGui::CollapsingHeader("SkyboxComponent", ImGuiTreeNodeFlags_DefaultOpen))
+						 {
+							 ImGui::PushID("SkyboxComponent");
+							 for (int i = 0; i < 6; i++)
+							 {
+								 std::string faceName;
+								 switch (i)
+								 {
+								 case 0: faceName = "Right"; break;
+								 case 1: faceName = "Left"; break;
+								 case 2: faceName = "Top"; break;
+								 case 3: faceName = "Bottom"; break;
+								 case 4: faceName = "Front"; break;
+								 case 5: faceName = "Back"; break;
+								 }
+								 ImGui::Text("%s", faceName.c_str());
+								 ImGui::SameLine();
+								 ImGui::Button("Drop texture here", ImVec2(200.0f, 20.0f));
+								 if (ImGui::BeginDragDropTarget())
+								 {
+									 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET"))
+									 {
+										 AssetHandle<TextureAsset> handle;
+										 Application::Get().GetAssetManager().Acquire<TextureAsset>(*(UUID*)payload->Data, handle);
+										 sb->SetTextureHandle(i, handle);
+									 }
+									 ImGui::EndDragDropTarget();
+								 }
+								 AssetMetadata meta;
+								 if (Application::Get().GetAssetManager().GetAssetRegistry().Find(sb->GetTextureHandle(i).GetID(), meta))
+								 {
+									 ImGui::Text("%s", std::filesystem::path(meta.Path).stem().string().c_str());
+								 }
+								 else
+								 {
+									 ImGui::Text("%s", "No Reference");
+								 }
+							 }
+						 }
 						ImGui::PopID();
 					}
 				}
 
 				ImGui::End();
+			}
+
+			auto view = Application::Get().GetScene().GetEntityRegistry().view<SkyboxComponent>();
+			for (const auto& [entity, sb] : view.each())
+			{
+				if(sb.IsDirty())
+				{
+					skybox.LoadSkybox(sb);
+					sb.ClearDirty();
+				}
 			}
 
 			{
@@ -315,6 +313,13 @@ namespace Butterfly
 							model.AddComponent<TransformComponent>();
 							model.AddComponent<MeshRendererComponent>();
 							model.GetComponent<MeshRendererComponent>().SetMeshHandle(objMesh);
+
+
+							if (meta.Extention == ".bfscene")
+							{
+								const std::string& scene = FileSystem::ReadText(meta.Path);
+								Application::Get().GetScene().Deserialize(scene);
+							}
 						}
 
 						if (ThumbnailProcessor::IsSupportedImageType(meta.Path) && !EditorApplication::Get().GetEditorCache().Exists(meta.ID))

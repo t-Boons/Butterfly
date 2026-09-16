@@ -12,6 +12,9 @@ namespace Butterfly
 
 		void Tick();
 
+		YAML::Node Serialize();
+		void Deserialize(const std::string& text);
+
 		void DestroyPendingEntities();
 		Entity CreateEntity();
 		entt::registry& GetEntityRegistry() { return m_entityRegistry; }

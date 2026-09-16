@@ -65,6 +65,12 @@ namespace Butterfly
     template<typename T>
     bool AssetManager::Acquire(const UUID& id, AssetHandle<T>& ret)
     {
+		if (!id.Valid())
+		{
+			BF_CORE_LOG_ERROR("AssetManager::Acquire: Invalid UUID");
+			return false;
+		}
+
         auto& entry = m_entries[id];
 
 		// For now return if the asset is already loaded. In the future we may want to check if the type matches and return an error if it doesn't.

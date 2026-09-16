@@ -12,6 +12,8 @@ namespace Butterfly
 		AssetRegistry(AssetManager* manager);
 		bool ImportFromDisk(const std::filesystem::path& file, AssetMetadata& meta);
 
+		bool NewFile(const std::string& name, const std::string& contents, AssetMetadata& meta);
+
 		void Scan();
 		bool Find(const UUID& id, AssetMetadata& meta) const;
 		const std::unordered_map<UUID, AssetMetadata>& GetAll() const { return m_registeredAssets; }

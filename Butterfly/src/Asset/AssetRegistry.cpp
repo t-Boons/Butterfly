@@ -14,11 +14,27 @@ namespace Butterfly
 		Scan();
 	}
 
+	bool AssetRegistry::NewFile(const std::string& name, const std::string& contents, AssetMetadata& meta)
+	{
+		if (FileSystem::WriteText(m_assetPath / name, contents))
+		{
+			AssetMetadata newMeta = WriteNewMetaForFile(m_assetPath / name);
+			meta = newMeta;
+			m_registeredAssets[meta.ID] = meta;
+			return true;
+		}
+		else
+		{
+			BF_CORE_LOG_ERROR("Unable to create new file in assets directory: %s", name.c_str());
+			return false;
+		}
+	}
+
 	bool AssetRegistry::ImportFromDisk(const std::filesystem::path& file, AssetMetadata& meta)
 	{
 		if (!FileSystem::Copy(file, m_assetPath / file.filename()))
 		{
-			BF_CORE_LOG_ERROR("Unable to copy file to assets directory.");
+			BF_CORE_LOG_ERROR("Unable to copy file to assets directory: %s", file.filename().string().c_str());
 			return false;
 		}
 

@@ -5,6 +5,9 @@
 
 #include "Scene/Registry/TransformComponent.hpp"
 #include "Scene/Registry/MeshRendererComponent.hpp"
+#include "Scene/Registry/IDComponent.hpp"
+#include "Scene/Registry/NameComponent.hpp"
+#include "Scene/Registry/SkyboxComponent.hpp"
 
 namespace Butterfly
 {
@@ -12,20 +15,45 @@ namespace Butterfly
 
 	void ComponentRegistry::RegisterComponents()
 	{
+		entt::meta_factory<NameComponent>{}
+		.type("Name")
+			.data<&NameComponent::Name>("Name")
+			.data<&NameComponent::Tag>("Tag");
+
+		s_components.push_back(CreateSerializer<NameComponent>());
+
+		entt::meta_factory<IDComponent>{}
+		.type("ID")
+			.data<&IDComponent::EntityUUID>("EntityUUID");
+
+		s_components.push_back(CreateSerializer<IDComponent>());
+
 		entt::meta_factory<TransformComponent>{}
 		.type("Transform")
-			.data<&TransformComponent::m_position>("Position")
-			.data<&TransformComponent::m_rotation>("Rotation")
-			.data<&TransformComponent::m_scale>("Scale")
-			.data<&TransformComponent::m_childUUID>("Child");
-
+			.data<&TransformComponent::SetPosition, &TransformComponent::GetPosition>("Position")
+			.data<&TransformComponent::SetRotation, &TransformComponent::GetRotation>("Rotation")
+			.data<&TransformComponent::SetScale, &TransformComponent::GetScale>("Scale")
+			.data<&TransformComponent::SetChildUUID, &TransformComponent::GetChildUUID>("Child");
+		
 		s_components.push_back(CreateSerializer<TransformComponent>());
 
 		entt::meta_factory<MeshRendererComponent>{}
-		.type("MeshRenderer")
-			.data<&MeshRendererComponent::SetSerializeID, &MeshRendererComponent::GetSerializeID>("MeshRenderer");
+		.type("Mesh")
+			.data<&MeshRendererComponent::SetMeshUUID, &MeshRendererComponent::GetMeshUUID>("MeshUUID");
 
 		s_components.push_back(CreateSerializer<MeshRendererComponent>());
+
+
+		entt::meta_factory<SkyboxComponent>{}
+		.type("Skybox")
+			.data<&SkyboxComponent::SetTextureUUIDPositiveRight, &SkyboxComponent::GetTextureUUIDPositiveRight>("TextureUUIDPositiveRight")
+			.data<&SkyboxComponent::SetTextureUUIDPositiveLeft, &SkyboxComponent::GetTextureUUIDPositiveLeft>("TextureUUIDPositiveLeft")
+			.data<&SkyboxComponent::SetTextureUUIDPositiveTop, &SkyboxComponent::GetTextureUUIDPositiveTop>("TextureUUIDPositiveTop")
+			.data<&SkyboxComponent::SetTextureUUIDPositiveBottom, &SkyboxComponent::GetTextureUUIDPositiveBottom>("TextureUUIDPositiveBottom")
+			.data<&SkyboxComponent::SetTextureUUIDPositiveFront, &SkyboxComponent::GetTextureUUIDPositiveFront>("TextureUUIDPositiveFront")
+			.data<&SkyboxComponent::SetTextureUUIDPositiveBack, &SkyboxComponent::GetTextureUUIDPositiveBack>("TextureUUIDPositiveBack");
+
+		s_components.push_back(CreateSerializer<SkyboxComponent>());
 	}
 
 	YAML::Node ComponentRegistry::SerializeValue(const entt::meta_any& value)

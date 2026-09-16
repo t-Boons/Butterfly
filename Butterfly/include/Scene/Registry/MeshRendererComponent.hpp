@@ -12,7 +12,7 @@ namespace Butterfly
 		void SetMeshHandle(const AssetHandle<MeshAsset>& handle)
 		{
 			m_meshHandle = handle;
-			m_serializeID = handle.GetID();
+			m_meshUUID = handle.GetID();
 		}
 
 		const AssetHandle<MeshAsset>& GetMeshHandle() const
@@ -21,18 +21,18 @@ namespace Butterfly
 		}
 
 	private:
-		void SetSerializeID(const UUID& id)
+		void SetMeshUUID(const UUID& id)
 		{
-			m_serializeID = id;
+			m_meshUUID = id;
 			Application::Get().GetAssetManager().Acquire(id, m_meshHandle);
 		}
-		const UUID& GetSerializeID() const
+		const UUID& GetMeshUUID() const
 		{
-			return m_serializeID;
+			return m_meshUUID;
 		}
 
 		AssetHandle<MeshAsset> m_meshHandle;
-		UUID m_serializeID;
+		UUID m_meshUUID;
 		friend class ComponentRegistry;
 	};
 }

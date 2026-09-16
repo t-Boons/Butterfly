@@ -34,7 +34,8 @@ namespace Butterfly
 	};
 
 	template<typename T>
-	AssetHandle<T>::AssetHandle(const AssetHandle<T>& other) : m_manager(other.m_manager), m_ID(other.m_ID)
+	AssetHandle<T>::AssetHandle(const AssetHandle<T>& other)
+		: m_manager(other.m_manager), m_ID(other.m_ID)
 	{
 		if (m_ID.Valid())
 		{
@@ -43,7 +44,8 @@ namespace Butterfly
 	}
 
 	template<typename T>
-	AssetHandle<T>::AssetHandle(AssetHandle<T>&& other) noexcept : m_manager(other.m_manager), m_ID(other.m_ID)
+	AssetHandle<T>::AssetHandle(AssetHandle<T>&& other) noexcept
+		: m_manager(other.m_manager), m_ID(other.m_ID)
 	{
 		other.m_manager = nullptr;
 		other.m_ID = {};

@@ -25,7 +25,7 @@ namespace Butterfly
 		const glm::mat4& World() const { return m_viewMatrix; }
 		CameraProjection Projection() const { return m_projection; }
 
-		glm::vec3 Forward() const { return m_rotation * glm::vec3(0.0f, 0.0f, -1.0f); }
+		glm::vec3 Forward() const { return m_rotation * glm::vec3(0.0f, 0.0f, 1.0f); }
 		glm::vec3 Right() const { return m_rotation * glm::vec3(1.0f, 0.0f, 0.0f); }
 		glm::vec3 Up() const { return m_rotation * glm::vec3(0.0f, 1.0f, 0.0f); }
 

@@ -67,6 +67,7 @@ namespace Butterfly
 		{
 			InternalLog(format, RED, prefix, args...);
 			assert(false);
+			__debugbreak();
 		}
 
 		template <typename... Args>

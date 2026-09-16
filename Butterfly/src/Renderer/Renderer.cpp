@@ -347,7 +347,7 @@ namespace Butterfly
 				psoBuilder.DepthStencilFormat({ DXGI_FORMAT_D24_UNORM_S8_UINT });
 				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Forward_vert.hlsl", ShaderType::Vertex));
 				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Forward_frag.hlsl", ShaderType::Pixel));
-				psoBuilder.CullingMode(D3D12_CULL_MODE_FRONT);
+				psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
 
 				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
 

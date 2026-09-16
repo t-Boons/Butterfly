@@ -6,6 +6,6 @@ namespace Butterfly
 	class IDComponent
 	{
 	public:
-		UUID Value;
+		UUID EntityUUID;
 	};
 }

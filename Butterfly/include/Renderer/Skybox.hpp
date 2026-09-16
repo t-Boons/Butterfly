@@ -13,7 +13,7 @@ namespace Butterfly
 			std::array<RefPtr<BFTexture>, 6> textures;
 			for (uint32_t i = 0; i < 6; ++i)
 			{
-				TextureAsset* asset = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.TextureHandle[i]);
+				TextureAsset* asset = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.GetTextureHandle(i));
 				if (asset)
 				{
 					textures[i] = asset->Texture;
