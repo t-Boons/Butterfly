@@ -53,6 +53,7 @@ namespace Butterfly
 
 
 		ImGui::CreateContext();
+		ImGuizmo::SetImGuiContext(ImGui::GetCurrentContext());
 		ImGuiIO& io = ImGui::GetIO();
 		io.IniFilename = "Editor/DefaultLayout.ini";
 
@@ -92,6 +93,14 @@ namespace Butterfly
 		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
 	}
 
+	const Viewport& Renderer::GetViewport(const ViewportHandle& handle)
+	{
+		BF_CORE_ASSERT(handle.Valid(), "Renderer::GetViewport: ViewportHandle is invalid.");
+		auto it = GetCurrentFrameData().Viewports.find(handle);
+		BF_CORE_ASSERT(it != GetCurrentFrameData().Viewports.end(), "Renderer::GetViewport: handle is not found in viewports.");
+		return it->second;
+	}
+
 	void Renderer::ImGUIImage(const ViewportHandle& handle)
 	{
 		ImVec2 size = ImGui::GetContentRegionAvail();
@@ -100,18 +109,18 @@ namespace Butterfly
 
 		BF_CORE_ASSERT(handle.Valid(), "Renderer::ImGUIImage: ViewportHandle is invalid.");
 
-		if (CurrentFrameData().Viewports.empty())
+		if (GetCurrentFrameData().Viewports.empty())
 		{
 			BF_CORE_LOG_WARN("Renderer::ImGUIImage: No viewports found.");
 			return;
 		}
 
-		auto it = CurrentFrameData().Viewports.find(handle);
+		auto it = GetCurrentFrameData().Viewports.find(handle);
 
 		// When one of the viewports gets resized.
-		if (it == CurrentFrameData().Viewports.end() || !it->second.RenderTarget || it->second.RenderTarget->Width() != size.x || it->second.RenderTarget->Height() != size.y)
+		if (it == GetCurrentFrameData().Viewports.end() || !it->second.RenderTarget || it->second.RenderTarget->Width() != size.x || it->second.RenderTarget->Height() != size.y)
 		{
-			if (it != CurrentFrameData().Viewports.end() && it->second.RenderTarget)
+			if (it != GetCurrentFrameData().Viewports.end() && it->second.RenderTarget)
 			{
 				WaitForInflightFrames();
 				it->second.RenderTarget.reset();
@@ -163,6 +172,7 @@ namespace Butterfly
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
 
 		m_ImGuiRenderEvent.Broadcast();
 
@@ -337,7 +347,7 @@ namespace Butterfly
 				continue;
 			}
 
-			const glm::mat4 model = transform.GetMatrix();
+			const glm::mat4 model = transform.GetWorldMatrix();
 			viewport.ModelMatrices->Write(&model, sizeof(glm::mat4), entityIndex * sizeof(glm::mat4));
 			entityIndex++;
 		}

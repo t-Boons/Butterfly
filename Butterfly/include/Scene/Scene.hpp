@@ -18,6 +18,7 @@ namespace Butterfly
 		void DestroyPendingEntities();
 		Entity CreateEntity(const std::string& name = "New GameObject");
 		entt::registry& GetEntityRegistry() { return m_entityRegistry; }
+		const entt::registry& GetEntityRegistry() const { return m_entityRegistry; }
 		const Entity& GetRootEntity() const { return m_rootEntity; }
 
 	private:

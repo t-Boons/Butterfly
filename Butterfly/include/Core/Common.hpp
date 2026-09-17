@@ -27,6 +27,7 @@
 
 #include "glm/glm.hpp"
 #include "glm/gtx/quaternion.hpp"
+#include "glm/gtx/matrix_decompose.hpp"
 #include "entt/entt.hpp"
 #include "yaml-cpp/yaml.h"
 

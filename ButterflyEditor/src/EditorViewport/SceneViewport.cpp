@@ -1,6 +1,7 @@
 #include "EditorViewport/SceneViewport.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
+#include "ImGuizmo/ImGuizmo.h"
 #include "Core/EditorApplication.hpp"
 #include "EditorViewport/EditorViewport.hpp"
 
@@ -74,20 +75,20 @@ namespace Butterfly
 		const glm::ivec2 contentPos = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
 		const glm::ivec2 relativePos = mousePos - contentPos;
 		uint32_t readbackID = 0;
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_objectPickerReadback->ReadPixel(relativePos, readbackID))
+		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_objectPickerReadback->ReadPixel(relativePos, readbackID) && !ImGuizmo::IsOver())
 		{
-
 			if (readbackID > 0)
 			{
 				// We do -1 because the rendred readbackID increments the entity count for entity 0.
 				// Thus entity 0 is entity 1
 				const uint32_t sceneEntityID = readbackID - 1; 
-				m_selectedEntity = static_cast<entt::entity>(sceneEntityID);
+
+				EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity(&Application::Get().GetScene().GetEntityRegistry(), static_cast<entt::entity>(sceneEntityID));
 				BF_LOG_INFO("Selected entity: %u", sceneEntityID);
 			}
 			else
 			{
-				m_selectedEntity = entt::null;
+				EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
 			}
 		}
 
@@ -96,6 +97,41 @@ namespace Butterfly
 		if (m_viewportHandle.Valid())
 		{
 			Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);
+		}
+
+		static ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
+
+		if (ImGui::IsKeyPressed(ImGuiKey_W))
+			currentGizmoOperation = ImGuizmo::TRANSLATE;
+		if (ImGui::IsKeyPressed(ImGuiKey_E))
+			currentGizmoOperation = ImGuizmo::ROTATE;
+		if (ImGui::IsKeyPressed(ImGuiKey_R))
+			currentGizmoOperation = ImGuizmo::SCALE;
+
+		if (EditorApplication().Get().GetEditorViewport().m_selectedEntity)
+		{
+			const ImVec2 size = ImGui::GetItemRectSize();
+			const ImVec2 position = ImGui::GetItemRectMin();
+
+			ImGuizmo::SetDrawlist();
+			ImGuizmo::SetRect(position.x, position.y, size.x, size.y);
+
+			TransformComponent& entityTransform = EditorApplication().Get().GetEditorViewport().m_selectedEntity.GetComponent<TransformComponent>();
+
+
+			glm::mat4 changableMatrix = entityTransform.GetWorldMatrix();
+			ImGuizmo::Manipulate(
+				&m_spectatorCam.GetCamera()->ViewMatrix()[0][0],
+				&m_spectatorCam.GetCamera()->ProjectionMatrix()[0][0],
+				currentGizmoOperation,
+				ImGuizmo::WORLD,
+				&changableMatrix[0][0]
+			);
+
+			if (ImGuizmo::IsUsing())
+			{
+				entityTransform.SetWorldMatrix(changableMatrix);
+			}
 		}
 
 		ImGui::PopStyleVar(2);
@@ -114,6 +150,7 @@ namespace Butterfly
 		desc.Width = viewport.RenderTarget->Width();
 		desc.Height = viewport.RenderTarget->Height();
 		desc.Flags = BFTextureDesc::RenderTargettable;
+		desc.DebugName = "R32 Viewport objectpicker";
 		params->RenderTarget = builder.CreateTransientTexture("R32 Viewport objectpicker", desc);
 
 		BFTextureDesc desc2;
@@ -121,6 +158,7 @@ namespace Butterfly
 		desc2.Width = viewport.RenderTarget->Width();
 		desc2.Height = viewport.RenderTarget->Height();
 		desc2.Flags = BFTextureDesc::DepthStencilable;
+		desc2.DebugName = "DepthStencil Viewport objectpicker";
 		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport objectpicker", desc2);
 
 
@@ -134,7 +172,7 @@ namespace Butterfly
 				GraphicsCommands::SetRenderTargets(list, { &rt }, data.DepthStencil->Resource().get());
 
 				GraphicsCommands::ClearDepthStencil(list, *data.DepthStencil->Resource());
-				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.15f, 1.0f });
+				GraphicsCommands::ClearRenderTarget(list, rt, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 				GraphicsCommands::SetFullscreenViewportAndRect(list, rt.Width(), rt.Height());
 
@@ -144,12 +182,12 @@ namespace Butterfly
 				psoBuilder.DepthStencilFormat({ DXGI_FORMAT_D24_UNORM_S8_UINT });
 				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_vert.hlsl", ShaderType::Vertex));
 				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_frag.hlsl", ShaderType::Pixel));
-				psoBuilder.CullingMode(D3D12_CULL_MODE_FRONT);
+				psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
 
 				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
 
+				uint32_t entityRenderIndex = 0;
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
-
 				for (auto [entity, transform, meshRenderer] : view.each())
 				{
 					if (!meshRenderer.GetMeshHandle())
@@ -163,8 +201,11 @@ namespace Butterfly
 						.Add(mesh->GPUPositions->SRV().View())
 						.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
 						.Add(viewport.ModelMatrices->SRV().View())
+						.Add(entityRenderIndex) // Rendered entity index.
 						.Add(static_cast<int>(entity)) // uint32_t Entity ID in registry.
 						.Submit(list);
+
+					entityRenderIndex++;
 
 					list.List()->IASetIndexBuffer(&mesh->GPUIndices->IBV());
 					list.List()->DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);

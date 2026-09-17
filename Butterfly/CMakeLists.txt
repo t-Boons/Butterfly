@@ -10,6 +10,7 @@ add_subdirectory(lib/stbimage)
 add_subdirectory(lib/tinygltf)
 add_subdirectory(lib/tinyobj)
 add_subdirectory(lib/yaml-cpp)
+add_subdirectory(lib/ImGuizmo)
 
 add_library(Butterfly STATIC
     src/Core/Window.cpp
@@ -77,6 +78,7 @@ target_link_libraries(Butterfly
         tinygltf
         tinyobj
         yaml-cpp
+        imguizmo
     PRIVATE
         d3d12
         dxgi)

@@ -33,8 +33,8 @@ namespace Butterfly
 			.data<&TransformComponent::SetPosition, &TransformComponent::GetPosition>("Position")
 			.data<&TransformComponent::SetRotation, &TransformComponent::GetRotation>("Rotation")
 			.data<&TransformComponent::SetScale, &TransformComponent::GetScale>("Scale")
-			.data<&TransformComponent::SetChildrenUUIDs, &TransformComponent::GetChildrenUUIDs>("Children");
-		
+			.data<&TransformComponent::SetChildrenUUIDs, &TransformComponent::GetChildrenUUIDs>("Children")
+			.data<&TransformComponent::SetParentUUID, &TransformComponent::GetParentUUID>("Parent");
 		s_components.push_back(CreateSerializer<TransformComponent>());
 
 		entt::meta_factory<MeshRendererComponent>{}

@@ -72,6 +72,15 @@ namespace Butterfly
 				}
 			}
 		}
+
+		for (const auto& [entity, transform] : m_entityRegistry.view<TransformComponent>().each())
+		{
+			transform.ValidateAfterDeserialization(*this);
+		}
+
+		auto firstEntity = *m_entityRegistry.view<TransformComponent>().begin();
+		// Get the root from any of the other existing transformcomponents since they are all parented to the root.
+		m_rootEntity = m_entityRegistry.get<TransformComponent>(firstEntity).GetRoot();
 	}
 
 	void Scene::Tick()
@@ -109,8 +118,9 @@ namespace Butterfly
 		// Add the entity to the registry and add the required components.
 		Entity entity(&m_entityRegistry, m_entityRegistry.create());
 
+		entity.AddComponent<IDComponent>().EntityUUID = UUID::Generate();
+
 		TransformComponent& tr = entity.AddComponent<TransformComponent>();
-		tr.m_thisEntity = entity;
 
 		// Attach it to the scene root.
 		if (m_rootEntity)
@@ -119,29 +129,29 @@ namespace Butterfly
 			rootTransform.Attach(tr);
 		}
 
-		entity.AddComponent<IDComponent>().EntityUUID = UUID::Generate();
 
 		// Make sure there are no duplicate names in the scene, if there are, append a number to the end of the name.
-		NameComponent nameComponent;
-		nameComponent.Tag = "Untagged";
-		nameComponent.Name = name;
 		
+		std::string newEntityName = name;
+
 		bool duplicateNameFound = true;
 		while (duplicateNameFound)
 		{
 			duplicateNameFound = false;
 			for (const auto& [entityName, existingNameComponent] : m_entityRegistry.view<NameComponent>().each())
 			{
-				if (nameComponent.Name == existingNameComponent.Name)
+				if (newEntityName == existingNameComponent.Name)
 				{
-					nameComponent.Name = Utils::IterateDuplicateName(existingNameComponent.Name);
+					newEntityName = Utils::IterateDuplicateName(existingNameComponent.Name);
 					duplicateNameFound = true;
 					break;
 				}
 			}
 		}
-		entity.AddComponent<NameComponent>(nameComponent);
 
+		NameComponent& nameComponent = entity.AddComponent<NameComponent>();
+		nameComponent.Tag = "Untagged";
+		nameComponent.Name = name;
 
 		return entity;
 	}

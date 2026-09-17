@@ -20,6 +20,11 @@ namespace Butterfly
 				}
 			}
 
+			if (std::all_of(textures.begin(), textures.end(), [](const RefPtr<BFTexture>& tex) { return !tex; }))
+			{
+				return;
+			};
+
 			m_skyboxTexture = BFTexture::CreateCubemap(textures);
 		}
 

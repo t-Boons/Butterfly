@@ -6,6 +6,10 @@ namespace Butterfly
 	class IDComponent
 	{
 	public:
+		IDComponent(const Entity& entity)
+		{
+		}
+
 		UUID EntityUUID;
 	};
 }

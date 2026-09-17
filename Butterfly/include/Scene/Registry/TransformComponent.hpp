@@ -5,26 +5,31 @@
 
 namespace Butterfly
 {		
-	class TransformComponent : public NonCopyableNonMoveable
+	class TransformComponent
 	{
 	public:
+		TransformComponent(const Entity& thisEntity);
+
 		void SetPosition(const glm::vec3& position);
 		void SetRotation(const glm::quat& rotation);
 		void SetScale(const glm::vec3& scale);
+		void SetWorldMatrix(const glm::mat4& matrix);
+		void SetLocalMatrix(const glm::mat4& matrix);
 		void Attach(TransformComponent& other, uint32_t childIndex = 0);
 
 		const glm::vec3& GetPosition() const { return m_position; }
 		const glm::quat& GetRotation() const { return m_rotation; }
 		const glm::vec3& GetScale() const { return m_scale; }
 		const std::vector<Entity>& GetChildren() const { return m_children; }
-
-		const glm::mat4& GetMatrix();
+		const glm::mat4& GetLocalMatrix() const { return m_localMatrix; }
+		const glm::mat4& GetWorldMatrix();
 
 		bool IsChildOf(const TransformComponent& other) const;
 
 		void AttachAndMoveAboveChild(const TransformComponent& child, TransformComponent& newChild);
 
 		const Entity& GetParent() const { return m_parent; }
+		const Entity& GetRoot() const;
 	private:
 		friend class Scene;
 		friend class ComponentRegistry;
@@ -33,20 +38,24 @@ namespace Butterfly
 
 		void SetChildrenUUIDs(const std::vector<UUID>& uuids);
 		std::vector<UUID> GetChildrenUUIDs() const;
-		void ValidateChildren();
-
+		void SetParentUUID(const UUID& uuid) { m_parentUUID = uuid; }
+		const UUID& GetParentUUID() const { return m_parentUUID; }
 
 		void InvalidateMatrix();
+
+		void ValidateAfterDeserialization(Scene& scene);
 
 		glm::vec3 m_position = { 0.0f, 0.0f, 0.0f };
 		glm::quat m_rotation = { 1.0f, 0.0f, 0.0f, 0.0f };
 		glm::vec3 m_scale = { 1.0f, 1.0f, 1.0f };
 
 		glm::mat4 m_matrix = glm::mat4(1.0f);
+		glm::mat4 m_localMatrix = glm::mat4(1.0f);
 
 		Entity m_thisEntity;
-		Entity m_parent;
 
+		Entity m_parent;
+		UUID m_parentUUID;
 		std::vector<Entity> m_children;
 		std::vector<UUID> m_childrenUUIDs;
 

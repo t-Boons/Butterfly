@@ -9,6 +9,7 @@
 #include "Core/Window.hpp"
 #include "Core/EventDispatcher.hpp"
 #include "Renderer/Viewport.hpp"
+#include "ImGuizmo/ImGuizmo.h"
 
 #define NUM_RENDER_BUFFERS 3
 
@@ -55,7 +56,8 @@ namespace Butterfly
 		void RemoveViewport(const ViewportHandle& handle);
 		ViewportEvents& GetViewportEvents(const ViewportHandle& handle);
 
-		FrameData& CurrentFrameData() { return m_frameDatas[m_frameIndex]; }
+		FrameData& GetCurrentFrameData() { return m_frameDatas[m_frameIndex]; }
+		const Viewport& GetViewport(const ViewportHandle& handle);
 
 		// ImGui Helper functions.
 		EventDispatcher<>& GetImGUIRenderEvent() { return m_ImGuiRenderEvent; }

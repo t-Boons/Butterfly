@@ -59,22 +59,6 @@ namespace Butterfly
 				}
 				m_selectedEntity = Entity();
 			}
-
-			if (Application::Get().GetInput().IsKeyPressed(BFB_R))
-			{
-				if (m_selectedEntity)
-				{
-					m_modelMovementTime += Application::Get().GetTime().DeltaTime();
-
-					TransformComponent& tr = m_selectedEntity.GetComponent<TransformComponent>();
-
-					glm::vec3 position = tr.GetPosition();
-					position.y = glm::sin(m_modelMovementTime * 3);
-					tr.SetPosition(position);
-
-					tr.SetRotation(glm::quat(glm::vec3(0.0f, m_modelMovementTime * 5, 0.0f)));
-				}
-			}
 		}
 
 		void OnRenderImGUI()
@@ -347,19 +331,16 @@ namespace Butterfly
 
 						if (doubleClicked)
 						{
-							AssetHandle<MeshAsset> objMesh;
-							Application::Get().GetAssetManager().Acquire<MeshAsset>(meta.ID, objMesh);
-
-							m_selectedEntity = Application::Get().GetScene().CreateEntity();
-							m_selectedEntity.AddComponent<TransformComponent>();
-							m_selectedEntity.AddComponent<MeshRendererComponent>();
-							m_selectedEntity.GetComponent<MeshRendererComponent>().SetMeshHandle(objMesh);
-
-
 							if (meta.Extention == ".bfscene")
 							{
 								const std::string& scene = FileSystem::ReadText(meta.Path);
 								Application::Get().GetScene().Deserialize(scene);
+
+								ImGui::PopID();
+								ImGui::EndTable();
+								ImGui::EndChild();
+								ImGui::End();
+								return;
 							}
 						}
 
@@ -621,8 +602,8 @@ namespace Butterfly
 			}
 		}
 
-	private:
 		Entity m_selectedEntity;
+	private:
 
 		float m_modelMovementTime = 0;
 

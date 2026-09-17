@@ -6,6 +6,11 @@
 
 namespace Butterfly
 {
+	TransformComponent::TransformComponent(const Entity& thisEntity)
+		: m_thisEntity(thisEntity)
+	{
+	}
+
 	void TransformComponent::SetPosition(const glm::vec3& position)
 	{
 		m_position = position;
@@ -22,6 +27,22 @@ namespace Butterfly
 	{
 		m_scale = scale;
 		InvalidateMatrix();
+	}
+
+	void TransformComponent::SetLocalMatrix(const glm::mat4& matrix)
+	{
+		m_localMatrix = matrix;
+		glm::vec3 scew;
+		glm::vec4 perspective;
+		glm::decompose(matrix, m_scale, m_rotation, m_position, scew, perspective);
+
+		InvalidateMatrix();
+	}
+	void TransformComponent::SetWorldMatrix(const glm::mat4& matrix)
+	{
+		glm::mat4 parentMatrix = m_parent.GetComponent<TransformComponent>().GetWorldMatrix();
+
+		SetLocalMatrix(glm::inverse(parentMatrix) * matrix);
 	}
 
 	void TransformComponent::Attach(TransformComponent& other, uint32_t childIndex)
@@ -53,6 +74,7 @@ namespace Butterfly
 			const uint32_t removedIndex = static_cast<uint32_t>(std::distance(m_children.begin(), it));
 
 			m_children.erase(it);
+			m_childrenUUIDs.erase(m_childrenUUIDs.begin() + removedIndex);
 
 			if (removedIndex < childIndex)
 			{
@@ -63,12 +85,24 @@ namespace Butterfly
 		{
 			other.DetachParent();
 			other.m_parent = m_thisEntity;
+			other.m_parentUUID = m_thisEntity.GetComponent<IDComponent>().EntityUUID;
 		}
 
 		m_children.insert(m_children.begin() + childIndex, other.m_thisEntity);
+		m_childrenUUIDs.insert(m_childrenUUIDs.begin() + childIndex, other.m_thisEntity.GetComponent<IDComponent>().EntityUUID);
 
 		other.InvalidateMatrix();
 		InvalidateMatrix();
+	}
+
+	const Entity& TransformComponent::GetRoot() const
+	{
+		const TransformComponent* current = this;
+		while (current->m_parent)
+		{
+			current = &current->m_parent.GetComponent<TransformComponent>();
+		}
+		return current->m_thisEntity;
 	}
 
 	bool TransformComponent::IsChildOf(const TransformComponent& other) const
@@ -85,7 +119,7 @@ namespace Butterfly
 		return false;
 	}
 
-	const glm::mat4& TransformComponent::GetMatrix()
+	const glm::mat4& TransformComponent::GetWorldMatrix()
 	{
 		if (m_isMatrixDirty)
 		{
@@ -93,10 +127,11 @@ namespace Butterfly
 				glm::mat4_cast(m_rotation) *
 				glm::scale(glm::mat4(1.0f), m_scale);
 
+			m_localMatrix = m_matrix;
 
 			if (m_parent)
 			{
-				m_matrix = m_parent.GetComponent<TransformComponent>().GetMatrix() * m_matrix;
+				m_matrix = m_parent.GetComponent<TransformComponent>().GetWorldMatrix() * m_matrix;
 			}	
 			else
 			{
@@ -122,12 +157,6 @@ namespace Butterfly
 		return m_childrenUUIDs;
 	}
 
-	void TransformComponent::ValidateChildren()
-	{
-
-	}
-
-
 	void TransformComponent::InvalidateMatrix()
 	{
 		m_isMatrixDirty = true;
@@ -142,9 +171,40 @@ namespace Butterfly
 		if (m_parent)
 		{
 			TransformComponent& parentTransform = m_parent.GetComponent<TransformComponent>();
-			parentTransform.m_children.erase(
-				std::remove(parentTransform.m_children.begin(), parentTransform.m_children.end(), m_thisEntity),
-				parentTransform.m_children.end());
+			for (uint32_t i = 0; i < parentTransform.m_children.size(); ++i)
+			{
+				if (parentTransform.m_children[i] == m_thisEntity)
+				{
+					parentTransform.m_children.erase(parentTransform.m_children.begin() + i);
+					parentTransform.m_childrenUUIDs.erase(parentTransform.m_childrenUUIDs.begin() + i);
+					break;
+				}
+			}
+		}
+	}
+
+	void TransformComponent::ValidateAfterDeserialization(Scene& scene)
+	{
+		m_children.clear();
+		for (const UUID& uuid : m_childrenUUIDs)
+		{
+			for (const auto& [entity, idComp] : scene.GetEntityRegistry().view<IDComponent>().each())
+			{
+				if (idComp.EntityUUID == uuid)
+				{
+					m_children.push_back(Entity(&scene.GetEntityRegistry(), entity));
+					break;
+				}
+			}
+		}
+
+		for (const auto& [entity, idComp] : scene.GetEntityRegistry().view<IDComponent>().each())
+		{
+			if (idComp.EntityUUID == m_parentUUID)
+			{
+				m_parent = Entity(&scene.GetEntityRegistry(), entity);
+				break;
+			}
 		}
 	}
 }

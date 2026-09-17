@@ -9,6 +9,9 @@ namespace Butterfly
 	class SkyboxComponent
 	{
 	public:
+		SkyboxComponent(const Entity& entity)
+		{ }
+
 		void SetTextureHandle(uint32_t side, const AssetHandle<TextureAsset>& handle)
 		{
 			BF_CORE_ASSERT(side < 6, "SkyboxComponent::SetTextureHandle: Invalid side index for skybox: %u", side);

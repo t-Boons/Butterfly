@@ -28,6 +28,8 @@ namespace Butterfly
 	struct Viewport
 	{
 	public:
+		glm::ivec2 Size() const { return { RenderTarget->Width(), RenderTarget->Height() }; }
+
 		RefPtr<BFTexture> RenderTarget;
 		RefPtr<BFUniformBuffer> Uniforms;
 

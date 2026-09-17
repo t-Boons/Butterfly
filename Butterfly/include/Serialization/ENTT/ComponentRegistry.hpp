@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Common.hpp"
+#include "Scene/Entity.hpp"
 
 namespace Butterfly
 {
@@ -97,12 +98,8 @@ namespace Butterfly
 				};
 			serializer.Deserialize = [](const YAML::Node& node, entt::registry& registry, entt::entity entity)
 				{
-					T& component = registry.emplace<T>(entity);
+					T& component = registry.emplace<T>(entity, Entity(&registry, entity));
 					return DeserializeComponent<T>(node, component);
-				};
-			serializer.Emplace = [](entt::registry& registry, entt::entity entity)
-				{
-					registry.emplace<T>(entity);
 				};
 
 			BF_CORE_LOG_INFO("Registered component serializer: %s", serializer.Name.data());

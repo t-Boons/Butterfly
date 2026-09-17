@@ -5,6 +5,10 @@ namespace Butterfly
 {
 	struct NameComponent
 	{
+		NameComponent(const Entity& entity)
+		{
+		}
+
 		std::string Tag;
 		std::string Name;
 	};

@@ -9,6 +9,10 @@ namespace Butterfly
 	class MeshRendererComponent : public NonCopyable
 	{
 	public:
+		MeshRendererComponent(const Entity& entity)
+		{
+		}
+
 		void SetMeshHandle(const AssetHandle<MeshAsset>& handle)
 		{
 			m_meshHandle = handle;
