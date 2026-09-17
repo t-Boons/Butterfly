@@ -4,8 +4,13 @@
 
 namespace Butterfly
 {
-	Entity::Entity(EntityHandle handle)
-		: m_registry(&Application::Get().GetScene().GetEntityRegistry()), m_handle(handle)
+	Entity::Entity()
+		: m_registry(nullptr), m_handle(entt::null)
+	{
+	}
+
+	Entity::Entity(entt::registry* registry, EntityHandle handle)
+		: m_registry(registry), m_handle(handle)
 	{
 
 	}

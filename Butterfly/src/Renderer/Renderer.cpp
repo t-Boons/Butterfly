@@ -56,6 +56,24 @@ namespace Butterfly
 		ImGuiIO& io = ImGui::GetIO();
 		io.IniFilename = "Editor/DefaultLayout.ini";
 
+		{
+			ImFontConfig iconConfig;
+			iconConfig.MergeMode = false;
+			iconConfig.PixelSnapH = true;
+			const std::string filepath = "Assets/Fonts/Roboto-Regular.ttf";
+			BF_CORE_ASSERT(std::filesystem::exists(filepath), "Renderer::Renderer: Font file does not exist: %s", filepath.c_str());
+			io.Fonts->AddFontFromFileTTF(filepath.c_str(), 14.0f, &iconConfig);
+		}
+		{
+			ImFontConfig iconConfig;
+			iconConfig.MergeMode = true;
+			iconConfig.PixelSnapH = true;
+			static const ImWchar iconRanges[] = { 0xf000, 0xf8ff, 0 };
+			const std::string filepath = "Assets/Fonts/Font_Awesome_7_Free-Solid-900.otf";
+			BF_CORE_ASSERT(std::filesystem::exists(filepath), "Renderer::Renderer: Font file does not exist: %s", filepath.c_str());
+			io.Fonts->AddFontFromFileTTF(filepath.c_str(), 9.0f, &iconConfig, iconRanges);
+		}
+
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		ImGui_ImplGlfw_InitForOther(Application::Get().GetWindow().GLFWWindow(), true);

@@ -50,6 +50,24 @@ namespace Butterfly
 			return true;
 		}
 
+		inline std::string IterateDuplicateName(const std::string& name)
+		{
+			const size_t pos = name.find_last_of(' ');
+
+			if (pos != std::string::npos)
+			{
+				std::string suffix = name.substr(pos + 1);
+
+				if (!suffix.empty() && std::all_of(suffix.begin(), suffix.end(), ::isdigit))
+				{
+					int number = std::stoi(suffix);
+					return name.substr(0, pos) + " " + std::to_string(number + 1);
+				}
+			}
+
+			return name + " 1";
+		}
+
 		// Function is taken from this stackoverflow question about variadic templates for hash combining:
 		// https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
 		template <typename...> struct Hasher;

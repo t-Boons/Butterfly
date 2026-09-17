@@ -16,10 +16,14 @@ namespace Butterfly
 		void Deserialize(const std::string& text);
 
 		void DestroyPendingEntities();
-		Entity CreateEntity();
+		Entity CreateEntity(const std::string& name = "New GameObject");
 		entt::registry& GetEntityRegistry() { return m_entityRegistry; }
+		const Entity& GetRootEntity() const { return m_rootEntity; }
 
 	private:
+		void DestroyChildren(entt::entity entity);
+
 		entt::registry m_entityRegistry;
+		Entity m_rootEntity;
 	};
 }

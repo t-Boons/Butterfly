@@ -6,6 +6,7 @@
 #include "Core/ThumbnailProcessor.hpp"
 #include "EditorViewport/SceneViewport.hpp"
 #include "EditorViewport/EditorViewportExtention.hpp"
+#include "ImGui/FontAwesomeIcons.hpp"
 
 namespace Butterfly
 {
@@ -37,11 +38,10 @@ namespace Butterfly
 
 			if (Application::Get().GetInput().IsKeyDown(BFB_T))
 			{
-				model = Application::Get().GetScene().CreateEntity();
+				m_selectedEntity = Application::Get().GetScene().CreateEntity();
 
-				model.AddComponent<TransformComponent>();
-				model.AddComponent<MeshRendererComponent>();
-				model.AddComponent<SkyboxComponent>();
+				m_selectedEntity.AddComponent<MeshRendererComponent>();
+				m_selectedEntity.AddComponent<SkyboxComponent>();
 			}
 
 			if (Application::Get().GetInput().IsKeyDown(BFB_Y))
@@ -51,13 +51,22 @@ namespace Butterfly
 
 			}
 
+			if (Application::Get().GetInput().IsKeyDown(BFB_DELETE))
+			{
+				if (m_selectedEntity)
+				{
+					m_selectedEntity.Destroy();
+				}
+				m_selectedEntity = Entity();
+			}
+
 			if (Application::Get().GetInput().IsKeyPressed(BFB_R))
 			{
-				if (model)
+				if (m_selectedEntity)
 				{
 					m_modelMovementTime += Application::Get().GetTime().DeltaTime();
 
-					TransformComponent& tr = model.GetComponent<TransformComponent>();
+					TransformComponent& tr = m_selectedEntity.GetComponent<TransformComponent>();
 
 					glm::vec3 position = tr.GetPosition();
 					position.y = glm::sin(m_modelMovementTime * 3);
@@ -127,9 +136,9 @@ namespace Butterfly
 			{
 				ImGui::Begin("Properties");
 
-				if (model)
+				if (m_selectedEntity)
 				{
-					TransformComponent& tr = model.GetComponent<TransformComponent>();
+					TransformComponent& tr = m_selectedEntity.GetComponent<TransformComponent>();
 
 					if (ImGui::CollapsingHeader("TransformComponent", ImGuiTreeNodeFlags_DefaultOpen))
 					{
@@ -159,39 +168,60 @@ namespace Butterfly
 					}
 
 
-					MeshRendererComponent& mr = model.GetComponent<MeshRendererComponent>();
+					MeshRendererComponent* mr = m_selectedEntity.TryGetComponent<MeshRendererComponent>();
 
-					if (ImGui::CollapsingHeader("MeshRenderer", ImGuiTreeNodeFlags_DefaultOpen))
+					if (mr && ImGui::CollapsingHeader("MeshRenderer", ImGuiTreeNodeFlags_DefaultOpen))
 					{
-						ImGui::PushID("MeshRenderer");
+						ImGui::PushID("MeshReference");
 
-						ImGui::Button("Drop mesh here", ImVec2(200.0f, 40.0f));
+						ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
+						ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+
+						const float fieldHeight = 20.0f;
+						const float fieldWidth = 200.0f;
+						const float pickerWidth = fieldHeight;
+		
+						ImGuiIO& io = ImGui::GetIO();
+
+						ImGui::Button(FontAwesome::Search, ImVec2(pickerWidth, fieldHeight));
+						ImGui::SameLine(0.0f, 0.0f);
+
+						std::string meshName = "No Reference";
+
+						if (mr->GetMeshHandle())
+						{
+							AssetMetadata meta;
+							Application::Get().GetAssetManager().GetAssetRegistry().Find(mr->GetMeshHandle().GetID(), meta);
+							meshName = std::filesystem::path(meta.Path).stem().string();
+						}
+
+						ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+						ImGui::Button(meshName.c_str(), ImVec2(fieldWidth, fieldHeight));
+						ImGui::PopStyleVar();
+
 						if (ImGui::BeginDragDropTarget())
 						{
 							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET"))
 							{
-								AssetHandle<MeshAsset> handle;
-								Application::Get().GetAssetManager().Acquire<MeshAsset>(*(UUID*)payload->Data, handle);
-								mr.SetMeshHandle(handle);
+								if (payload->DataSize == sizeof(UUID))
+								{
+									AssetHandle<MeshAsset> handle;
+									Application::Get().GetAssetManager().Acquire<MeshAsset>(*(UUID*)payload->Data, handle);
+									mr->SetMeshHandle(handle);
+								}
 							}
 
 							ImGui::EndDragDropTarget();
 						}
 
-						AssetMetadata meta;
-						if (Application::Get().GetAssetManager().GetAssetRegistry().Find(mr.GetMeshHandle().GetID(), meta))
-						{
-							ImGui::Text("%s", std::filesystem::path(meta.Path).stem().string().c_str());
-						}
-						else
-						{
-							ImGui::Text("%s", "No Reference");
-						}
+						ImGui::PopStyleColor(3);
 
 						ImGui::PopID();
+
 					}
 
-					SkyboxComponent* sb = model.TryGetComponent<SkyboxComponent>();
+					SkyboxComponent* sb = m_selectedEntity.TryGetComponent<SkyboxComponent>();
 					if(sb)
 					{
 						 if (ImGui::CollapsingHeader("SkyboxComponent", ImGuiTreeNodeFlags_DefaultOpen))
@@ -289,6 +319,17 @@ namespace Butterfly
 						ImU32 iconColor = ImColor(10, 20, 50);
 						float iconOffsetX = (cellSize - iconSize) * 0.5f;
 
+
+						if (ImGui::BeginPopupContextItem())
+						{
+							if (ImGui::MenuItem("Show in Explorer"))
+							{
+								system(("explorer.exe /select," + meta.Path).c_str());
+							}
+
+							ImGui::EndPopup();
+						}
+						 
 						if (ImGui::BeginDragDropSource())
 						{
 							UUID id = meta.ID;
@@ -309,10 +350,10 @@ namespace Butterfly
 							AssetHandle<MeshAsset> objMesh;
 							Application::Get().GetAssetManager().Acquire<MeshAsset>(meta.ID, objMesh);
 
-							model = Application::Get().GetScene().CreateEntity();
-							model.AddComponent<TransformComponent>();
-							model.AddComponent<MeshRendererComponent>();
-							model.GetComponent<MeshRendererComponent>().SetMeshHandle(objMesh);
+							m_selectedEntity = Application::Get().GetScene().CreateEntity();
+							m_selectedEntity.AddComponent<TransformComponent>();
+							m_selectedEntity.AddComponent<MeshRendererComponent>();
+							m_selectedEntity.GetComponent<MeshRendererComponent>().SetMeshHandle(objMesh);
 
 
 							if (meta.Extention == ".bfscene")
@@ -363,55 +404,226 @@ namespace Butterfly
 			}
 
 			{
-				entt::registry& registry = Application::Get().GetScene().GetEntityRegistry();
-
 				ImGui::Begin("Scene Hierarchy");
 
-				auto view = registry.view<TransformComponent>();
-				int entityCount = 0;
-				for (auto e : view) (void)e, entityCount++;
+				if (ImGui::BeginPopupContextWindow("SceneHierarchyContext"))
+				{
+					if (ImGui::MenuItem("New Game Object"))
+					{
+						m_selectedEntity = Application::Get().GetScene().CreateEntity();
+					}
 
-				ImGui::TextDisabled("%d entities", entityCount);
+					ImGui::EndPopup();
+				}
 
+				ImGui::TextDisabled("%d entities", 0);
 				ImGui::Separator();
 				ImGui::Spacing();
 
+				const Entity& root = Application::Get().GetScene().GetRootEntity();
 
-				ImGui::BeginChild("EntityList", ImVec2(0, 0), true, ImGuiWindowFlags_NoScrollWithMouse);
+				ImGui::BeginChild("EntityList", ImVec2(0, 0), true, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 
-				int rowIndex = 0;
-				for (auto entity : view)
+				if (ImGui::BeginPopupContextWindow("EntityListContext"))
 				{
-					ImGui::PushID((int)entity);
-
-					ImVec2 rowMin = ImGui::GetCursorScreenPos();
-					float rowHeight = ImGui::GetFrameHeight();
-					if (rowIndex % 2 == 1) {
-						ImDrawList* dl = ImGui::GetWindowDrawList();
-						ImVec2 rowMax(rowMin.x + ImGui::GetContentRegionAvail().x, rowMin.y + rowHeight);
-						dl->AddRectFilled(rowMin, rowMax, IM_COL32(255, 255, 255, 6));
+					if (ImGui::MenuItem("New Game Object"))
+					{
+						m_selectedEntity = Application::Get().GetScene().CreateEntity();
 					}
 
-					ImVec2 cursor = ImGui::GetCursorScreenPos();
-					ImDrawList* dl = ImGui::GetWindowDrawList();
-					ImVec2 dotCenter(cursor.x + 8.0f, cursor.y + rowHeight * 0.5f);
-					dl->AddCircleFilled(dotCenter, 4.0f, IM_COL32(80, 200, 180, 255));
-					ImGui::Dummy(ImVec2(18.0f, 0.0f));
-					ImGui::SameLine();
-					NameComponent& name = registry.get<NameComponent>(entity);
-					ImGui::Text("%s", name.Name.c_str());
-
-					ImGui::PopID();
-					rowIndex++;
+					ImGui::EndPopup();
 				}
 
+				int rowIndex = 0;
+				int columIndex = 0;
+
+				ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(100, 100, 200, 255));
+				ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(30, 30, 30, 225));
+				ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(30, 30, 30, 225));
+
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+
+				std::function<void(const TransformComponent&)> drawChild = [&](const TransformComponent& parent)
+					{
+						const std::vector<Entity>& children = parent.GetChildren();
+						columIndex++;
+						for (const Entity& child : children)
+						{
+							const int id = static_cast<int>(child.GetHandle());
+							ImGui::PushID(id);
+
+							const ImVec2 rowMin = ImGui::GetCursorScreenPos();
+							const float rowHeight = ImGui::GetFrameHeight();
+
+							bool isHoveringBetweenItems = false;
+							const bool isDragging = ImGui::GetDragDropPayload() != nullptr;
+							if (isDragging)
+							{
+								const ImVec2 min = ImGui::GetCursorScreenPos();
+								const ImVec2 max = ImVec2(min.x + ImGui::GetContentRegionAvail().x, min.y + 5.0f);
+								isHoveringBetweenItems = ImGui::IsMouseHoveringRect(min, max, true);
+							}
+							if (isHoveringBetweenItems)
+							{
+								ImDrawList* dl = ImGui::GetWindowDrawList();
+								dl->AddRectFilled(rowMin, ImVec2(rowMin.x + ImGui::GetContentRegionAvail().x, rowMin.y + 5.0f), IM_COL32(100, 100, 255, 100));
+							}
+							ImGui::InvisibleButton("##DropTarget", ImVec2(ImGui::GetContentRegionAvail().x, 5.0f));
+
+
+							if (ImGui::BeginDragDropTarget())
+							{
+								if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY"))
+								{
+									if (payload->IsDelivery())
+									{
+										const Entity& entity = *static_cast<const Entity*>(payload->Data);
+										const TransformComponent& childUnderTr = child.GetComponent<TransformComponent>();
+										TransformComponent& childAboveTr = entity.GetComponent<TransformComponent>();
+										childUnderTr.GetParent().GetComponent<TransformComponent>().AttachAndMoveAboveChild(childUnderTr, childAboveTr);
+										ImGui::PopID();
+										return;
+									}
+								}
+
+								ImGui::EndDragDropTarget();
+							}
+
+							ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
+
+							if (rowIndex % 2 == 1)
+							{
+								ImDrawList* dl = ImGui::GetWindowDrawList();
+								ImVec2 rowMax(rowMin.x + ImGui::GetContentRegionAvail().x, rowMin.y + rowHeight);
+								dl->AddRectFilled(rowMin, rowMax, IM_COL32(255, 255, 255, 6));
+							}
+
+							ImGui::SetCursorPosX(ImGui::GetCursorPosX() + columIndex * 20.0f);
+
+							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
+							ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+							ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.5f, 0.5f));
+							if (ImGui::Button(FontAwesome::AngleRight, ImVec2(rowHeight, rowHeight)))
+							{
+							
+							}
+							ImGui::PopStyleColor(3);
+							ImGui::PopStyleVar();
+
+							ImGui::SameLine(0, 0);
+							ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().FramePadding.y);
+
+							bool isSelected = (m_selectedEntity == child);
+
+							bool isDropHovered = false;
+							//const bool isDragging = ImGui::GetDragDropPayload() != nullptr;
+							if (isDragging)
+							{
+								isDropHovered = ImGui::IsMouseHoveringRect(ImGui::GetCursorScreenPos(), ImVec2(
+										ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x,
+										ImGui::GetCursorScreenPos().y + rowHeight), true);
+							}
+
+							if (isDropHovered || isSelected)
+							{
+								ImGui::PushStyleColor(ImGuiCol_HeaderActive,ImGui::GetStyleColorVec4(ImGuiCol_Header));
+								ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGui::GetStyleColorVec4(ImGuiCol_Header));
+							}
+
+							NameComponent& name = child.GetComponent<NameComponent>();
+							ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.0f, 0.5f));
+							const bool shouldBeSelected = m_selectedEntity == child || isDropHovered;
+							if (ImGui::Selectable((" " + name.Name).c_str(), shouldBeSelected, 0, ImVec2(0, rowHeight)))
+							{
+								// Only select the entity if it's not being hovered for a drop operation
+								if (!isDropHovered)
+								{
+									m_selectedEntity = child;
+								}
+							}
+							ImGui::PopStyleVar();
+
+							if (isDropHovered || isSelected)
+							{
+								ImGui::PopStyleColor(2);
+							}
+
+							// Drag source.
+							if (ImGui::BeginDragDropSource())
+							{
+								ImGui::SetDragDropPayload("ENTITY", &child ,sizeof(child));
+								ImGui::TextUnformatted(name.Name.c_str());
+								ImGui::EndDragDropSource();
+							}
+
+							// Drag Target
+							if (ImGui::BeginDragDropTarget())
+							{
+								if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
+								{
+									if (payload->IsDelivery())
+									{
+										const Entity& entity = *static_cast<const Entity*>(payload->Data);
+										child.GetComponent<TransformComponent>().Attach(entity.GetComponent<TransformComponent>());
+										ImGui::PopID();
+										return;
+									}
+								}
+
+								ImGui::EndDragDropTarget();
+							}
+
+							ImGui::PopID();
+
+							rowIndex++;
+
+							TransformComponent& childTransform = child.GetComponent<TransformComponent>();
+							drawChild(childTransform);
+						}
+						columIndex--;
+					};
+				drawChild(root.GetComponent<TransformComponent>());
+
+				const float height = ImGui::GetContentRegionAvail().y;
+				if (height > 0.0f)
+				{
+					ImGui::InvisibleButton(
+						"##EntityListDropTarget",
+						ImVec2(ImGui::GetContentRegionAvail().x, height)
+					);
+
+					if (ImGui::BeginDragDropTarget())
+					{
+						if (const ImGuiPayload* payload =
+							ImGui::AcceptDragDropPayload("ENTITY"))
+						{
+							if (payload->IsDelivery())
+							{
+								const Entity& entity =
+									*static_cast<const Entity*>(payload->Data);
+
+								root.GetComponent<TransformComponent>().Attach(
+									entity.GetComponent<TransformComponent>()
+								);
+							}
+						}
+
+						ImGui::EndDragDropTarget();
+					}
+				}
+
+				ImGui::PopStyleColor(3);
+				ImGui::PopStyleVar(2);
 				ImGui::EndChild();
 				ImGui::End();
 			}
 		}
 
 	private:
-		Entity model;
+		Entity m_selectedEntity;
+
 		float m_modelMovementTime = 0;
 
 		std::vector<RefPtr<IEditorViewportExtention>> m_viewportExtentions;

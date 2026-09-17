@@ -33,7 +33,7 @@ namespace Butterfly
 			.data<&TransformComponent::SetPosition, &TransformComponent::GetPosition>("Position")
 			.data<&TransformComponent::SetRotation, &TransformComponent::GetRotation>("Rotation")
 			.data<&TransformComponent::SetScale, &TransformComponent::GetScale>("Scale")
-			.data<&TransformComponent::SetChildUUID, &TransformComponent::GetChildUUID>("Child");
+			.data<&TransformComponent::SetChildrenUUIDs, &TransformComponent::GetChildrenUUIDs>("Children");
 		
 		s_components.push_back(CreateSerializer<TransformComponent>());
 
@@ -84,6 +84,16 @@ namespace Butterfly
 
 		if (value.type() == entt::resolve<Butterfly::UUID>())
 			return YAML::Node(value.cast<Butterfly::UUID>());
+
+		if (value.type() == entt::resolve<std::vector<Butterfly::UUID>>())
+		{
+			YAML::Node node(YAML::NodeType::Sequence);
+
+			for (const UUID& uuid : value.cast<const std::vector<UUID>&>())
+				node.push_back(uuid);
+
+			return node;
+		}
 
 		BF_CORE_LOG_CRITICAL("Unsupported type for serialization: %s", value.type().info().name().data());
 		return {};
@@ -142,6 +152,18 @@ namespace Butterfly
 		if (value.type() == entt::resolve<Butterfly::UUID>())
 		{
 			value.cast<Butterfly::UUID&>() = node.as<Butterfly::UUID>();
+			return true;
+		}
+
+		if (value.type() == entt::resolve<std::vector<Butterfly::UUID>>())
+		{
+			auto& children = value.cast<std::vector<UUID>&>();
+
+			children.clear();
+
+			for (const auto& childNode : node)
+				children.push_back(childNode.as<UUID>());
+
 			return true;
 		}
 

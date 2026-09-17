@@ -2,6 +2,7 @@
 #include "Scene/Registry/PendingDestroyComponent.hpp"
 #include "Scene/Registry/IDComponent.hpp"
 #include "Scene/Registry/NameComponent.hpp"
+#include "Scene/Registry/TransformComponent.hpp"
 #include "Serialization/ENTT/ComponentRegistry.hpp"
 
 #include "Core/Application.hpp"
@@ -11,7 +12,7 @@ namespace Butterfly
 {
 	Scene::Scene()
 	{
-
+		m_rootEntity = CreateEntity("Root");
 	}
 
 	YAML::Node Scene::Serialize()
@@ -77,6 +78,21 @@ namespace Butterfly
 	{
 		DestroyPendingEntities();
 	}
+
+	void Scene::DestroyChildren(entt::entity entity)
+	{
+		TransformComponent& tr = m_entityRegistry.get<TransformComponent>(entity);
+
+		const auto children = tr.GetChildren();
+
+		for (auto child : children)
+		{
+			DestroyChildren(child.GetHandle());
+		}
+
+		tr.DetachParent();
+		m_entityRegistry.destroy(entity);
+	}
 		
 	void Scene::DestroyPendingEntities()
 	{
@@ -84,19 +100,48 @@ namespace Butterfly
 
 		for (auto& entity : view)
 		{
-			m_entityRegistry.destroy(entity);
+			DestroyChildren(entity);
 		}
 	}
 
-	Entity Scene::CreateEntity()
+	Entity Scene::CreateEntity(const std::string& name)
 	{
-		Entity entity(m_entityRegistry.create());
+		// Add the entity to the registry and add the required components.
+		Entity entity(&m_entityRegistry, m_entityRegistry.create());
+
+		TransformComponent& tr = entity.AddComponent<TransformComponent>();
+		tr.m_thisEntity = entity;
+
+		// Attach it to the scene root.
+		if (m_rootEntity)
+		{
+			TransformComponent& rootTransform = m_rootEntity.GetComponent<TransformComponent>();
+			rootTransform.Attach(tr);
+		}
+
 		entity.AddComponent<IDComponent>().EntityUUID = UUID::Generate();
+
+		// Make sure there are no duplicate names in the scene, if there are, append a number to the end of the name.
+		NameComponent nameComponent;
+		nameComponent.Tag = "Untagged";
+		nameComponent.Name = name;
 		
-		NameComponent name;
-		name.Tag = "Untagged";
-		name.Name = "New GameObject";
-		entity.AddComponent<NameComponent>(name);
+		bool duplicateNameFound = true;
+		while (duplicateNameFound)
+		{
+			duplicateNameFound = false;
+			for (const auto& [entityName, existingNameComponent] : m_entityRegistry.view<NameComponent>().each())
+			{
+				if (nameComponent.Name == existingNameComponent.Name)
+				{
+					nameComponent.Name = Utils::IterateDuplicateName(existingNameComponent.Name);
+					duplicateNameFound = true;
+					break;
+				}
+			}
+		}
+		entity.AddComponent<NameComponent>(nameComponent);
+
 
 		return entity;
 	}
