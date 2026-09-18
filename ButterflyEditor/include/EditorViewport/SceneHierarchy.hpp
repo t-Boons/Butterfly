@@ -19,13 +19,6 @@ namespace Butterfly
 		void DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex);
 
 	private:
-		RefPtr<BFTextureReadback> m_objectPickerReadback;
-		ViewportHandle m_viewportHandle;
-		SpectatorCamera m_spectatorCam;
-
-		EventReceiver<ViewportResizeEvent> m_viewportResizeReceiver;
-		EventReceiver<ViewportRenderEvent> m_viewportRenderReceiver;
-		EventReceiver<ViewportPrerenderEvent> m_viewportPrerenderReceiver;
-		EventReceiver<ViewportRenderEvent> m_skyboxRender;
+		std::unordered_map<UUID, bool> m_collapsedHeaderMap;
 	};
 }

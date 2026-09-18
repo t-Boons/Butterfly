@@ -20,11 +20,14 @@ namespace Butterfly
 		const glm::vec3& GetPosition() const { return m_position; }
 		const glm::quat& GetRotation() const { return m_rotation; }
 		const glm::vec3& GetScale() const { return m_scale; }
-		const std::vector<Entity>& GetChildren() const { return m_children; }
+		const Entity& GetChild(uint32_t index) const { return m_children[index]; }
 		const glm::mat4& GetLocalMatrix() const { return m_localMatrix; }
 		const glm::mat4& GetWorldMatrix();
 
 		bool IsChildOf(const TransformComponent& other) const;
+
+		bool HasChildren() const { return !m_children.empty(); }
+		uint32_t NumChildren() const { return static_cast<uint32_t>(m_children.size()); }
 
 		void AttachAndMoveAboveChild(const TransformComponent& child, TransformComponent& newChild);
 

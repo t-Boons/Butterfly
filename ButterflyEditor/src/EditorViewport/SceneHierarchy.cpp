@@ -1,9 +1,42 @@
 #include "EditorViewport/SceneHierarchy.hpp"
 #include "EditorViewport/EditorViewport.hpp"
+#include "Scene/Registry/IDComponent.hpp"
+#include "Core/EditorCache.hpp"
 
 
 namespace Butterfly
 {
+	class SceneCollapseHierarchyCacheEntry : public IEditorCacheEntry
+	{
+	public:
+		SceneCollapseHierarchyCacheEntry(const std::vector<bool>& collapsedHeaderMap)
+			: m_collapsedHeaderMap(collapsedHeaderMap)
+		{
+		}
+
+		std::vector<uint8_t> Serialize() const
+		{
+			std::vector<uint8_t> data(m_collapsedHeaderMap.size());
+			for (size_t i = 0; i < m_collapsedHeaderMap.size(); ++i)
+			{
+				data[i] = m_collapsedHeaderMap[i] ? 1 : 0;
+			}
+			return data;
+		}
+
+		void Deserialize(const std::vector<uint8_t>& data)
+		{
+			m_collapsedHeaderMap.resize(data.size());
+			for (size_t i = 0; i < data.size(); ++i)
+			{
+				m_collapsedHeaderMap[i] = data[i] != 0;
+			}
+		}
+
+	private:
+		std::vector<bool> m_collapsedHeaderMap;
+	};
+
 	SceneHierarchy::SceneHierarchy()
 	{
 
@@ -43,6 +76,7 @@ namespace Butterfly
 
 		// We do -1 because the root entity is not counted as a game object
 		const uint32_t numEntities = static_cast<uint32_t>(Application::Get().GetScene().GetEntityRegistry().view<TransformComponent>().size() - 1);
+
 
 		ImGui::TextDisabled("%d entities", numEntities);
 		ImGui::Separator();
@@ -87,7 +121,7 @@ namespace Butterfly
 					if (payload->IsDelivery())
 					{
 						const Entity& entity = *static_cast<const Entity*>(payload->Data);
-						root.GetComponent<TransformComponent>().Attach(entity.GetComponent<TransformComponent>(), root.GetComponent<TransformComponent>().GetChildren().size());
+						root.GetComponent<TransformComponent>().Attach(entity.GetComponent<TransformComponent>(), root.GetComponent<TransformComponent>().NumChildren());
 					}
 				}
 
@@ -103,13 +137,23 @@ namespace Butterfly
 
 	void SceneHierarchy::DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex)
 	{
-		const std::vector<Entity>& children = parent.GetChildren();
 		columIndex++;
-		for (const Entity& child : children)
+
+		const uint32_t numChildren = parent.NumChildren();
+		for (uint32_t i = 0; i < numChildren; ++i)
 		{
+			if (numChildren != parent.NumChildren())
+			{
+				// The number of children has changed, so we need to break out of the loop and start over.
+				return;
+			}
+
+			const Entity& child = parent.GetChild(i);
 			const int id = static_cast<int>(child.GetHandle());
 			ImGui::PushID(id);
 
+			const UUID& childUUID = child.GetComponent<IDComponent>().EntityUUID;
+			TransformComponent& childTransform = child.GetComponent<TransformComponent>();
 			const ImVec2 rowMin = ImGui::GetCursorScreenPos();
 			const float rowWidth = ImGui::GetContentRegionAvail().x;
 			const float rowHeight = ImGui::GetFrameHeight();
@@ -147,12 +191,12 @@ namespace Butterfly
 							if (payload->IsDelivery())
 							{
 								const Entity& entity = *static_cast<const Entity*>(payload->Data);
-								const TransformComponent& childUnderDropdown = child.GetComponent<TransformComponent>();
+								const TransformComponent& childUnderDropdown = childTransform;
 								TransformComponent& childMoving = entity.GetComponent<TransformComponent>();
 
 								if (childUnderDropdown.GetParent() != childMoving.GetParent() && !childUnderDropdown.IsChildOf(childMoving.GetParent()))
 								{
-									childMoving.GetParent().GetComponent<TransformComponent>().Attach(childMoving, childMoving.GetParent().GetComponent<TransformComponent>().GetChildren().size());
+									childMoving.GetParent().GetComponent<TransformComponent>().Attach(childMoving, childMoving.GetParent().GetComponent<TransformComponent>().NumChildren());
 								}
 								else
 								{
@@ -175,16 +219,25 @@ namespace Butterfly
 			{
 				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + columIndex * 20.0f);
 
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-				ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.5f, 0.5f));
-				if (ImGui::Button(FontAwesome::AngleRight, ImVec2(rowHeight, rowHeight)))
+				if (childTransform.HasChildren())
 				{
-					// TODO add expand/collapse functionality for the hierarchy
+					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
+					ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+					ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.5f, 0.5f));
+
+					const char* graphic = m_collapsedHeaderMap[childUUID] ? FontAwesome::AngleRight : FontAwesome::AngleDown;
+					if (ImGui::Button(graphic, ImVec2(rowHeight, rowHeight)))
+					{
+						m_collapsedHeaderMap[childUUID] = !m_collapsedHeaderMap[childUUID];
+					}
+					ImGui::PopStyleColor(3);
+					ImGui::PopStyleVar();
 				}
-				ImGui::PopStyleColor(3);
-				ImGui::PopStyleVar();
+				else
+				{
+					ImGui::Dummy(ImVec2(rowHeight, rowHeight));
+				}
 			}
 
 			// Draw the selectable/nametag for this item.
@@ -237,7 +290,7 @@ namespace Butterfly
 						if (payload->IsDelivery())
 						{
 							const Entity& entity = *static_cast<const Entity*>(payload->Data);
-							child.GetComponent<TransformComponent>().Attach(entity.GetComponent<TransformComponent>());
+							childTransform.Attach(entity.GetComponent<TransformComponent>());
 							ImGui::PopID();
 							return;
 						}
@@ -251,9 +304,11 @@ namespace Butterfly
 
 			rowIndex++;
 
-			// Draw the children of this item.
-			TransformComponent& childTransform = child.GetComponent<TransformComponent>();
-			DrawHierarchy(childTransform, rowIndex, columIndex);
+			// Draw the children of this item if not collapsed.
+			if (!m_collapsedHeaderMap[childUUID])
+			{
+				DrawHierarchy(childTransform, rowIndex, columIndex);
+			}
 		}
 		columIndex--;
 	}

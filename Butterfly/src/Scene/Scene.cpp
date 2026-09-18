@@ -92,11 +92,11 @@ namespace Butterfly
 	{
 		TransformComponent& tr = m_entityRegistry.get<TransformComponent>(entity);
 
-		const auto children = tr.GetChildren();
+		const uint32_t numChildren = tr.NumChildren();
 
-		for (auto child : children)
+		for (uint32_t i = 0; i < numChildren; ++i)
 		{
-			DestroyChildren(child.GetHandle());
+			DestroyChildren(tr.GetChild(i).GetHandle());
 		}
 
 		tr.DetachParent();
