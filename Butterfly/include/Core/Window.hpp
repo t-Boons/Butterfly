@@ -65,7 +65,7 @@ namespace Butterfly
 		BFGraphicsContext& Context() { return *m_context; }
 		float AspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 		bool OpenFileDialog(std::string& path) const;
-
+		void SetWindowTitle(const std::string& title);
 		WindowEvents& Events() { return m_events; }
 
 		void Resize(uint32_t width, uint32_t height);

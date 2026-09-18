@@ -19,6 +19,6 @@ namespace Butterfly
 		void DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex);
 
 	private:
-		std::unordered_map<UUID, bool> m_collapsedHeaderMap;
+		std::unordered_set<UUID> m_collapsedHeaderMap;
 	};
 }

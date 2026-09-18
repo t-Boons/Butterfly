@@ -27,6 +27,8 @@ namespace Butterfly
 
 		void Tick()
 		{
+			BF_PROFILE_EVENT()
+
 			for (auto& ext : m_viewportExtentions)
 			{
 				ext->OnTick();
@@ -56,6 +58,8 @@ namespace Butterfly
 
 		void OnRenderImGUI()
 		{
+			BF_PROFILE_EVENT()
+
 			for (auto& ext : m_viewportExtentions)
 			{
 				ext->OnRenderImGUI();
@@ -327,7 +331,7 @@ namespace Butterfly
 							if (meta.Extention == ".bfscene")
 							{
 								const std::string& scene = FileSystem::ReadText(meta.Path);
-								Application::Get().GetScene().Deserialize(scene);
+								Application::Get().GetScene().Deserialize(scene, std::filesystem::path(meta.Path).stem().string());
 
 								ImGui::PopID();
 								ImGui::EndTable();

@@ -94,6 +94,13 @@ namespace Butterfly
 			return &m_registry->get<T>(m_handle);
 		}
 
+		template<typename T>
+		void RemoveComponent() const
+		{
+			BF_CORE_ASSERT(HasComponent<T>(), "Entity::RemoveComponent: Entity does not have this component");
+			m_registry->remove<T>(m_handle);
+		}
+
 		void Destroy()
 		{
 			BF_CORE_ASSERT(m_registry, "Entity::Destroy: Entity has no registry");

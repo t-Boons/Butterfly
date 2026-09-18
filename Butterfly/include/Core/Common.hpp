@@ -12,6 +12,7 @@
 #include <memory>
 #include <queue>
 #include <unordered_map>
+#include <unordered_set>
 #include <filesystem>
 #include <fstream>
 #include <vector>

@@ -4,6 +4,7 @@
 #include "Scene/Registry/NameComponent.hpp"
 #include "Scene/Registry/TransformComponent.hpp"
 #include "Serialization/ENTT/ComponentRegistry.hpp"
+#include "Core/Window.hpp"
 
 #include "Core/Application.hpp"
 #include "Asset/AssetManager.hpp"
@@ -12,13 +13,18 @@ namespace Butterfly
 {
 	Scene::Scene()
 	{
+		BF_PROFILE_EVENT()
+
 		m_rootEntity = CreateEntity("Root");
+		Application::Get().GetWindow().SetWindowTitle("Butterfly Editor - " + m_name);
 	}
 
 	YAML::Node Scene::Serialize()
 	{
+		BF_PROFILE_EVENT()
+
 		YAML::Node root;
-		root["Scene"] = "Untitled Scene";
+		root["Scene"] = m_name;
 		YAML::Node entitiesNode;
 		auto view = m_entityRegistry.view<IDComponent>();
 		for (auto& entity : view)
@@ -48,8 +54,11 @@ namespace Butterfly
 		return root;
 	}
 
-	void Scene::Deserialize(const std::string& text)
+	void Scene::Deserialize(const std::string& text, const std::string& name)
 	{
+		BF_PROFILE_EVENT()
+
+		m_name = name;
 		m_entityRegistry.clear();
 
 		YAML::Node node = YAML::Load(text);
@@ -81,15 +90,20 @@ namespace Butterfly
 		auto firstEntity = *m_entityRegistry.view<TransformComponent>().begin();
 		// Get the root from any of the other existing transformcomponents since they are all parented to the root.
 		m_rootEntity = m_entityRegistry.get<TransformComponent>(firstEntity).GetRoot();
+		Application::Get().GetWindow().SetWindowTitle("Butterfly Editor - " + m_name);
 	}
 
 	void Scene::Tick()
 	{
+		BF_PROFILE_EVENT()
+
 		DestroyPendingEntities();
 	}
 
 	void Scene::DestroyChildren(entt::entity entity)
 	{
+		BF_PROFILE_EVENT()
+
 		TransformComponent& tr = m_entityRegistry.get<TransformComponent>(entity);
 
 		const uint32_t numChildren = tr.NumChildren();
@@ -105,16 +119,33 @@ namespace Butterfly
 		
 	void Scene::DestroyPendingEntities()
 	{
+		BF_PROFILE_EVENT()
+
 		auto view = m_entityRegistry.view<PendingDestroyComponent>();
 
+		bool rootEntityPendingDestroy = false;
 		for (auto& entity : view)
 		{
+			if (entity == m_rootEntity.GetHandle())
+			{
+				rootEntityPendingDestroy = true;
+				BF_CORE_LOG_ERROR("Scene::DestroyPendingEntities: Cannot destroy root entity");
+				continue;
+			}
+
 			DestroyChildren(entity);
+		}
+
+		if (rootEntityPendingDestroy)
+		{
+			m_rootEntity.RemoveComponent<PendingDestroyComponent>();
 		}
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
 	{
+		BF_PROFILE_EVENT()
+
 		// Add the entity to the registry and add the required components.
 		Entity entity(&m_entityRegistry, m_entityRegistry.create());
 

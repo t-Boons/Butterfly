@@ -133,6 +133,11 @@ namespace Butterfly
 			});
 	}
 
+	void Window::SetWindowTitle(const std::string& title)
+	{
+		glfwSetWindowTitle(m_window, title.c_str());
+	}
+
 	bool Window::OpenFileDialog(std::string& path) const
 	{
 		char fileName[MAX_PATH] = {};

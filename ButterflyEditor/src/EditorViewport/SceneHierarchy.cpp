@@ -9,32 +9,43 @@ namespace Butterfly
 	class SceneCollapseHierarchyCacheEntry : public IEditorCacheEntry
 	{
 	public:
-		SceneCollapseHierarchyCacheEntry(const std::vector<bool>& collapsedHeaderMap)
+		SceneCollapseHierarchyCacheEntry(const std::unordered_set<UUID>& collapsedHeaderMap)
 			: m_collapsedHeaderMap(collapsedHeaderMap)
 		{
 		}
 
 		std::vector<uint8_t> Serialize() const
 		{
-			std::vector<uint8_t> data(m_collapsedHeaderMap.size());
-			for (size_t i = 0; i < m_collapsedHeaderMap.size(); ++i)
+			std::vector<std::string> collapsedUUIDs(m_collapsedHeaderMap.size());
+
+			for (const auto& uuid : m_collapsedHeaderMap)
 			{
-				data[i] = m_collapsedHeaderMap[i] ? 1 : 0;
+				collapsedUUIDs.push_back(uuid.ToString());
 			}
-			return data;
+
+			std::vector<uint8_t> bytes(collapsedUUIDs.size() * UUID::Strlen());
+			for (size_t i = 0; i < collapsedUUIDs.size(); ++i)
+			{
+				const std::string& uuidStr = collapsedUUIDs[i];
+				std::copy(uuidStr.begin(), uuidStr.end(), bytes.begin() + i * UUID::Strlen());
+			}
+			return bytes;
 		}
 
 		void Deserialize(const std::vector<uint8_t>& data)
 		{
-			m_collapsedHeaderMap.resize(data.size());
-			for (size_t i = 0; i < data.size(); ++i)
+			m_collapsedHeaderMap.clear();
+			std::vector<std::string> collapsedUUIDs(data.size() / UUID::Strlen());
+			for (size_t i = 0; i < collapsedUUIDs.size(); ++i)
 			{
-				m_collapsedHeaderMap[i] = data[i] != 0;
+				std::string& uuidStr = collapsedUUIDs[i];
+				std::copy(data.begin() + i * UUID::Strlen(), data.begin() + (i + 1) * UUID::Strlen(), uuidStr.begin());
+				m_collapsedHeaderMap.insert(UUID::FromString(uuidStr));
 			}
 		}
 
 	private:
-		std::vector<bool> m_collapsedHeaderMap;
+		std::unordered_set<UUID> m_collapsedHeaderMap;
 	};
 
 	SceneHierarchy::SceneHierarchy()
@@ -53,6 +64,8 @@ namespace Butterfly
 
 	void SceneHierarchy::OnRenderImGUI()
 	{
+		BF_PROFILE_EVENT()
+
 		ImGui::Begin("Scene Hierarchy");
 
 		if (ImGui::IsKeyPressed(ImGuiKey_Delete) && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))
@@ -137,6 +150,8 @@ namespace Butterfly
 
 	void SceneHierarchy::DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex)
 	{
+		BF_PROFILE_EVENT()
+
 		columIndex++;
 
 		const uint32_t numChildren = parent.NumChildren();
@@ -153,6 +168,7 @@ namespace Butterfly
 			ImGui::PushID(id);
 
 			const UUID& childUUID = child.GetComponent<IDComponent>().EntityUUID;
+
 			TransformComponent& childTransform = child.GetComponent<TransformComponent>();
 			const ImVec2 rowMin = ImGui::GetCursorScreenPos();
 			const float rowWidth = ImGui::GetContentRegionAvail().x;
@@ -160,6 +176,12 @@ namespace Butterfly
 			const bool isDragging = ImGui::GetDragDropPayload() != nullptr;
 			const bool isThisItemSelectedItem = (EditorApplication::Get().GetEditorViewport().m_selectedEntity == child);
 			const std::string name = child.GetComponent<NameComponent>().Name;
+
+			// Remove this entry from the collapsed header map if the item has no children.
+			if (!childTransform.HasChildren() && m_collapsedHeaderMap.find(childUUID) != m_collapsedHeaderMap.end())
+			{
+				m_collapsedHeaderMap.erase(childUUID);
+			}
 
 			// Draw the background for odd rows.
 			{
@@ -226,10 +248,17 @@ namespace Butterfly
 					ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
 					ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.5f, 0.5f));
 
-					const char* graphic = m_collapsedHeaderMap[childUUID] ? FontAwesome::AngleRight : FontAwesome::AngleDown;
+					const char* graphic = m_collapsedHeaderMap.contains(childUUID) ? FontAwesome::AngleRight : FontAwesome::AngleDown;
 					if (ImGui::Button(graphic, ImVec2(rowHeight, rowHeight)))
 					{
-						m_collapsedHeaderMap[childUUID] = !m_collapsedHeaderMap[childUUID];
+						if (m_collapsedHeaderMap.contains(childUUID))
+						{
+							m_collapsedHeaderMap.erase(childUUID);
+						}
+						else
+						{
+							m_collapsedHeaderMap.insert(childUUID);
+						}
 					}
 					ImGui::PopStyleColor(3);
 					ImGui::PopStyleVar();
@@ -305,7 +334,7 @@ namespace Butterfly
 			rowIndex++;
 
 			// Draw the children of this item if not collapsed.
-			if (!m_collapsedHeaderMap[childUUID])
+			if (!m_collapsedHeaderMap.contains(childUUID))
 			{
 				DrawHierarchy(childTransform, rowIndex, columIndex);
 			}

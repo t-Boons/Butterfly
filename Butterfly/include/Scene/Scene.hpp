@@ -13,7 +13,7 @@ namespace Butterfly
 		void Tick();
 
 		YAML::Node Serialize();
-		void Deserialize(const std::string& text);
+		void Deserialize(const std::string& text, const std::string& name);
 
 		void DestroyPendingEntities();
 		Entity CreateEntity(const std::string& name = "New GameObject");
@@ -24,6 +24,7 @@ namespace Butterfly
 	private:
 		void DestroyChildren(entt::entity entity);
 
+		std::string m_name = "New Scene";
 		entt::registry m_entityRegistry;
 		Entity m_rootEntity;
 	};

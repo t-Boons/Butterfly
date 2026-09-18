@@ -8,6 +8,7 @@ namespace Butterfly
 	public:
 		static UUID Generate();
 		static UUID FromString(const std::string& str);
+		static uint32_t Strlen() { return 41; }
 
 		UUID();
 		std::string ToString() const;
