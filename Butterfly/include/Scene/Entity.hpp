@@ -112,6 +112,8 @@ namespace Butterfly
 		}
 
 	private:
+		friend class Scene;
+
 		entt::registry* m_registry = nullptr;
 		EntityHandle m_handle = entt::null;
 	};

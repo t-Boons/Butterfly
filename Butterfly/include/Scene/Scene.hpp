@@ -5,10 +5,26 @@
 
 namespace Butterfly
 {
-	class Scene : public NonCopyable
+	class Scene
+	{
+		Scene(const Scene& other)
+		{
+			for (auto& entity : m_entities)
+			{
+				entity.m_registry = other.m_registry;
+			}
+		}
+
+		std::string m_name = "New Scene";
+		entt::registry m_registry;
+		std::vector<Entity> m_entities;
+		Entity m_rootEntity;
+	};
+
+	class SceneManager : public NonCopyable
 	{
 	public:
-		Scene();
+		SceneManager();
 
 		void Tick();
 

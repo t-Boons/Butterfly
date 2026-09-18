@@ -11,7 +11,7 @@
 
 namespace Butterfly
 {
-	Scene::Scene()
+	SceneManager::SceneManager()
 	{
 		BF_PROFILE_EVENT()
 
@@ -19,7 +19,7 @@ namespace Butterfly
 		Application::Get().GetWindow().SetWindowTitle("Butterfly Editor - " + m_name);
 	}
 
-	YAML::Node Scene::Serialize()
+	YAML::Node SceneManager::Serialize()
 	{
 		BF_PROFILE_EVENT()
 
@@ -45,16 +45,10 @@ namespace Butterfly
 		}
 		root["Scene"] = entitiesNode;
 
-		YAML::Emitter emit;
-		emit << root;
-		
-		std::string text = emit.c_str();
-		AssetMetadata meta;
-		Application::Get().GetAssetManager().GetAssetRegistry().NewFile("NewScene", ".bfscene", text, meta);
 		return root;
 	}
 
-	void Scene::Deserialize(const std::string& text, const std::string& name)
+	void SceneManager::Deserialize(const std::string& text, const std::string& name)
 	{
 		BF_PROFILE_EVENT()
 
@@ -93,14 +87,14 @@ namespace Butterfly
 		Application::Get().GetWindow().SetWindowTitle("Butterfly Editor - " + m_name);
 	}
 
-	void Scene::Tick()
+	void SceneManager::Tick()
 	{
 		BF_PROFILE_EVENT()
 
 		DestroyPendingEntities();
 	}
 
-	void Scene::DestroyChildren(entt::entity entity)
+	void SceneManager::DestroyChildren(entt::entity entity)
 	{
 		BF_PROFILE_EVENT()
 
@@ -117,7 +111,7 @@ namespace Butterfly
 		m_entityRegistry.destroy(entity);
 	}
 		
-	void Scene::DestroyPendingEntities()
+	void SceneManager::DestroyPendingEntities()
 	{
 		BF_PROFILE_EVENT()
 
@@ -129,7 +123,7 @@ namespace Butterfly
 			if (entity == m_rootEntity.GetHandle())
 			{
 				rootEntityPendingDestroy = true;
-				BF_CORE_LOG_ERROR("Scene::DestroyPendingEntities: Cannot destroy root entity");
+				BF_CORE_LOG_ERROR("SceneManager::DestroyPendingEntities: Cannot destroy root entity");
 				continue;
 			}
 
@@ -142,7 +136,7 @@ namespace Butterfly
 		}
 	}
 
-	Entity Scene::CreateEntity(const std::string& name)
+	Entity SceneManager::CreateEntity(const std::string& name)
 	{
 		BF_PROFILE_EVENT()
 

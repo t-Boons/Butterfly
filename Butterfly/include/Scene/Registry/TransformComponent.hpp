@@ -34,7 +34,7 @@ namespace Butterfly
 		const Entity& GetParent() const { return m_parent; }
 		const Entity& GetRoot() const;
 	private:
-		friend class Scene;
+		friend class SceneManager;
 		friend class ComponentRegistry;
 
 		void DetachParent();
@@ -46,7 +46,7 @@ namespace Butterfly
 
 		void InvalidateMatrix();
 
-		void ValidateAfterDeserialization(Scene& scene);
+		void ValidateAfterDeserialization(SceneManager& scene);
 
 		glm::vec3 m_position = { 0.0f, 0.0f, 0.0f };
 		glm::quat m_rotation = { 1.0f, 0.0f, 0.0f, 0.0f };

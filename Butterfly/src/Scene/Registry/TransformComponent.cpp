@@ -183,7 +183,7 @@ namespace Butterfly
 		}
 	}
 
-	void TransformComponent::ValidateAfterDeserialization(Scene& scene)
+	void TransformComponent::ValidateAfterDeserialization(SceneManager& scene)
 	{
 		m_children.clear();
 		for (const UUID& uuid : m_childrenUUIDs)

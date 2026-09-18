@@ -118,7 +118,8 @@ namespace Butterfly
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 
-		DrawHierarchy(root.GetComponent<TransformComponent>(), 0, 0);
+		// Draw the main hierarchy.
+		DrawHierarchy(root.GetComponent<TransformComponent>(), 0, -1);
 
 		// Button between 
 		const float height = ImGui::GetContentRegionAvail().y;

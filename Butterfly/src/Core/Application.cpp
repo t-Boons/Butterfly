@@ -28,7 +28,7 @@ namespace Butterfly
 
 		m_renderer = new Renderer();
 		m_time = new Time();
-		m_scene = new Scene();
+		m_scene = new SceneManager();
 		m_jobSystem = new JobSystem();
 		m_assetManager = new AssetManager();
 

@@ -1,23 +1,23 @@
-#pragma once
-#include "Butterfly.hpp"
-#include "EditorViewport/EditorViewportExtention.hpp"
+	#pragma once
+	#include "Butterfly.hpp"
+	#include "EditorViewport/EditorViewportExtention.hpp"
 
-namespace Butterfly
-{
-	class TransformComponent;
-
-	class SceneHierarchy : public IEditorViewportExtention
+	namespace Butterfly
 	{
-	public:
-		SceneHierarchy();
-		~SceneHierarchy();
+		class TransformComponent;
 
-		virtual void OnTick() override;
-		virtual void OnRenderImGUI() override;
+		class SceneHierarchy : public IEditorViewportExtention
+		{
+		public:
+			SceneHierarchy();
+			~SceneHierarchy();
 
-	private:
-		void DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex);
+			virtual void OnTick() override;
+			virtual void OnRenderImGUI() override;
+
+		private:
+			void DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex);
 		
-		std::unordered_set<UUID> m_collapsedHeaderMap;
-	};
-}
+			std::unordered_set<UUID> m_collapsedHeaderMap;
+		};
+	}

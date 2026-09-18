@@ -5,6 +5,9 @@ add_executable(ButterflyEditor
     src/EditorViewport/EditorViewport.cpp
     src/EditorViewport/SceneViewport.cpp
     src/EditorViewport/SceneHierarchy.cpp
+    src/EditorViewport/EntityProperties.cpp
+    src/EditorViewport/AssetLibrary.cpp
+    src/EditorViewport/MenuBar.cpp
     src/EditorViewport/ThumbnailProcessor.cpp
 )
 
