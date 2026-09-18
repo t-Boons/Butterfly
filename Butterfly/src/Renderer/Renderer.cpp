@@ -1,7 +1,5 @@
 #include "Renderer/Renderer.hpp"
-#include "Core/Window.hpp"
 
-#include "Renderer/ModelLoading/ModelImporter.hpp"
 #include "Core/Application.hpp"
 
 #include "Renderer/GraphicsAPI.hpp"
@@ -21,19 +19,28 @@
 #include "Scene/Scene.hpp"
 #include "Scene/Registry/MeshRendererComponent.hpp"
 #include "Scene/Registry/TransformComponent.hpp"
-#include "imgui/imgui.h"
 #include "imgui/imgui_impl_d3d12.h"
 #include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_internal.h"
 
 #include "Asset/AssetManager.hpp"
 #include "Renderer/Camera.hpp"
+
+#include "Renderer/D3D12/D3D12Common.hpp"
+#include "Renderer/D3D12Texture.hpp"
+#include "Renderer/D3d12Buffer.hpp"
+#include "Renderer/Graph/Graph.hpp"
+#include "Renderer/D3D12/D3D12Fence.hpp"
+#include "Renderer/Graph/Blackboard.hpp"
+
+#include "Renderer/Skybox.hpp"
 
 namespace Butterfly
 {
 	Renderer::Renderer()
 	{
 		BF_PROFILE_EVENT()
+
+		m_tempSkybox = MakeRef<Skybox>();
 
 		BFTextureDesc desc;
 		desc.DebugName = "WhiteTexture";
@@ -408,6 +415,9 @@ namespace Butterfly
 					entityIndex++;
 				}
 			});
+
+
+		m_tempSkybox->SkyboxPass(ev);
 	}
 
 	void Renderer::OnWindowResize(const WindowResizeEvent& ev)

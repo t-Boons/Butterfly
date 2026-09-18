@@ -8,7 +8,7 @@
 #include "Renderer/CommandList.hpp"
 
 // Core types.
-#include "Core//Log.hpp"
+#include "Core/Common.hpp"
 #include "Core/Window.hpp"
 #include "Core/Application.hpp"
 #include "Core/Time.hpp"
@@ -30,6 +30,7 @@
 
 #include "Renderer/Renderer.hpp" 
 #include "Renderer/Camera.hpp"
+#include "Renderer/Skybox.hpp"
 #include "Renderer/D3D12/D3D12DescriptorAllocator.hpp"
 #include "Renderer/D3D12/D3D12CommandQueue.hpp"
 #include "Renderer/D3D12/D3D12CommandList.hpp"

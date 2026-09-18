@@ -1,7 +1,6 @@
 #pragma once
 #include "Core/Common.hpp"
 #include "Core/UUID.hpp"
-#include <yaml-cpp/yaml.h>
 
 namespace Butterfly
 {

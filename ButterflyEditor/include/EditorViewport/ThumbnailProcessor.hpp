@@ -4,7 +4,7 @@
 #include "stbimage/stb_image.h"
 #include "stbimage/stb_image_write.h"
 #include "stbimage/stb_image_resize2.h"
-#include "Core/EditorCache.hpp"
+#include "EditorCache/EditorCache.hpp"
 
 namespace Butterfly
 {
@@ -14,28 +14,9 @@ namespace Butterfly
 		uint32_t Width() const { return m_width; }
 		uint32_t Height() const { return m_height; }
 
-		void LoadGPUTexture()
-		{
-			if (m_gpuTexture)
-			{
-				return;
-			}
+		void ValidateGPUTexture();
 
-			BFTextureDesc textureDesc;
-			textureDesc.Width = m_width;
-			textureDesc.Height = m_height;
-			textureDesc.DebugName = m_debugName;
-			textureDesc.Flags = BFTextureDesc::Flag::ShaderResource;
-			textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			textureDesc.Data = m_pixels.data();
-			m_gpuTexture = BFTexture::CreateTextureFromCPUBuffer(textureDesc);
-		}
-
-		ImTextureID GetImGUITextureID()
-		{
-			LoadGPUTexture();
-			return (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(m_gpuTexture->SRV().View()).ptr;
-		}
+		ImTextureID GetImGUITextureID();
 
 	private:
 		friend class ThumbnailProcessor;

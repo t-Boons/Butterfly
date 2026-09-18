@@ -31,6 +31,9 @@
 #include "glm/gtx/matrix_decompose.hpp"
 #include "entt/entt.hpp"
 #include "yaml-cpp/yaml.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
+#include "imguizmo/imguizmo.h"
 
 #include "Core/Log.hpp"
 #include "Utils/Utils.hpp"

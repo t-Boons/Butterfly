@@ -1,9 +1,5 @@
 #include "Core/EditorApplication.hpp"
-#include "glm/gtx/quaternion.hpp"
-#include <numeric>
-#include "ImGUI/ImGUIHelpers.hpp"
-#include "Core/ThumbnailProcessor.hpp"
-#include "Core/EditorCache.hpp"
+#include "EditorCache/EditorCache.hpp"
 #include "EditorViewport/EditorViewport.hpp"
 
 namespace Butterfly

@@ -2,6 +2,8 @@
 #include "Core/Common.hpp"
 #include "Core/EventDispatcher.hpp"
 
+#include "Renderer/D3D12Texture.hpp"
+
 namespace Butterfly
 {
 	class ViewportHandle

@@ -1,6 +1,5 @@
 #pragma once
 #include "Butterfly.hpp"
-#include "EditorViewport/SpectatorCamera.hpp"
 #include "EditorViewport/EditorViewportExtention.hpp"
 
 namespace Butterfly
@@ -16,9 +15,9 @@ namespace Butterfly
 		virtual void OnTick() override;
 		virtual void OnRenderImGUI() override;
 
-		void DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex);
-
 	private:
+		void DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex);
+		
 		std::unordered_set<UUID> m_collapsedHeaderMap;
 	};
 }

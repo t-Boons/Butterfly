@@ -1,21 +1,16 @@
 #pragma once
 #include "Core/Common.hpp"
-#include "Renderer/D3D12/D3D12Common.hpp"
-#include "Renderer/D3D12Texture.hpp"
-#include "Renderer/D3d12Buffer.hpp"
-#include "Renderer/Graph/Graph.hpp"
-#include "Renderer/D3D12/D3D12Fence.hpp"
-#include "Renderer/Graph/Blackboard.hpp"
-#include "Core/Window.hpp"
-#include "Core/EventDispatcher.hpp"
 #include "Renderer/Viewport.hpp"
-#include "ImGuizmo/ImGuizmo.h"
+#include "Core/Window.hpp"
 
 #define NUM_RENDER_BUFFERS 3
 
-
 namespace Butterfly
 {
+	class D3D12Fence;
+	class D3D12CommandList;
+	class BFTexture;
+
 	struct FrameData
 	{
 		RefPtr<BFTexture> CompositeRenderTarget;
@@ -43,6 +38,7 @@ namespace Butterfly
 		BFTexture* Comp;
 	};
 
+	class Skybox;
 	class Renderer : public NonCopyable
 	{
 	public:
@@ -64,6 +60,7 @@ namespace Butterfly
 		EventDispatcher<>& GetRenderFinishedEvent() { return m_renderFinishedEvent; }
 		void ImGUIImage(const ViewportHandle& handle);
 
+		RefPtr<Skybox> m_tempSkybox;
 	private:
 		void InvalidateFrameDatas();
 		void WaitForInflightFrames();

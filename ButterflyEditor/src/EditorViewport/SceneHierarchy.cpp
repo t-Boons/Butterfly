@@ -1,8 +1,10 @@
 #include "EditorViewport/SceneHierarchy.hpp"
+#include "Core/EditorApplication.hpp"
 #include "EditorViewport/EditorViewport.hpp"
 #include "Scene/Registry/IDComponent.hpp"
-#include "Core/EditorCache.hpp"
-
+#include "EditorCache/EditorCache.hpp"
+#include "ImGui/FontAwesomeIcons.hpp"
+#include "EditorViewport/SpectatorCamera.hpp"
 
 namespace Butterfly
 {

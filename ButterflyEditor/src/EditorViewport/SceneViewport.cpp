@@ -22,11 +22,6 @@ namespace Butterfly
 		m_viewportResizeReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
 		m_viewportRenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender, BF_BIND_FUNC_PARAM(&SceneViewport::RenderObjectPicker));
 		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
-
-		m_skyboxRender.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender, [&](const ViewportRenderEvent& event)
-			{
-				EditorApplication::Get().GetEditorViewport().skybox.SkyboxPass(event);
-			});
 	}
 	
 	SceneViewport::~SceneViewport()

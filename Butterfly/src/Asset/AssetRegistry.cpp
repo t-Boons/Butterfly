@@ -14,11 +14,20 @@ namespace Butterfly
 		Scan();
 	}
 
-	bool AssetRegistry::NewFile(const std::string& name, const std::string& contents, AssetMetadata& meta)
+	bool AssetRegistry::NewFile(const std::string& name, const std::string& extention, const std::string& contents, AssetMetadata& meta)
 	{
-		if (FileSystem::WriteText(m_assetPath / name, contents))
+		std::string stem = name;
+
+		while (FileSystem::Exists(m_assetPath / (stem + extention)))
 		{
-			AssetMetadata newMeta = WriteNewMetaForFile(m_assetPath / name);
+			stem = Utils::IterateDuplicateName(stem);
+		}
+
+		const std::string newName = stem + extention;
+
+		if (FileSystem::WriteText(m_assetPath / newName, contents))
+		{
+			AssetMetadata newMeta = WriteNewMetaForFile(m_assetPath / newName);
 			meta = newMeta;
 			m_registeredAssets[meta.ID] = meta;
 			return true;

@@ -50,7 +50,7 @@ namespace Butterfly
 		
 		std::string text = emit.c_str();
 		AssetMetadata meta;
-		Application::Get().GetAssetManager().GetAssetRegistry().NewFile("NewScene.bfscene", text, meta);
+		Application::Get().GetAssetManager().GetAssetRegistry().NewFile("NewScene", ".bfscene", text, meta);
 		return root;
 	}
 

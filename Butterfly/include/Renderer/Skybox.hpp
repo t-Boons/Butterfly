@@ -2,6 +2,18 @@
 #include "Renderer/D3D12Texture.hpp"
 #include "stbimage/stb_image.h"
 #include "Scene/Registry/SkyboxComponent.hpp"
+#include "Renderer/Graph/GraphBuilder.hpp"
+#include "Renderer/D3D12/D3D12Pipeline.hpp"
+
+#include "Renderer/D3D12/D3D12GraphicsCommands.hpp"
+#include "Renderer/D3D12/D3D12Shader.hpp"
+#include "Renderer/D3D12Sampler.hpp"
+#include "Renderer/D3D12/D3D12ShaderVariables.hpp"
+#include "Renderer/D3D12Buffer.hpp"
+#include "Renderer/D3D12Texture.hpp"
+#include "Renderer/D3D12/D3D12View.hpp"
+#include "Renderer/Renderer.hpp"
+
 
 namespace Butterfly
 {

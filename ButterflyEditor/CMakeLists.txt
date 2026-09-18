@@ -2,8 +2,10 @@ add_executable(ButterflyEditor
     src/Main.cpp
     src/EditorApplication.cpp
     src/EditorViewport/SpectatorCamera.cpp
+    src/EditorViewport/EditorViewport.cpp
     src/EditorViewport/SceneViewport.cpp
     src/EditorViewport/SceneHierarchy.cpp
+    src/EditorViewport/ThumbnailProcessor.cpp
 )
 
 target_include_directories(ButterflyEditor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
