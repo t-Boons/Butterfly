@@ -5,17 +5,18 @@
 
 namespace Butterfly
 {
-	class SceneViewport : public IEditorViewportExtention
+	class TransformComponent;
+
+	class SceneHierarchy : public IEditorViewportExtention
 	{
 	public:
-		SceneViewport();
-		~SceneViewport();
+		SceneHierarchy();
+		~SceneHierarchy();
 
 		virtual void OnTick() override;
 		virtual void OnRenderImGUI() override;
-		void OnResize(const ViewportResizeEvent& event);
-		void OnPrerender(const ViewportPrerenderEvent& event);
-		void RenderObjectPicker(const ViewportRenderEvent& event);
+
+		void DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex);
 
 	private:
 		RefPtr<BFTextureReadback> m_objectPickerReadback;

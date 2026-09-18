@@ -151,7 +151,7 @@ namespace Butterfly
 
 		NameComponent& nameComponent = entity.AddComponent<NameComponent>();
 		nameComponent.Tag = "Untagged";
-		nameComponent.Name = name;
+		nameComponent.Name = newEntityName;
 
 		return entity;
 	}
