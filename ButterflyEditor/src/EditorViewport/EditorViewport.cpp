@@ -36,27 +36,6 @@ namespace Butterfly
 			Application::Get().GetWindow().SetFullscreen(!Application::Get().GetWindow().Fullscreen());
 		}
 
-		if (Application::Get().GetInput().IsKeyDown(BFB_I))
-		{
-			auto scene = Application::Get().GetScene().m_activeScene;
-			entt::entity root = scene->m_rootEntity;
-
-			RefPtr<Scene> newScene = MakeRef<Scene>();
-			newScene->m_rootEntity = root;
-
-			scene->CloneTo(*newScene);
-
-			Application::Get().GetScene().m_activeScene = newScene;
-		}
-
-		if (Application::Get().GetInput().IsKeyDown(BFB_T))
-		{
-			m_selectedEntity = Application::Get().GetScene().CreateEntity();
-
-			m_selectedEntity.AddComponent<MeshRendererComponent>();
-			m_selectedEntity.AddComponent<SkyboxComponent>();
-		}
-
 		if (Application::Get().GetInput().IsKeyDown(BFB_Y))
 		{
 			Application::Get().GetScene().SaveCurrentScene();

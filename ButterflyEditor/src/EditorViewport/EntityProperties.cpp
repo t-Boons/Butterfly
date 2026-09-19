@@ -62,6 +62,11 @@ namespace Butterfly
 			{
 				ImGui::PushID("MeshReference");
 
+				if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsItemHovered())
+				{
+					ImGui::OpenPopup("MeshRendererContextMenu");
+				}
+
 				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
@@ -105,6 +110,16 @@ namespace Butterfly
 
 				ImGui::PopStyleColor(3);
 
+				if (ImGui::BeginPopup("MeshRendererContextMenu"))
+				{
+					if (ImGui::MenuItem("Remove MeshRendererComponent"))
+					{
+						selectedEntity.RemoveComponent<MeshRendererComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+					ImGui::EndPopup();
+				}
+
 				ImGui::PopID();
 
 			}
@@ -114,6 +129,11 @@ namespace Butterfly
 			{
 				if (ImGui::CollapsingHeader("SkyboxComponent", ImGuiTreeNodeFlags_DefaultOpen))
 				{
+					if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsItemHovered())
+					{
+						ImGui::OpenPopup("SkyboxComponentContextMenu");
+					}
+
 					ImGui::PushID("SkyboxComponent");
 					for (int i = 0; i < 6; i++)
 					{
@@ -151,7 +171,43 @@ namespace Butterfly
 						}
 					}
 				}
+
+				if (ImGui::BeginPopup("SkyboxComponentContextMenu"))
+				{
+					if (ImGui::MenuItem("Remove SkyboxComponent"))
+					{
+						selectedEntity.RemoveComponent<SkyboxComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+					ImGui::EndPopup();
+				}
+
 				ImGui::PopID();
+			}
+
+			ImGui::Dummy(ImVec2(0.0f, 10.0f));
+			const ImVec2 size = ImGui::GetContentRegionAvail();
+			if (ImGui::Button("Add Component", ImVec2(size.x, 20.0f)))
+			{
+				ImGui::OpenPopup("AddComponentPopup");
+			}
+
+			if (ImGui::BeginPopup("AddComponentPopup"))
+			{
+				ComponentRegistry::RunOnAllComponents([&]<typename T>()
+				{
+					if (!selectedEntity.HasComponent<T>())
+					{
+						const std::string_view componentName = entt::resolve<T>().name();
+						if (ImGui::MenuItem(componentName.data()))
+						{
+							selectedEntity.AddComponent<T>();
+							ImGui::CloseCurrentPopup();
+						}
+					}
+				});
+
+				ImGui::EndPopup();
 			}
 		}
 		ImGui::End();

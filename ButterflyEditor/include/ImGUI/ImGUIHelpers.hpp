@@ -9,8 +9,6 @@ namespace Butterfly
 		static bool DrawFloatControl(const char* label, glm::vec2& values, float resetValue = 0.0f)
 		{
 			bool changed = false;
-			ImGuiIO& io = ImGui::GetIO();
-			auto boldFont = io.Fonts->Fonts.Size > 1 ? io.Fonts->Fonts[1] : io.Fonts->Fonts[0];
 
 			ImGui::PushID(label);
 
@@ -25,9 +23,7 @@ namespace Butterfly
 				ImVec4 baseColor) {
 					ImGui::PushStyleColor(ImGuiCol_Button, baseColor);
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
-					ImGui::PushFont(boldFont);
 					ImGui::Button(axisLabel, buttonSize);
-					ImGui::PopFont();
 					ImGui::PopStyleColor(2);
 
 					ImGui::SameLine(0.0f, 0.0f);
@@ -54,8 +50,6 @@ namespace Butterfly
 		static bool DrawVec2Control(const char* label, glm::vec2& values, float resetValue = 0.0f)
 		{
 			bool changed = false;
-			ImGuiIO& io = ImGui::GetIO();
-			auto boldFont = io.Fonts->Fonts.Size > 1 ? io.Fonts->Fonts[1] : io.Fonts->Fonts[0];
 
 			ImGui::PushID(label);
 
@@ -70,9 +64,7 @@ namespace Butterfly
 				ImVec4 baseColor) {
 					ImGui::PushStyleColor(ImGuiCol_Button, baseColor);
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
-					ImGui::PushFont(boldFont);
 					ImGui::Button(axisLabel, buttonSize);
-					ImGui::PopFont();
 					ImGui::PopStyleColor(2);
 
 					ImGui::SameLine(0.0f, 0.0f);
@@ -101,7 +93,6 @@ namespace Butterfly
 		{
 			bool changed = false;
 			ImGuiIO& io = ImGui::GetIO();
-			auto boldFont = io.Fonts->Fonts.Size > 1 ? io.Fonts->Fonts[1] : io.Fonts->Fonts[0];
 
 			ImGui::PushID(label);
 
@@ -116,9 +107,7 @@ namespace Butterfly
 				ImVec4 baseColor) {
 					ImGui::PushStyleColor(ImGuiCol_Button, baseColor);
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
-					ImGui::PushFont(boldFont);
 					ImGui::Button(axisLabel, buttonSize);
-					ImGui::PopFont();
 					ImGui::PopStyleColor(2);
 
 					ImGui::SameLine(0.0f, 0.0f);

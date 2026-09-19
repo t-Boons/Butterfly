@@ -79,16 +79,6 @@ namespace Butterfly
 			EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
 		}
 
-		if (ImGui::BeginPopupContextWindow("SceneHierarchyContext"))
-		{
-			if (ImGui::MenuItem("New Game Object"))
-			{
-				EditorApplication::Get().GetEditorViewport().m_selectedEntity = Application::Get().GetScene().CreateEntity();
-			}
-
-			ImGui::EndPopup();
-		}
-
 		// We do -1 because the root entity is not counted as a game object
 		const uint32_t numEntities = static_cast<uint32_t>(Application::Get().GetScene().GetEntityRegistry().view<TransformComponent>().size() - 1);
 
@@ -105,7 +95,11 @@ namespace Butterfly
 		{
 			if (ImGui::MenuItem("New Game Object"))
 			{
-				EditorApplication::Get().GetEditorViewport().m_selectedEntity = Application::Get().GetScene().CreateEntity();
+				Entity newEntity = Application::Get().GetScene().CreateEntity();
+				TransformComponent& newEntityTransform = newEntity.GetComponent<TransformComponent>();
+				TransformComponent& entityParentTransform = newEntityTransform.GetParent().GetComponent<TransformComponent>();
+				entityParentTransform.Attach(newEntityTransform, entityParentTransform.NumChildren());
+				EditorApplication::Get().GetEditorViewport().m_selectedEntity = newEntity;
 			}
 
 			ImGui::EndPopup();

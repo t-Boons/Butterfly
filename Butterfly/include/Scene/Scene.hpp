@@ -54,7 +54,7 @@ namespace Butterfly
 		}
 
 		template<typename T>
-		void RemoveComponent(entt::entity entity) const
+		void RemoveComponent(entt::entity entity)
 		{
 			BF_CORE_ASSERT(HasComponent<T>(entity), "Entity::RemoveComponent: Entity does not have this component");
 			m_registry.remove<T>(entity);
