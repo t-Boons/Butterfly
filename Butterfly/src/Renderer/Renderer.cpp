@@ -60,26 +60,38 @@ namespace Butterfly
 
 
 		ImGui::CreateContext();
+
 		ImGuizmo::SetImGuiContext(ImGui::GetCurrentContext());
+
 		ImGuiIO& io = ImGui::GetIO();
 		io.IniFilename = "Editor/DefaultLayout.ini";
 
 		{
-			ImFontConfig iconConfig;
-			iconConfig.MergeMode = false;
-			iconConfig.PixelSnapH = true;
+			ImFontConfig config;
+			config.PixelSnapH = true;
+
 			const std::string filepath = "Assets/Fonts/Roboto-Regular.ttf";
-			BF_CORE_ASSERT(std::filesystem::exists(filepath), "Renderer::Renderer: Font file does not exist: %s", filepath.c_str());
-			io.Fonts->AddFontFromFileTTF(filepath.c_str(), 14.0f, &iconConfig);
+
+			BF_CORE_ASSERT(
+				std::filesystem::exists(filepath),
+				"Renderer::Renderer: Font file does not exist: %s",
+				filepath.c_str()
+			);
+
+			io.Fonts->AddFontFromFileTTF(filepath.c_str(), 14.0f, &config);
 		}
+
 		{
-			ImFontConfig iconConfig;
-			iconConfig.MergeMode = true;
-			iconConfig.PixelSnapH = true;
+			ImFontConfig config;
+			config.PixelSnapH = true;
+
 			static const ImWchar iconRanges[] = { 0xf000, 0xf8ff, 0 };
+
 			const std::string filepath = "Assets/Fonts/Font_Awesome_7_Free-Solid-900.otf";
 			BF_CORE_ASSERT(std::filesystem::exists(filepath), "Renderer::Renderer: Font file does not exist: %s", filepath.c_str());
-			io.Fonts->AddFontFromFileTTF(filepath.c_str(), 9.0f, &iconConfig, iconRanges);
+
+			io.Fonts->AddFontFromFileTTF(filepath.c_str(), 9.0f, &config, iconRanges);
+			io.Fonts->AddFontFromFileTTF(filepath.c_str(), 128.0f, &config, iconRanges);
 		}
 
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -96,7 +108,9 @@ namespace Butterfly
 		init_info.LegacySingleSrvGpuDescriptor = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap()->GetGPUDescriptorHandleForHeapStart();
 		ImGui_ImplDX12_Init(&init_info);
 
-		// We allocate a dummy because textureslot 1 is used by ImGUI for font rendering.
+		// We allocate a dummy because textureslot 1-3 is used by ImGUI for font rendering.
+		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
+		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
 		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
 	}
 

@@ -9,82 +9,118 @@
 #include "Core/Application.hpp"
 #include "Asset/AssetManager.hpp"
 
+#include "Scene/Entity.hpp"
+
+#include "Core/FileSystem.hpp"
+
 namespace Butterfly
 {
-	SceneManager::SceneManager()
-	{
-		BF_PROFILE_EVENT()
-
-		m_rootEntity = CreateEntity("Root");
-		Application::Get().GetWindow().SetWindowTitle("Butterfly Editor - " + m_name);
-	}
-
-	YAML::Node SceneManager::Serialize()
+	std::string Scene::Serialize(const Scene& scene)
 	{
 		BF_PROFILE_EVENT()
 
 		YAML::Node root;
-		root["Scene"] = m_name;
 		YAML::Node entitiesNode;
-		auto view = m_entityRegistry.view<IDComponent>();
-		for (auto& entity : view)
+
+		const auto view = scene.m_registry.view<IDComponent>();
+
+		for (auto entity : view)
 		{
 			YAML::Node entityNode;
-
-			for (auto& serializer : ComponentRegistry::GetComponentSerializers())
-			{
-				if (serializer.Has(m_entityRegistry, entity))
-				{
-					YAML::Node serializerNode;
-					serializer.Serialize(serializerNode, m_entityRegistry, entity);
-					entityNode["Entity"].push_back(serializerNode);
-				}
-			}
+			YAML::Node entityDataNode = entityNode["Entity"];
+			ComponentRegistry::SerializeComponents(entityDataNode, scene.m_registry, entity);
 
 			entitiesNode.push_back(entityNode);
 		}
+
+		root["SceneName"] = scene.m_name;
 		root["Scene"] = entitiesNode;
 
-		return root;
+		YAML::Emitter out;
+		out << root;
+		return out.c_str();
 	}
 
-	void SceneManager::Deserialize(const std::string& text, const std::string& name)
+	RefPtr<Scene> Scene::Deserialize(const std::string& text)
 	{
 		BF_PROFILE_EVENT()
 
-		m_name = name;
-		m_entityRegistry.clear();
-
+		RefPtr<Scene> out = MakeRef<Scene>();
 		YAML::Node node = YAML::Load(text);
 		YAML::Node scene = node["Scene"];
+		out->m_name = node["SceneName"].as<std::string>();
+		out->m_registry.clear();
+
 
 		for (const auto& entityNode : scene)
 		{
-			entt::entity entity = m_entityRegistry.create();
+			entt::entity entity = out->m_registry.create();
 
-			for (const auto& componentNode : entityNode["Entity"])
-			{
-				for (const auto& serializer : ComponentRegistry::GetComponentSerializers())
-				{
-					if (!componentNode[serializer.Name])
-					{
-						continue;
-					}
-
-					serializer.Deserialize(componentNode, m_entityRegistry, entity);
-				}
-			}
+			ComponentRegistry::DeserializeComponents(entityNode["Entity"], out->m_registry, entity);
 		}
 
-		for (const auto& [entity, transform] : m_entityRegistry.view<TransformComponent>().each())
+		for (const auto& [entity, transform] : out->m_registry.view<TransformComponent>().each())
 		{
-			transform.ValidateAfterDeserialization(*this);
+			transform.ValidateAfterDeserialization(*out);
 		}
 
-		auto firstEntity = *m_entityRegistry.view<TransformComponent>().begin();
 		// Get the root from any of the other existing transformcomponents since they are all parented to the root.
-		m_rootEntity = m_entityRegistry.get<TransformComponent>(firstEntity).GetRoot();
-		Application::Get().GetWindow().SetWindowTitle("Butterfly Editor - " + m_name);
+		auto firstEntity = *out->m_registry.view<TransformComponent>().begin();
+		out->m_rootEntity = out->m_registry.get<TransformComponent>(firstEntity).GetRoot().GetHandle();
+		return out;
+	}
+
+	void Scene::CloneTo(Scene& destination) const
+	{
+		const entt::registry& source = m_registry;
+		entt::registry& target = destination.m_registry;
+
+		target.clear();
+
+		for (const auto& [src] : source.storage<entt::entity>()->each())
+		{
+			entt::entity dst = target.create(src);
+
+			ComponentRegistry::RunOnAllComponents([&]<typename T>()
+			{
+				if (source.all_of<T>(src))
+				{
+					target.emplace_or_replace<T>(dst, source.get<T>(src));
+				}
+			});
+		}
+
+		destination.m_rootEntity = m_rootEntity;
+	}
+
+
+
+	SceneManager::SceneManager()
+	{
+		BF_PROFILE_EVENT()
+
+		m_activeScene = MakeRef<Scene>();
+		m_activeScene->m_rootEntity = CreateEntity("Root");
+		m_activeScene->m_name = "Untitled Scene";
+
+		Application::Get().GetWindow().SetWindowTitle("Butterfly Editor - " + m_activeScene->GetName());
+	}
+
+	void SceneManager::SaveCurrentScene()
+	{
+		BF_PROFILE_EVENT()
+
+		AssetMetadata meta;
+		Application::Get().GetAssetManager().GetAssetRegistry().NewFile(m_activeScene->GetName(), ".bfscene", Scene::Serialize(*m_activeScene), meta);
+	}
+
+	void SceneManager::LoadSceneFromFile(const std::filesystem::path& path)
+	{
+		BF_PROFILE_EVENT()
+
+		m_activeScene.reset();
+		m_activeScene = Scene::Deserialize(FileSystem::ReadText(path));
+		Application::Get().GetWindow().SetWindowTitle("Butterfly Editor - " + m_activeScene->GetName());
 	}
 
 	void SceneManager::Tick()
@@ -98,7 +134,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		TransformComponent& tr = m_entityRegistry.get<TransformComponent>(entity);
+		TransformComponent& tr = m_activeScene->m_registry.get<TransformComponent>(entity);
 
 		const uint32_t numChildren = tr.NumChildren();
 
@@ -108,19 +144,19 @@ namespace Butterfly
 		}
 
 		tr.DetachParent();
-		m_entityRegistry.destroy(entity);
+		m_activeScene->m_registry.destroy(entity);
 	}
 		
 	void SceneManager::DestroyPendingEntities()
 	{
 		BF_PROFILE_EVENT()
 
-		auto view = m_entityRegistry.view<PendingDestroyComponent>();
+		auto view = m_activeScene->m_registry.view<PendingDestroyComponent>();
 
 		bool rootEntityPendingDestroy = false;
 		for (auto& entity : view)
 		{
-			if (entity == m_rootEntity.GetHandle())
+			if (entity == m_activeScene->m_rootEntity)
 			{
 				rootEntityPendingDestroy = true;
 				BF_CORE_LOG_ERROR("SceneManager::DestroyPendingEntities: Cannot destroy root entity");
@@ -132,25 +168,26 @@ namespace Butterfly
 
 		if (rootEntityPendingDestroy)
 		{
-			m_rootEntity.RemoveComponent<PendingDestroyComponent>();
+			m_activeScene->m_registry.remove<PendingDestroyComponent>(m_activeScene->m_rootEntity);
 		}
 	}
 
-	Entity SceneManager::CreateEntity(const std::string& name)
+	entt::entity SceneManager::CreateEntity(const std::string& name)
 	{
 		BF_PROFILE_EVENT()
 
 		// Add the entity to the registry and add the required components.
-		Entity entity(&m_entityRegistry, m_entityRegistry.create());
+		entt::entity entity = m_activeScene->m_registry.create();
 
-		entity.AddComponent<IDComponent>().EntityUUID = UUID::Generate();
+		IDComponent& id = m_activeScene->AddComponent<IDComponent>(entity);
+		id.EntityUUID = UUID::Generate();
 
-		TransformComponent& tr = entity.AddComponent<TransformComponent>();
+		TransformComponent& tr = m_activeScene->AddComponent<TransformComponent>(entity);
 
 		// Attach it to the scene root.
-		if (m_rootEntity)
+		if (m_activeScene->m_rootEntity != entt::null)
 		{
-			TransformComponent& rootTransform = m_rootEntity.GetComponent<TransformComponent>();
+			TransformComponent& rootTransform = m_activeScene->m_registry.get<TransformComponent>(m_activeScene->m_rootEntity);
 			rootTransform.Attach(tr);
 		}
 
@@ -163,7 +200,7 @@ namespace Butterfly
 		while (duplicateNameFound)
 		{
 			duplicateNameFound = false;
-			for (const auto& [entityName, existingNameComponent] : m_entityRegistry.view<NameComponent>().each())
+			for (const auto& [entityName, existingNameComponent] : m_activeScene->m_registry.view<NameComponent>().each())
 			{
 				if (newEntityName == existingNameComponent.Name)
 				{
@@ -174,7 +211,7 @@ namespace Butterfly
 			}
 		}
 
-		NameComponent& nameComponent = entity.AddComponent<NameComponent>();
+		NameComponent& nameComponent = m_activeScene->AddComponent<NameComponent>(entity);
 		nameComponent.Tag = "Untagged";
 		nameComponent.Name = newEntityName;
 

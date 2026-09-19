@@ -6,7 +6,7 @@
 
 namespace Butterfly
 {
-	class MeshRendererComponent : public NonCopyable
+	class MeshRendererComponent
 	{
 	public:
 		MeshRendererComponent(const Entity& entity)

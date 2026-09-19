@@ -22,7 +22,7 @@ namespace Butterfly
 	{
 		ImGui::Begin("Properties");
 
-		const Entity& selectedEntity = EditorApplication::Get().GetEditorViewport().m_selectedEntity;
+		Entity& selectedEntity = EditorApplication::Get().GetEditorViewport().m_selectedEntity;
 
 		if (selectedEntity)
 		{

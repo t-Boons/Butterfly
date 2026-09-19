@@ -143,5 +143,45 @@ namespace Butterfly
 
 			return changed;
 		}
+
+		static void TextWrappedCentered(const std::string& text, const ImVec2& start, float maxWidth)
+		{
+			ImFont* font = ImGui::GetFont();
+			const float fontSize = ImGui::GetFontSize();
+			const float lineHeight = ImGui::GetTextLineHeight();
+
+			std::vector<std::string> lines;
+			std::string currentLine;
+
+			for (const char c : text)
+			{
+				std::string testLine = currentLine + c;
+
+				if (font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, testLine.c_str()).x > maxWidth && !currentLine.empty())
+				{
+					lines.push_back(currentLine);
+					currentLine = c;
+				}
+				else
+				{
+					currentLine = testLine;
+				}
+			}
+
+			if (!currentLine.empty())
+			{
+				lines.push_back(currentLine);
+			}
+
+			for (uint32_t i = 0; i < lines.size(); ++i)
+			{
+				const ImVec2 textSize = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, lines[i].c_str());
+
+				const float x = start.x + (maxWidth - textSize.x) * 0.5f;
+				const float y = start.y + i * lineHeight;
+
+				ImGui::GetWindowDrawList()->AddText(font, fontSize, ImVec2(x, y), IM_COL32(255, 255, 255, 255), lines[i].c_str());
+			}
+		}
 	}
 }

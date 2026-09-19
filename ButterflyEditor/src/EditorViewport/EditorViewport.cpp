@@ -36,6 +36,18 @@ namespace Butterfly
 			Application::Get().GetWindow().SetFullscreen(!Application::Get().GetWindow().Fullscreen());
 		}
 
+		if (Application::Get().GetInput().IsKeyDown(BFB_I))
+		{
+			auto scene = Application::Get().GetScene().m_activeScene;
+			entt::entity root = scene->m_rootEntity;
+
+			RefPtr<Scene> newScene = MakeRef<Scene>();
+			newScene->m_rootEntity = root;
+
+			scene->CloneTo(*newScene);
+
+			Application::Get().GetScene().m_activeScene = newScene;
+		}
 
 		if (Application::Get().GetInput().IsKeyDown(BFB_T))
 		{
@@ -47,14 +59,7 @@ namespace Butterfly
 
 		if (Application::Get().GetInput().IsKeyDown(BFB_Y))
 		{
-			auto node = Application::Get().GetScene().Serialize();
-
-			YAML::Emitter emit;
-			emit << node;
-
-			std::string text = emit.c_str();
-			AssetMetadata meta;
-			Application::Get().GetAssetManager().GetAssetRegistry().NewFile("NewScene", ".bfscene", text, meta);
+			Application::Get().GetScene().SaveCurrentScene();
 		}
 	}
 

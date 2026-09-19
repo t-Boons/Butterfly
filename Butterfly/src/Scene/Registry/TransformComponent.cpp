@@ -95,7 +95,7 @@ namespace Butterfly
 		InvalidateMatrix();
 	}
 
-	const Entity& TransformComponent::GetRoot() const
+	Entity TransformComponent::GetRoot() const
 	{
 		const TransformComponent* current = this;
 		while (current->m_parent)
@@ -183,26 +183,26 @@ namespace Butterfly
 		}
 	}
 
-	void TransformComponent::ValidateAfterDeserialization(SceneManager& scene)
+	void TransformComponent::ValidateAfterDeserialization(Scene& scene)
 	{
 		m_children.clear();
 		for (const UUID& uuid : m_childrenUUIDs)
 		{
-			for (const auto& [entity, idComp] : scene.GetEntityRegistry().view<IDComponent>().each())
+			for (const auto& [entity, idComp] : scene.GetRegistry().view<IDComponent>().each())
 			{
 				if (idComp.EntityUUID == uuid)
 				{
-					m_children.push_back(Entity(&scene.GetEntityRegistry(), entity));
+					m_children.push_back(Entity(entity));
 					break;
 				}
 			}
 		}
 
-		for (const auto& [entity, idComp] : scene.GetEntityRegistry().view<IDComponent>().each())
+		for (const auto& [entity, idComp] : scene.GetRegistry().view<IDComponent>().each())
 		{
 			if (idComp.EntityUUID == m_parentUUID)
 			{
-				m_parent = Entity(&scene.GetEntityRegistry(), entity);
+				m_parent = Entity(entity);
 				break;
 			}
 		}

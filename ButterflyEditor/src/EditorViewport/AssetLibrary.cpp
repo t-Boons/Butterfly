@@ -1,6 +1,9 @@
 #include "EditorViewport/AssetLibrary.hpp"
 #include "Core/EditorApplication.hpp"
 #include "EditorViewport/ThumbnailProcessor.hpp"
+#include "EditorViewport/EditorViewport.hpp"
+#include "ImGUI/FontAwesomeIcons.hpp"
+#include "ImGUI/ImGUIHelpers.hpp"
 
 namespace Butterfly
 {
@@ -27,7 +30,7 @@ namespace Butterfly
 
 		const float cellSize = 96.0f;
 		const float cellPadding = 8.0f;
-		const float iconSize = 64.0f;
+		const float margin = 7.0f;
 
 		ImGui::BeginChild("AssetGrid", ImVec2(0, 0), true);
 
@@ -43,20 +46,19 @@ namespace Butterfly
 			for (auto& [id, meta] : Application::Get().GetAssetManager().GetAssetRegistry().GetAll())
 			{
 				ImGui::TableNextColumn();
-				ImGui::PushID((int)std::hash<Butterfly::UUID>()(id));
+				ImGui::PushID(static_cast<int>(std::hash<Butterfly::UUID>()(id)));
 
-				ImVec2 cellStart = ImGui::GetCursorScreenPos();
-				float cellHeight = iconSize + 32.0f;
+				const ImVec2 cellStart = ImGui::GetCursorScreenPos();
+				const ImVec2 cellMarginStart = ImVec2(cellStart.x + margin, cellStart.y + margin);
+				const ImVec2 cellMarginSize = ImVec2(cellSize - margin * 2, cellSize - margin * 2);
 
-				ImGui::InvisibleButton("##cell", ImVec2(cellSize, cellHeight));
+				ImGui::InvisibleButton("##cell", ImVec2(cellSize, cellSize));
 
 				const bool hovered = ImGui::IsItemHovered();
 				const bool doubleClicked = hovered && ImGui::IsMouseDoubleClicked(0);
 
 				ImDrawList* dl = ImGui::GetWindowDrawList();
 				ImU32 iconColor = ImColor(10, 20, 50);
-				float iconOffsetX = (cellSize - iconSize) * 0.5f;
-
 
 				if (ImGui::BeginPopupContextItem())
 				{
@@ -80,7 +82,7 @@ namespace Butterfly
 
 				if (hovered)
 				{
-					dl->AddRect(ImVec2(cellStart.x, cellStart.y), ImVec2(cellStart.x + cellSize, cellStart.y + cellHeight), IM_COL32(255, 255, 255, 40), 4.0f);
+					dl->AddRect(ImVec2(cellStart.x, cellStart.y), ImVec2(cellStart.x + cellSize, cellStart.y + cellSize), IM_COL32(255, 255, 255, 40), 4.0f);
 				}
 
 				if (doubleClicked)
@@ -88,8 +90,8 @@ namespace Butterfly
 					if (meta.Extention == ".bfscene")
 					{
 						const std::string& scene = FileSystem::ReadText(meta.Path);
-						Application::Get().GetScene().Deserialize(scene, std::filesystem::path(meta.Path).stem().string());
-
+						Application::Get().GetScene().LoadSceneFromFile(std::filesystem::path(meta.Path));
+						EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
 						ImGui::PopID();
 						ImGui::EndTable();
 						ImGui::EndChild();
@@ -107,27 +109,43 @@ namespace Butterfly
 					EditorApplication::Get().GetEditorCache().Add<ThumbnailCacheEntry>(meta.ID, entry);
 				}
 
-				ThumbnailCacheEntry cacheEntry;
+				const float textMargin = 25.0f;
+				const ImVec2 iconRectStart = ImVec2(cellMarginStart.x + textMargin * 0.5f, cellMarginStart.y);
+				const ImVec2 iconRectSize = ImVec2(cellMarginSize.x - textMargin, cellMarginSize.y - textMargin);
 
+				ThumbnailCacheEntry cacheEntry;
 				if (EditorApplication::Get().GetEditorCache().Get<ThumbnailCacheEntry>(meta.ID, cacheEntry))
 				{
 					RefPtr<Thumbnail> thumbnail = cacheEntry.GetThumbnail();
 
-					ImGui::SetCursorScreenPos(ImVec2(cellStart.x + iconOffsetX, cellStart.y));
-					ImGui::Image(thumbnail->GetImGUITextureID(), ImVec2(iconSize, iconSize));
+					ImGui::SetCursorScreenPos(iconRectStart);
+					ImGui::Image(thumbnail->GetImGUITextureID(), iconRectSize);
 				}
 				else
 				{
-					dl->AddRectFilled(ImVec2(cellStart.x + iconOffsetX, cellStart.y), ImVec2(cellStart.x + iconOffsetX + iconSize, cellStart.y + iconSize), iconColor, 4.0f);
+					ImFont* iconFont = ImGui::GetIO().Fonts->Fonts[2];
+					float fontSize = iconRectSize.x - 5.0f;
+					
+					const char* icon = FontAwesome::File;
+
+					if (meta.Extention == ".bfscene")
+					{
+						icon = FontAwesome::CubeStack;
+					}
+					else if (meta.Extention == ".obj")
+					{
+						icon = FontAwesome::Cube;
+					}
+					
+					ImVec2 iconTextSize = iconFont->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, icon);
+					
+					float iconX = cellStart.x + (cellSize - iconTextSize.x) * 0.5f;
+					dl->AddText(iconFont, fontSize, ImVec2(iconX, iconRectStart.y), IM_COL32(255, 255, 255, 255), icon);
 				}
 
-				std::string name = std::filesystem::path(meta.Path).filename().string();
+				const std::string name = std::filesystem::path(meta.Path).filename().string();
 
-				ImGui::SetCursorScreenPos(ImVec2(cellStart.x, cellStart.y + iconSize + 4.0f));
-				ImGui::PushTextWrapPos(cellStart.x + cellSize);
-				ImGui::TextWrapped("%s", name.c_str());
-				ImGui::PopTextWrapPos();
-
+				ImGUIHelpers::TextWrappedCentered(name, ImVec2(cellMarginStart.x, cellMarginStart.y + iconRectSize.y), cellMarginSize.x);
 				ImGui::PopID();
 			}
 

@@ -20,7 +20,7 @@ namespace Butterfly
 		const glm::vec3& GetPosition() const { return m_position; }
 		const glm::quat& GetRotation() const { return m_rotation; }
 		const glm::vec3& GetScale() const { return m_scale; }
-		const Entity& GetChild(uint32_t index) const { return m_children[index]; }
+		Entity GetChild(uint32_t index) const { return m_children[index]; }
 		const glm::mat4& GetLocalMatrix() const { return m_localMatrix; }
 		const glm::mat4& GetWorldMatrix();
 
@@ -31,9 +31,10 @@ namespace Butterfly
 
 		void AttachAndMoveAboveChild(const TransformComponent& child, TransformComponent& newChild);
 
-		const Entity& GetParent() const { return m_parent; }
-		const Entity& GetRoot() const;
+		Entity GetParent() const { return m_parent; }
+		Entity GetRoot() const;
 	private:
+		friend class Scene;
 		friend class SceneManager;
 		friend class ComponentRegistry;
 
@@ -46,7 +47,7 @@ namespace Butterfly
 
 		void InvalidateMatrix();
 
-		void ValidateAfterDeserialization(SceneManager& scene);
+		void ValidateAfterDeserialization(Scene& scene);
 
 		glm::vec3 m_position = { 0.0f, 0.0f, 0.0f };
 		glm::quat m_rotation = { 1.0f, 0.0f, 0.0f, 0.0f };

@@ -97,7 +97,7 @@ namespace Butterfly
 		ImGui::Separator();
 		ImGui::Spacing();
 
-		const Entity& root = Application::Get().GetScene().GetRootEntity();
+		Entity root = Application::Get().GetScene().GetRootEntity();
 
 		ImGui::BeginChild("EntityList", ImVec2(0, 0), true, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 
@@ -136,7 +136,7 @@ namespace Butterfly
 				{
 					if (payload->IsDelivery())
 					{
-						const Entity& entity = *static_cast<const Entity*>(payload->Data);
+						Entity entity = *static_cast<const Entity*>(payload->Data);
 						root.GetComponent<TransformComponent>().Attach(entity.GetComponent<TransformComponent>(), root.GetComponent<TransformComponent>().NumChildren());
 					}
 				}
@@ -166,7 +166,7 @@ namespace Butterfly
 				return;
 			}
 
-			const Entity& child = parent.GetChild(i);
+			Entity child = parent.GetChild(i);
 			const int id = static_cast<int>(child.GetHandle());
 			ImGui::PushID(id);
 
@@ -215,7 +215,7 @@ namespace Butterfly
 						{
 							if (payload->IsDelivery())
 							{
-								const Entity& entity = *static_cast<const Entity*>(payload->Data);
+								Entity entity = *static_cast<const Entity*>(payload->Data);
 								const TransformComponent& childUnderDropdown = childTransform;
 								TransformComponent& childMoving = entity.GetComponent<TransformComponent>();
 
@@ -251,6 +251,9 @@ namespace Butterfly
 					ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
 					ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.5f, 0.5f));
 
+					ImGuiIO& io = ImGui::GetIO();
+					ImFont* font = io.Fonts->Fonts[1];
+					ImGui::PushFont(font);
 					const char* graphic = m_collapsedHeaderMap.contains(childUUID) ? FontAwesome::AngleRight : FontAwesome::AngleDown;
 					if (ImGui::Button(graphic, ImVec2(rowHeight, rowHeight)))
 					{
@@ -263,6 +266,7 @@ namespace Butterfly
 							m_collapsedHeaderMap.insert(childUUID);
 						}
 					}
+					ImGui::PopFont();
 					ImGui::PopStyleColor(3);
 					ImGui::PopStyleVar();
 				}
@@ -321,7 +325,7 @@ namespace Butterfly
 					{
 						if (payload->IsDelivery())
 						{
-							const Entity& entity = *static_cast<const Entity*>(payload->Data);
+							Entity entity = *static_cast<const Entity*>(payload->Data);
 							childTransform.Attach(entity.GetComponent<TransformComponent>());
 							ImGui::PopID();
 							return;

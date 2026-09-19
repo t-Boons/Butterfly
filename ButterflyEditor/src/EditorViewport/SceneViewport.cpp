@@ -78,7 +78,7 @@ namespace Butterfly
 				// Thus entity 0 is entity 1
 				const uint32_t sceneEntityID = readbackID - 1; 
 
-				EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity(&Application::Get().GetScene().GetEntityRegistry(), static_cast<entt::entity>(sceneEntityID));
+				EditorApplication::Get().GetEditorViewport().m_selectedEntity = static_cast<entt::entity>(sceneEntityID);
 				BF_LOG_INFO("Selected entity: %u", sceneEntityID);
 			}
 			else
