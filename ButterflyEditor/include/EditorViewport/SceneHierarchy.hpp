@@ -18,6 +18,6 @@
 		private:
 			void DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex);
 		
-			std::unordered_set<UUID> m_collapsedHeaderMap;
+			std::unordered_set<EntityUUID> m_collapsedHeaderMap;
 		};
 	}

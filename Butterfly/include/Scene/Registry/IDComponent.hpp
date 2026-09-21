@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/UUID.hpp"
+#include "Scene/Entity.hpp"
 
 namespace Butterfly
 {
@@ -10,6 +10,6 @@ namespace Butterfly
 		{
 		}
 
-		UUID EntityUUID;
+		EntityUUID EntityUUID;
 	};
 }

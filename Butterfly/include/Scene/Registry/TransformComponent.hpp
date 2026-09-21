@@ -40,10 +40,10 @@ namespace Butterfly
 
 		void DetachParent();
 
-		void SetChildrenUUIDs(const std::vector<UUID>& uuids);
-		std::vector<UUID> GetChildrenUUIDs() const;
-		void SetParentUUID(const UUID& uuid) { m_parentUUID = uuid; }
-		const UUID& GetParentUUID() const { return m_parentUUID; }
+		void SetChildrenUUIDs(const std::vector<EntityUUID>& uuids);
+		std::vector<EntityUUID> GetChildrenUUIDs() const;
+		void SetParentUUID(const EntityUUID& uuid) { m_parentUUID = uuid; }
+		const EntityUUID& GetParentUUID() const { return m_parentUUID; }
 
 		void InvalidateMatrix();
 
@@ -59,9 +59,9 @@ namespace Butterfly
 		Entity m_thisEntity;
 
 		Entity m_parent;
-		UUID m_parentUUID;
+		EntityUUID m_parentUUID;
 		std::vector<Entity> m_children;
-		std::vector<UUID> m_childrenUUIDs;
+		std::vector<EntityUUID> m_childrenUUIDs;
 
 		bool m_isMatrixDirty = false;
 	};

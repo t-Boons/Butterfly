@@ -3,18 +3,19 @@
 #include "Asset.hpp"
 #include "AssetRegistry.hpp"
 #include "Asset/Importer/AssetImporter.hpp"
+#include "Asset/AssetUUID.hpp"
 
 namespace Butterfly
 {
     template<typename T>
     struct AssetHandle;
 
-	class AssetManager : public NonCopyableNonMoveable
-	{
+    class AssetManager : public NonCopyableNonMoveable
+    {
     public:
         AssetManager();
 
-		void Tick();
+        void Tick();
 
         AssetRegistry& GetAssetRegistry() { return m_assetRegistry; }
 
@@ -22,11 +23,13 @@ namespace Butterfly
         T* Resolve(const AssetHandle<T>& handle) const;
 
         template<typename T>
-        bool Acquire(const UUID& id, AssetHandle<T>& ret);
+        bool Acquire(const AssetUUID<T>& id, AssetHandle<T>& ret);
+
+        bool IsType(const std::type_info& type, const UUID& id) const;
 
         const std::vector<RefPtr<IAssetImporter>>& GetImporters() const { return s_importers; }
 
-		void GarbageCollect();
+        void GarbageCollect();
 
     private:
         template<typename T>
@@ -49,8 +52,8 @@ namespace Butterfly
         inline static std::vector<RefPtr<IAssetImporter>> s_importers;
         AssetRegistry m_assetRegistry;
         std::unordered_map<UUID, AssetEntry> m_entries;
-		uint32_t  m_tickCounter = 0;
-	};
+        uint32_t  m_tickCounter = 0;
+    };
 
 
 
@@ -63,28 +66,28 @@ namespace Butterfly
     }
 
     template<typename T>
-    bool AssetManager::Acquire(const UUID& id, AssetHandle<T>& ret)
+    bool AssetManager::Acquire(const AssetUUID<T>& id, AssetHandle<T>& ret)
     {
-		if (!id.Valid())
-		{
-			BF_CORE_LOG_ERROR("AssetManager::Acquire: Invalid UUID");
-			return false;
-		}
-
-        auto& entry = m_entries[id];
-
-		// For now return if the asset is already loaded. In the future we may want to check if the type matches and return an error if it doesn't.
-        if(entry.Data)
+        if (!id.ID().Valid())
         {
-			ret = AssetHandle<T>(this, id);
-			return true;
-		}
+            BF_CORE_LOG_ERROR("AssetManager::Acquire: Invalid UUID");
+            return false;
+        }
+
+        auto& entry = m_entries[id.ID()];
+
+        // For now return if the asset is already loaded. In the future we may want to check if the type matches and return an error if it doesn't.
+        if (entry.Data)
+        {
+            ret = AssetHandle<T>(this, id.ID());
+            return true;
+        }
 
         AssetMetadata meta;
 
-        if (!m_assetRegistry.Find(id, meta))
+        if (!m_assetRegistry.Find(id.ID(), meta))
         {
-            BF_CORE_LOG_ERROR("Meta for ID: %s cannot be found", id.ToString());
+            BF_CORE_LOG_ERROR("Meta for ID: %s cannot be found", id.ToString().c_str());
             return false;
         }
 
@@ -111,12 +114,12 @@ namespace Butterfly
             return false;
         }
 
-        auto& e = m_entries[id];
-        e.ID = id;
+        auto& e = m_entries[id.ID()];
+        e.ID = id.ID();
         e.Data = result.Asset.Data;
         e.Type = result.Asset.Type;
 
-        ret = AssetHandle<T>(this, id);
+        ret = AssetHandle<T>(this, id.ID());
         return true;
     }
 }

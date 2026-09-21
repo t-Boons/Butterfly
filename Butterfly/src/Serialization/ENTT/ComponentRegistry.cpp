@@ -7,47 +7,95 @@ namespace Butterfly
 {
 	static ComponentRegistry g_initializer;
 
-	YAML::Node ComponentRegistry::SerializeValue(const entt::meta_any& value)
+	bool ComponentRegistry::SerializeValue(const entt::meta_any& value, YAML::Node& node)
 	{
 		if (value.type() == entt::resolve<glm::vec2>())
-			return YAML::Node(value.cast<const glm::vec2&>());
-
-		if (value.type() == entt::resolve<glm::vec3>())
-			return YAML::Node(value.cast<const glm::vec3&>());
-
-		if (value.type() == entt::resolve<glm::vec4>())
-			return YAML::Node(value.cast<const glm::vec4&>());
-
-		if (value.type() == entt::resolve<glm::quat>())
-			return YAML::Node(value.cast<const glm::quat&>());
-
-		if (value.type() == entt::resolve<float>())
-			return YAML::Node(value.cast<float>());
-
-		if (value.type() == entt::resolve<bool>())
-			return YAML::Node(value.cast<bool>());
-
-		if (value.type() == entt::resolve<int>())
-			return YAML::Node(value.cast<int>());
-
-		if (value.type() == entt::resolve<std::string>())
-			return YAML::Node(value.cast<std::string>());
-
-		if (value.type() == entt::resolve<Butterfly::UUID>())
-			return YAML::Node(value.cast<Butterfly::UUID>());
-
-		if (value.type() == entt::resolve<std::vector<Butterfly::UUID>>())
 		{
-			YAML::Node node(YAML::NodeType::Sequence);
-
-			for (const UUID& uuid : value.cast<const std::vector<UUID>&>())
-				node.push_back(uuid);
-
-			return node;
+			node = YAML::Node(value.cast<const glm::vec2&>());
+			return true;
 		}
 
-		BF_CORE_LOG_CRITICAL("Unsupported type for serialization: %s", value.type().info().name().data());
-		return {};
+		if (value.type() == entt::resolve<glm::vec3>())
+		{
+			node = YAML::Node(value.cast<const glm::vec3&>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<glm::vec4>())
+		{
+			node = YAML::Node(value.cast<const glm::vec4&>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<glm::quat>())
+		{
+			node = YAML::Node(value.cast<const glm::quat&>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<float>())
+		{
+			node = YAML::Node(value.cast<float>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<bool>())
+		{
+			node = YAML::Node(value.cast<bool>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<int>())
+		{
+			node = YAML::Node(value.cast<int>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<std::string>())
+		{
+			node = YAML::Node(value.cast<std::string>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<Butterfly::EntityUUID>())
+		{
+			node = YAML::Node(value.cast<Butterfly::EntityUUID>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<Butterfly::AssetUUID<TextureAsset>>())
+		{
+			node = YAML::Node(value.cast<Butterfly::AssetUUID<TextureAsset>>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<Butterfly::AssetUUID<MeshAsset>>())
+		{
+			node = YAML::Node(value.cast<Butterfly::AssetUUID<MeshAsset>>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<std::vector<Butterfly::AssetUUID<TextureAsset>>>())
+		{
+			node = YAML::Node(YAML::NodeType::Sequence);
+
+			for (const AssetUUID<TextureAsset>& uuid : value.cast<const std::vector<AssetUUID<TextureAsset>>&>())
+				node.push_back(uuid);
+
+			return true;
+		}
+
+		if (value.type() == entt::resolve<std::vector<Butterfly::AssetUUID<MeshAsset>>>())
+		{
+			node = YAML::Node(YAML::NodeType::Sequence);
+
+			for (const AssetUUID<MeshAsset>& uuid : value.cast<const std::vector<AssetUUID<MeshAsset>>&>())
+				node.push_back(uuid);
+
+			return true;
+		}
+
+		return false;
 	}
 
 	bool ComponentRegistry::DeserializeValue(entt::meta_any& value, const YAML::Node& node)
@@ -100,25 +148,41 @@ namespace Butterfly
 			return true;
 		}
 
-		if (value.type() == entt::resolve<Butterfly::UUID>())
+		if (value.type() == entt::resolve<Butterfly::AssetUUID<TextureAsset>>())
 		{
-			value.cast<Butterfly::UUID&>() = node.as<Butterfly::UUID>();
+			value.cast<Butterfly::AssetUUID<TextureAsset>&>() = node.as<Butterfly::AssetUUID<TextureAsset>>();
 			return true;
 		}
 
-		if (value.type() == entt::resolve<std::vector<Butterfly::UUID>>())
+		if (value.type() == entt::resolve<Butterfly::AssetUUID<MeshAsset>>())
 		{
-			auto& children = value.cast<std::vector<UUID>&>();
+			value.cast<Butterfly::AssetUUID<MeshAsset>&>() = node.as<Butterfly::AssetUUID<MeshAsset>>();
+			return true;
+		}
+
+		if (value.type() == entt::resolve<std::vector<Butterfly::AssetUUID<TextureAsset>>>())
+		{
+			auto& children = value.cast<std::vector<Butterfly::AssetUUID<TextureAsset>>&>();
 
 			children.clear();
 
 			for (const auto& childNode : node)
-				children.push_back(childNode.as<UUID>());
+				children.push_back(childNode.as<Butterfly::AssetUUID<TextureAsset>>());
 
 			return true;
 		}
 
-		BF_CORE_LOG_CRITICAL("Unsupported type for deserialization: %s", value.type().info().name().data());
+		if (value.type() == entt::resolve<std::vector<Butterfly::AssetUUID<MeshAsset>>>())
+		{
+			auto& children = value.cast<std::vector<Butterfly::AssetUUID<MeshAsset>>&>();
+
+			children.clear();
+
+			for (const auto& childNode : node)
+				children.push_back(childNode.as<Butterfly::AssetUUID<MeshAsset>>());
+
+			return true;
+		}
 		return false;
 	}
 }

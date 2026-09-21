@@ -10,6 +10,18 @@
 
 namespace Butterfly
 {
+	enum ComponentMetaFlags : uint16_t
+	{
+		None = 0,
+		Serialize = 1 << 0,
+		Inspector = 1 << 1
+	};
+
+	constexpr ComponentMetaFlags operator|(ComponentMetaFlags lhs, ComponentMetaFlags rhs)
+	{
+		return static_cast<ComponentMetaFlags>(static_cast<uint16_t>(lhs) | static_cast<uint16_t>(rhs));
+	}
+
 	class ComponentRegistry
 	{
 	public:
@@ -41,36 +53,37 @@ namespace Butterfly
 		static void RegisterComponents()
 		{
 			entt::meta_factory<NameComponent>{}
-			.type("Name")
-				.data<&NameComponent::Name>("Name")
-				.data<&NameComponent::Tag>("Tag");
+			.type("Name").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&NameComponent::Name>("Name").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&NameComponent::Tag>("Tag").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector);
 
 			entt::meta_factory<IDComponent>{}
-			.type("ID")
-				.data<&IDComponent::EntityUUID>("EntityUUID");
+			.type("ID").traits(ComponentMetaFlags::Serialize)
+				.data<&IDComponent::EntityUUID>("EntityUUID").traits(ComponentMetaFlags::Serialize);
 
 
 			entt::meta_factory<TransformComponent>{}
-			.type("Transform")
-				.data<&TransformComponent::SetPosition, &TransformComponent::GetPosition>("Position")
-				.data<&TransformComponent::SetRotation, &TransformComponent::GetRotation>("Rotation")
-				.data<&TransformComponent::SetScale, &TransformComponent::GetScale>("Scale")
-				.data<&TransformComponent::SetChildrenUUIDs, &TransformComponent::GetChildrenUUIDs>("Children")
-				.data<&TransformComponent::SetParentUUID, &TransformComponent::GetParentUUID>("Parent");
+			.type("Transform").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&TransformComponent::SetPosition, &TransformComponent::GetPosition>("Position").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&TransformComponent::SetRotation, &TransformComponent::GetRotation>("Rotation").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&TransformComponent::SetScale, &TransformComponent::GetScale>("Scale").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&TransformComponent::SetChildrenUUIDs, &TransformComponent::GetChildrenUUIDs>("Children").traits(ComponentMetaFlags::Serialize)
+				.data<&TransformComponent::SetParentUUID, &TransformComponent::GetParentUUID>("Parent").traits(ComponentMetaFlags::Serialize);
 
 			entt::meta_factory<MeshRendererComponent>{}
 			.type("Mesh")
-				.data<&MeshRendererComponent::SetMeshUUID, &MeshRendererComponent::GetMeshUUID>("MeshUUID");
-
+				.traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&MeshRendererComponent::SetMeshUUID, &MeshRendererComponent::GetMeshUUID>("MeshUUID")
+				.traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector);
 
 			entt::meta_factory<SkyboxComponent>{}
-			.type("Skybox")
-				.data<&SkyboxComponent::SetTextureUUIDPositiveRight, &SkyboxComponent::GetTextureUUIDPositiveRight>("TextureUUIDPositiveRight")
-				.data<&SkyboxComponent::SetTextureUUIDPositiveLeft, &SkyboxComponent::GetTextureUUIDPositiveLeft>("TextureUUIDPositiveLeft")
-				.data<&SkyboxComponent::SetTextureUUIDPositiveTop, &SkyboxComponent::GetTextureUUIDPositiveTop>("TextureUUIDPositiveTop")
-				.data<&SkyboxComponent::SetTextureUUIDPositiveBottom, &SkyboxComponent::GetTextureUUIDPositiveBottom>("TextureUUIDPositiveBottom")
-				.data<&SkyboxComponent::SetTextureUUIDPositiveFront, &SkyboxComponent::GetTextureUUIDPositiveFront>("TextureUUIDPositiveFront")
-				.data<&SkyboxComponent::SetTextureUUIDPositiveBack, &SkyboxComponent::GetTextureUUIDPositiveBack>("TextureUUIDPositiveBack");
+			.type("Skybox").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&SkyboxComponent::SetTextureUUIDRight, &SkyboxComponent::GetTextureUUIDRight>("TextureUUIDRight").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&SkyboxComponent::SetTextureUUIDLeft, &SkyboxComponent::GetTextureUUIDLeft>("TextureUUIDLeft").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&SkyboxComponent::SetTextureUUIDTop, &SkyboxComponent::GetTextureUUIDTop>("TextureUUIDTop").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&SkyboxComponent::SetTextureUUIDBottom, &SkyboxComponent::GetTextureUUIDBottom>("TextureUUIDBottom").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&SkyboxComponent::SetTextureUUIDFront, &SkyboxComponent::GetTextureUUIDFront>("TextureUUIDFront").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
+				.data<&SkyboxComponent::SetTextureUUIDBack, &SkyboxComponent::GetTextureUUIDBack>("TextureUUIDBack").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector);
 
 
 			RunOnAllComponents([&]<typename T>()
@@ -98,7 +111,15 @@ namespace Butterfly
 					continue;
 				}
 
-				componentNode[data.name()] = SerializeValue(value);
+				YAML::Node valueNode;
+				if (SerializeValue(value, valueNode))
+				{
+					componentNode[data.name()] = valueNode;
+				}
+				else
+				{
+					BF_CORE_LOG_CRITICAL("Failed to serialize value: %s", data.name());
+				}
 			}
 
 			YAML::Node node;
@@ -125,8 +146,14 @@ namespace Butterfly
 				if (!field)
 					continue;
 
-				DeserializeValue(field, fieldNode);
-				data.set(component, field);
+				if(DeserializeValue(field, fieldNode))
+				{
+					data.set(component, field);
+				}
+				else
+				{
+					BF_CORE_LOG_CRITICAL("Failed to deserialize value: %s", data.name());
+				}
 			}
 
 			return true;
@@ -197,7 +224,7 @@ namespace Butterfly
 			return serializer;
 		}
 
-		static YAML::Node SerializeValue(const entt::meta_any& value);
+		static bool SerializeValue(const entt::meta_any& value, YAML::Node& node);
 		static bool DeserializeValue(entt::meta_any& value, const YAML::Node& node);
 
 		inline static std::vector<ComponentSerializer> s_components;

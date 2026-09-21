@@ -98,6 +98,7 @@ namespace Butterfly
 		meta.Path = file.string();
 		meta.ID = UUID::Generate();
 		meta.Extention = file.extension().string();
+		meta.Type = AssetType{ "Unknown" };
 
 		YAML::Node node;
 		node["Meta"] = meta;

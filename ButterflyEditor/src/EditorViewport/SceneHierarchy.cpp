@@ -164,7 +164,7 @@ namespace Butterfly
 			const int id = static_cast<int>(child.GetHandle());
 			ImGui::PushID(id);
 
-			const UUID& childUUID = child.GetComponent<IDComponent>().EntityUUID;
+			const EntityUUID& childUUID = child.GetComponent<IDComponent>().EntityUUID;
 
 			TransformComponent& childTransform = child.GetComponent<TransformComponent>();
 			const ImVec2 rowMin = ImGui::GetCursorScreenPos();

@@ -1,12 +1,13 @@
 #pragma once
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
+#include "ImGUI/FontAwesomeIcons.hpp"
 
 namespace Butterfly
 {
 	namespace ImGUIHelpers
 	{
-		static bool DrawFloatControl(const char* label, glm::vec2& values, float resetValue = 0.0f)
+		static bool DrawFloatControl(const char* label, float& value, float resetValue = 0.0f)
 		{
 			bool changed = false;
 
@@ -40,7 +41,7 @@ namespace Butterfly
 					}
 				};
 
-			axisControl("X", values.x, true, ImVec4(0.72f, 0.16f, 0.16f, 1.0f));
+			axisControl("X", value, true, ImVec4(0.72f, 0.16f, 0.16f, 1.0f));
 
 			ImGui::PopID();
 
@@ -171,6 +172,75 @@ namespace Butterfly
 
 				ImGui::GetWindowDrawList()->AddText(font, fontSize, ImVec2(x, y), IM_COL32(255, 255, 255, 255), lines[i].c_str());
 			}
+		}
+
+		static bool LabelledCheckmark(const char* label, bool* v)
+		{
+			ImGui::PushID(label);
+			bool changed = ImGui::Checkbox("", v);
+			ImGui::SameLine();
+			ImGui::TextUnformatted(label);
+			ImGui::PopID();
+			return changed;
+		}
+
+
+		static bool AssetReferenceField(const UUID& uuid, const std::string& labelname, const std::string& assetReferenceTypeName, const std::string& name, bool referenceIsSet, std::function<void(UUID)> onDropNewReference)
+		{
+			const ImVec4 buttonRefColor = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+			const ImVec4 buttonNoRefColor = ImVec4(0.10f, 0.10f, 0.10f, 1.0f);
+			const ImVec4 buttonColor = uuid ? buttonRefColor : buttonNoRefColor;
+			ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+
+			const float fieldHeight = 20.0f;
+			const float fieldWidth = 200.0f;
+			const float pickerWidth = fieldHeight;
+
+			ImGui::Text((std::string(labelname) + ": ").c_str());
+			ImGui::SameLine(0.0f, 0.0f);
+			ImGui::Button(FontAwesome::Search, ImVec2(pickerWidth, fieldHeight));
+			ImGui::SameLine(0.0f, 0.0f);
+
+			std::stringstream buttonText;
+			if(referenceIsSet)
+			{
+				buttonText << name;
+			}
+			else
+			{
+				buttonText << "No Reference " << "(" << assetReferenceTypeName << ")";
+			}
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+			ImGui::Button(buttonText.str().c_str(), ImVec2(fieldWidth, fieldHeight));
+			ImGui::PopStyleVar();
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET"))
+				{
+					if (payload->DataSize == sizeof(UUID))
+					{
+						const UUID payloadUUID = *static_cast<const UUID*>(payload->Data);
+
+						if (uuid != payloadUUID)
+						{
+							onDropNewReference(payloadUUID);
+						}
+
+						ImGui::EndDragDropTarget();
+						ImGui::PopStyleColor(3);
+						return true;
+					}
+				}
+
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::PopStyleColor(3);
+			return false;
 		}
 	}
 }

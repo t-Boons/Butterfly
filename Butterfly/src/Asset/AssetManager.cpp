@@ -50,4 +50,21 @@ namespace Butterfly
 		it->second.RefCount--;
 		BF_CORE_LOG_TRACE("RefCount -- asset: %s is %d", id.ToString().c_str(), it->second.RefCount);
 	}
+
+	bool AssetManager::IsType(const std::type_info& type, const UUID& id) const
+	{
+		AssetMetadata meta;
+		m_assetRegistry.Find(id, meta);
+
+		IAssetImporter* importer = nullptr;
+		for (auto& im : s_importers)
+		{
+			if (im->CanImport(meta.Extention) && im->CanImportType(type))
+			{
+				importer = im.get();
+				return true;
+			}
+		}
+		return false;
+	}
 }

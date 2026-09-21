@@ -148,11 +148,11 @@ namespace Butterfly
 		Attach(newChild, std::distance(m_children.begin(), std::find(m_children.begin(), m_children.end(), child.m_thisEntity)));
 	}
 
-	void TransformComponent::SetChildrenUUIDs(const std::vector<UUID>& uuids)
+	void TransformComponent::SetChildrenUUIDs(const std::vector<EntityUUID>& uuids)
 	{
 		m_childrenUUIDs = uuids;
 	}
-	std::vector<UUID> TransformComponent::GetChildrenUUIDs() const
+	std::vector<EntityUUID> TransformComponent::GetChildrenUUIDs() const
 	{
 		return m_childrenUUIDs;
 	}
@@ -186,7 +186,7 @@ namespace Butterfly
 	void TransformComponent::ValidateAfterDeserialization(Scene& scene)
 	{
 		m_children.clear();
-		for (const UUID& uuid : m_childrenUUIDs)
+		for (const EntityUUID& uuid : m_childrenUUIDs)
 		{
 			for (const auto& [entity, idComp] : scene.GetRegistry().view<IDComponent>().each())
 			{

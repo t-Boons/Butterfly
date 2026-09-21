@@ -68,6 +68,12 @@ namespace Butterfly
 			return name + " 1";
 		}
 
+		template<typename T>
+		inline bool HasFlag(T value, T flag)
+		{
+			return (value & flag) == flag;
+		}
+
 		// Function is taken from this stackoverflow question about variadic templates for hash combining:
 		// https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
 		template <typename...> struct Hasher;
