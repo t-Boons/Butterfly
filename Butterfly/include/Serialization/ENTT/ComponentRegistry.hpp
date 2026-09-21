@@ -111,6 +111,7 @@ namespace Butterfly
 					continue;
 				}
 
+
 				YAML::Node valueNode;
 				if (SerializeValue(value, valueNode))
 				{
@@ -118,7 +119,7 @@ namespace Butterfly
 				}
 				else
 				{
-					BF_CORE_LOG_CRITICAL("Failed to serialize value: %s", data.name());
+					BF_CORE_LOG_CRITICAL("Failed to serialize value: %s", data.name().data());
 				}
 			}
 
@@ -152,7 +153,7 @@ namespace Butterfly
 				}
 				else
 				{
-					BF_CORE_LOG_CRITICAL("Failed to deserialize value: %s", data.name());
+					BF_CORE_LOG_CRITICAL("Failed to deserialize value: %s", data.name().data());
 				}
 			}
 

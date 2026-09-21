@@ -75,6 +75,16 @@ namespace Butterfly
 			return true;
 		}
 
+		if (value.type() == entt::resolve<std::vector<Butterfly::EntityUUID>>())
+		{
+			node = YAML::Node(YAML::NodeType::Sequence);
+
+			for (const EntityUUID& uuid : value.cast<const std::vector<EntityUUID>&>())
+				node.push_back(uuid);
+
+			return true;
+		}
+
 		if (value.type() == entt::resolve<std::vector<Butterfly::AssetUUID<TextureAsset>>>())
 		{
 			node = YAML::Node(YAML::NodeType::Sequence);
@@ -148,6 +158,12 @@ namespace Butterfly
 			return true;
 		}
 
+		if (value.type() == entt::resolve<Butterfly::EntityUUID>())
+		{
+			value.cast<Butterfly::EntityUUID&>() = node.as<Butterfly::EntityUUID>();
+			return true;
+		}
+
 		if (value.type() == entt::resolve<Butterfly::AssetUUID<TextureAsset>>())
 		{
 			value.cast<Butterfly::AssetUUID<TextureAsset>&>() = node.as<Butterfly::AssetUUID<TextureAsset>>();
@@ -157,6 +173,18 @@ namespace Butterfly
 		if (value.type() == entt::resolve<Butterfly::AssetUUID<MeshAsset>>())
 		{
 			value.cast<Butterfly::AssetUUID<MeshAsset>&>() = node.as<Butterfly::AssetUUID<MeshAsset>>();
+			return true;
+		}
+
+		if (value.type() == entt::resolve<std::vector<Butterfly::EntityUUID>>())
+		{
+			auto& children = value.cast<std::vector<Butterfly::EntityUUID>&>();
+
+			children.clear();
+
+			for (const auto& childNode : node)
+				children.push_back(childNode.as<Butterfly::EntityUUID>());
+
 			return true;
 		}
 
