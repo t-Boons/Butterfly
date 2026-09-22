@@ -7,6 +7,82 @@
 
 namespace Butterfly
 {
+	struct LibraryIcon
+	{
+		const char* IconCode;
+		RefPtr<Thumbnail> Thumbnail;
+	};
+
+	void DrawAssetLibraryCell(const LibraryIcon& iconType, const std::string& name, const UUID& id, const AssetMetadata& meta, bool& doubleClicked)
+	{
+		const float cellSize = 96.0f;
+		const float cellPadding = 8.0f;
+		const float margin = 7.0f;
+
+		ImGui::TableNextColumn();
+		ImGui::PushID(static_cast<int>(std::hash<Butterfly::UUID>()(id)));
+
+		const ImVec2 cellStart = ImGui::GetCursorScreenPos();
+		const ImVec2 cellMarginStart = ImVec2(cellStart.x + margin, cellStart.y + margin);
+		const ImVec2 cellMarginSize = ImVec2(cellSize - margin * 2, cellSize - margin * 2);
+
+		ImGui::InvisibleButton("##cell", ImVec2(cellSize, cellSize));
+
+		const bool hovered = ImGui::IsItemHovered();
+		doubleClicked = hovered && ImGui::IsMouseDoubleClicked(0);
+
+		ImDrawList* dl = ImGui::GetWindowDrawList();
+		ImU32 iconColor = ImColor(10, 20, 50);
+
+		if (ImGui::BeginPopupContextItem())
+		{
+			if (ImGui::MenuItem("Show in Explorer"))
+			{
+				system(("explorer.exe /select," + meta.Path).c_str());
+			}
+
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginDragDropSource())
+		{
+			UUID id = meta.ID;
+
+			ImGui::SetDragDropPayload("ASSET", &id, sizeof(UUID));
+			ImGui::Text("Dragging %s", name.c_str());
+
+			ImGui::EndDragDropSource();
+		}
+
+		if (hovered)
+		{
+			dl->AddRect(ImVec2(cellStart.x, cellStart.y), ImVec2(cellStart.x + cellSize, cellStart.y + cellSize), IM_COL32(255, 255, 255, 40), 4.0f);
+		}
+
+		const float textMargin = 25.0f;
+		const ImVec2 iconRectStart = ImVec2(cellMarginStart.x + textMargin * 0.5f, cellMarginStart.y);
+		const ImVec2 iconRectSize = ImVec2(cellMarginSize.x - textMargin, cellMarginSize.y - textMargin);
+
+
+
+		if (iconType.Thumbnail)
+		{
+			ImGui::SetCursorScreenPos(iconRectStart);
+			ImGui::Image(iconType.Thumbnail->GetImGUITextureID(), iconRectSize);
+		}
+		else
+		{
+			ImFont* iconFont = ImGui::GetIO().Fonts->Fonts[2];
+			const float fontSize = iconRectSize.x - 5.0f;
+			const ImVec2 iconTextSize = iconFont->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, iconType.IconCode);
+			const float iconX = cellStart.x + (cellSize - iconTextSize.x) * 0.5f;
+			dl->AddText(iconFont, fontSize, ImVec2(iconX, iconRectStart.y), IM_COL32(255, 255, 255, 255), iconType.IconCode);
+		}
+
+		ImGUIHelpers::TextWrappedCentered(name, ImVec2(cellMarginStart.x, cellMarginStart.y + iconRectSize.y), cellMarginSize.x);
+		ImGui::PopID();
+	}
+
 	AssetLibrary::AssetLibrary()
 	{
 	}
@@ -40,50 +116,34 @@ namespace Butterfly
 
 		if (ImGui::BeginTable("AssetGridTable", columnCount, ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_NoBordersInBody))
 		{
-			for (int column = 0; column < columnCount; ++column)
-				ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed, cellSize);
-
 			for (auto& [id, meta] : Application::Get().GetAssetManager().GetAssetRegistry().GetAll())
 			{
-				ImGui::TableNextColumn();
-				ImGui::PushID(static_cast<int>(std::hash<Butterfly::UUID>()(id)));
-
-				const ImVec2 cellStart = ImGui::GetCursorScreenPos();
-				const ImVec2 cellMarginStart = ImVec2(cellStart.x + margin, cellStart.y + margin);
-				const ImVec2 cellMarginSize = ImVec2(cellSize - margin * 2, cellSize - margin * 2);
-
-				ImGui::InvisibleButton("##cell", ImVec2(cellSize, cellSize));
-
-				const bool hovered = ImGui::IsItemHovered();
-				const bool doubleClicked = hovered && ImGui::IsMouseDoubleClicked(0);
-
-				ImDrawList* dl = ImGui::GetWindowDrawList();
-				ImU32 iconColor = ImColor(10, 20, 50);
-
-				if (ImGui::BeginPopupContextItem())
+				if (ThumbnailProcessor::IsSupportedImageType(meta.Path) && !EditorApplication::Get().GetEditorCache().Exists(meta.ID))
 				{
-					if (ImGui::MenuItem("Show in Explorer"))
-					{
-						system(("explorer.exe /select," + meta.Path).c_str());
-					}
+					RefPtr<Thumbnail> thumbnail = ThumbnailProcessor::GetThumbnailFromFile(meta.Path);
+					thumbnail = ThumbnailProcessor::Resize(*thumbnail, 64, 64);
 
-					ImGui::EndPopup();
+					ThumbnailCacheEntry entry(thumbnail);
+					EditorApplication::Get().GetEditorCache().Add<ThumbnailCacheEntry>(meta.ID, entry);
 				}
 
-				if (ImGui::BeginDragDropSource())
+				ThumbnailCacheEntry entry;
+				EditorApplication::Get().GetEditorCache().Get<ThumbnailCacheEntry>(meta.ID, entry);
+
+				LibraryIcon icon;
+				icon.Thumbnail = entry.GetThumbnail();
+				icon.IconCode = FontAwesome::File;
+				if (meta.Extention == ".bfscene")
 				{
-					UUID id = meta.ID;
-
-					ImGui::SetDragDropPayload("ASSET", &id, sizeof(UUID));
-					ImGui::Text("Dragging %s", std::filesystem::path(meta.Path).filename().string().c_str());
-
-					ImGui::EndDragDropSource();
+					icon.IconCode = FontAwesome::CubeStack;
+				}
+				else if (meta.Extention == ".obj")
+				{
+					icon.IconCode = FontAwesome::Cube;
 				}
 
-				if (hovered)
-				{
-					dl->AddRect(ImVec2(cellStart.x, cellStart.y), ImVec2(cellStart.x + cellSize, cellStart.y + cellSize), IM_COL32(255, 255, 255, 40), 4.0f);
-				}
+				bool doubleClicked = false;
+				DrawAssetLibraryCell(icon, std::filesystem::path(meta.Path).filename().string(), meta.ID, meta, doubleClicked);
 
 				if (doubleClicked)
 				{
@@ -99,54 +159,6 @@ namespace Butterfly
 						return;
 					}
 				}
-
-				if (ThumbnailProcessor::IsSupportedImageType(meta.Path) && !EditorApplication::Get().GetEditorCache().Exists(meta.ID))
-				{
-					RefPtr<Thumbnail> thumbnail = ThumbnailProcessor::GetThumbnailFromFile(meta.Path);
-					thumbnail = ThumbnailProcessor::Resize(*thumbnail, 64, 64);
-
-					ThumbnailCacheEntry entry(thumbnail);
-					EditorApplication::Get().GetEditorCache().Add<ThumbnailCacheEntry>(meta.ID, entry);
-				}
-
-				const float textMargin = 25.0f;
-				const ImVec2 iconRectStart = ImVec2(cellMarginStart.x + textMargin * 0.5f, cellMarginStart.y);
-				const ImVec2 iconRectSize = ImVec2(cellMarginSize.x - textMargin, cellMarginSize.y - textMargin);
-
-				ThumbnailCacheEntry cacheEntry;
-				if (EditorApplication::Get().GetEditorCache().Get<ThumbnailCacheEntry>(meta.ID, cacheEntry))
-				{
-					RefPtr<Thumbnail> thumbnail = cacheEntry.GetThumbnail();
-
-					ImGui::SetCursorScreenPos(iconRectStart);
-					ImGui::Image(thumbnail->GetImGUITextureID(), iconRectSize);
-				}
-				else
-				{
-					ImFont* iconFont = ImGui::GetIO().Fonts->Fonts[2];
-					float fontSize = iconRectSize.x - 5.0f;
-					
-					const char* icon = FontAwesome::File;
-
-					if (meta.Extention == ".bfscene")
-					{
-						icon = FontAwesome::CubeStack;
-					}
-					else if (meta.Extention == ".obj")
-					{
-						icon = FontAwesome::Cube;
-					}
-					
-					ImVec2 iconTextSize = iconFont->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, icon);
-					
-					float iconX = cellStart.x + (cellSize - iconTextSize.x) * 0.5f;
-					dl->AddText(iconFont, fontSize, ImVec2(iconX, iconRectStart.y), IM_COL32(255, 255, 255, 255), icon);
-				}
-
-				const std::string name = std::filesystem::path(meta.Path).filename().string();
-
-				ImGUIHelpers::TextWrappedCentered(name, ImVec2(cellMarginStart.x, cellMarginStart.y + iconRectSize.y), cellMarginSize.x);
-				ImGui::PopID();
 			}
 
 			ImGui::EndTable();

@@ -10,6 +10,7 @@ namespace Butterfly
 	class D3D12Fence;
 	class D3D12CommandList;
 	class BFTexture;
+	class BFSampler;
 
 	struct FrameData
 	{
@@ -61,6 +62,8 @@ namespace Butterfly
 		void ImGUIImage(const ViewportHandle& handle);
 
 		RefPtr<Skybox> m_tempSkybox;
+		RefPtr<BFTexture> m_whiteTexture;
+		RefPtr<BFSampler> m_defaultSampler;
 	private:
 		void InvalidateFrameDatas();
 		void WaitForInflightFrames();
@@ -70,7 +73,6 @@ namespace Butterfly
 		void OnWindowResize(const WindowResizeEvent& ev);
 		void OnWindowRefresh();
 
-		RefPtr<BFTexture> m_whiteTexture;
 
 		uint32_t m_frameIndex = 0;
 		uint32_t m_previousFrame = 0;

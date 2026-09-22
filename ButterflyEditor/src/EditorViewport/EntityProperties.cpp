@@ -14,22 +14,16 @@ namespace Butterfly
         if (type == entt::resolve<std::string>())
         {
             std::string s = value.cast<std::string>();
-            char* buffer = new char[s.size() + 1];
-            std::memcpy(buffer, s.c_str(), s.size() + 1);
 
             ImGui::TextUnformatted((std::string(name) + ": ").c_str());
             ImGui::SameLine();
 
-            if (ImGui::InputText("##input", buffer, s.size() + 1))
+            if (ImGui::InputText("##input", &s))
             {
-                value = std::string(buffer);
+                value = s;
                 data.set(component, value);
-
-                delete[] buffer;
                 return true;
             }
-
-            delete[] buffer;
             return false;
         }
 

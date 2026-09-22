@@ -55,6 +55,13 @@ namespace Butterfly
 	{
 	}
 
+	uint32_t DX12DescriptorAllocatorCbvSrvUav::Allocate()
+	{
+		BF_PROFILE_EVENT();
+
+		return NextFreeHandle();
+	}
+
 	uint32_t DX12DescriptorAllocatorCbvSrvUav::CreateCbv(uint32_t numBytes, const D3D12Resource& resource, uint32_t offset)
 	{
 		BF_PROFILE_EVENT();
@@ -81,14 +88,25 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
+
 		BF_CORE_ASSERT(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap has overflown.");
 
-		const uint32_t nextFreeValue = NextFreeHandle();
+		const uint32_t nextFreeValue = Allocate();
+		BF_CORE_LOG_INFO("Creating SRV for resource: %s with handle: %u", resource.DebugName.c_str(), nextFreeValue);
 
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_heap->GetCPUDescriptorHandleForHeapStart();
-		cpuHandle.ptr += m_incrementSize * nextFreeValue;
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = CpuHandleFromSrvHandle(nextFreeValue);
+
 		D3D12API()->Device()->CreateShaderResourceView(resource.HwResource, description, cpuHandle);
 		return nextFreeValue;
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorAllocatorCbvSrvUav::CpuHandleFromSrvHandle(uint32_t handle) const
+	{
+		BF_PROFILE_EVENT();
+
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_heap->GetCPUDescriptorHandleForHeapStart();
+		cpuHandle.ptr += m_incrementSize * handle;
+		return cpuHandle;
 	}
 
 	D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorAllocatorCbvSrvUav::GpuHandleFromSrvHandle(uint32_t handle) const
@@ -100,9 +118,18 @@ namespace Butterfly
 		return gpuHandle;
 	}
 
-	void DX12DescriptorAllocatorCbvSrvUav::AllocateDummy()
+	uint32_t DX12DescriptorAllocatorCbvSrvUav::HandleFromGpuHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle) const
 	{
-		NextFreeHandle();
+		BF_PROFILE_EVENT();
+		const uint64_t offset = handle.ptr - m_heap->GetGPUDescriptorHandleForHeapStart().ptr;
+		return static_cast<uint32_t>(offset / m_incrementSize);
+	}
+
+	uint32_t DX12DescriptorAllocatorCbvSrvUav::HandleFromCpuHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle) const
+	{
+		BF_PROFILE_EVENT();
+		const uint64_t offset = handle.ptr - m_heap->GetCPUDescriptorHandleForHeapStart().ptr;
+		return static_cast<uint32_t>(offset / m_incrementSize);
 	}
 
 	/////////////////////////

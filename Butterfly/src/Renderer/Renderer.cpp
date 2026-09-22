@@ -19,7 +19,7 @@
 #include "Scene/Scene.hpp"
 #include "Scene/Registry/MeshRendererComponent.hpp"
 #include "Scene/Registry/TransformComponent.hpp"
-#include "imgui/imgui_impl_d3d12.h"
+#include "imgui/imgui_impl_dx12.h"
 #include "imgui/imgui_impl_glfw.h"
 
 #include "Asset/AssetManager.hpp"
@@ -42,13 +42,14 @@ namespace Butterfly
 
 		m_tempSkybox = MakeRef<Skybox>();
 
+		m_defaultSampler = MakeRef<BFSampler>();
 		BFTextureDesc desc;
 		desc.DebugName = "WhiteTexture";
 		desc.Width = 1;
 		desc.Height = 1;
 		desc.Flags = BFTextureDesc::ShaderResource;
-		desc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
-		std::vector<uint8_t> data = { 225, 225, 225, 225 };
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		std::vector<uint8_t> data = { 255, 255, 255, 255 };
 		desc.Data = data.data();
 		m_whiteTexture = BFTexture::CreateTextureFromCPUBuffer(desc);
 
@@ -98,20 +99,30 @@ namespace Butterfly
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		ImGui_ImplGlfw_InitForOther(Application::Get().GetWindow().GLFWWindow(), true);
 
-		ImGui_ImplDX12_InitInfo init_info;
+		ImGui_ImplDX12_InitInfo init_info{};
 		init_info.Device = D3D12API()->Device();
 		init_info.NumFramesInFlight = NUM_RENDER_BUFFERS;
 		init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 		init_info.SrvDescriptorHeap = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get();
 		init_info.CommandQueue = D3D12API()->Queue(QueueType::Direct)->D3D12Queue();
-		init_info.LegacySingleSrvCpuDescriptor = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap()->GetCPUDescriptorHandleForHeapStart();
-		init_info.LegacySingleSrvGpuDescriptor = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap()->GetGPUDescriptorHandleForHeapStart();
-		ImGui_ImplDX12_Init(&init_info);
 
-		// We allocate a dummy because textureslot 1-3 is used by ImGUI for font rendering.
-		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
-		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
-		D3D12API()->DescriptorAllocatorSrvCbvUav()->AllocateDummy();
+		init_info.SrvDescriptorAllocFn =
+			[](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* cpu, D3D12_GPU_DESCRIPTOR_HANDLE* gpu)
+			{
+				const uint32_t handle = D3D12API()->DescriptorAllocatorSrvCbvUav()->Allocate();
+				BF_CORE_LOG_INFO("Creating SRV with handle: %u", handle);
+				*cpu = D3D12API()->DescriptorAllocatorSrvCbvUav()->CpuHandleFromSrvHandle(handle);
+				*gpu = D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(handle);
+			};
+
+		init_info.SrvDescriptorFreeFn =
+			[](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE cpu, D3D12_GPU_DESCRIPTOR_HANDLE gpu)
+			{
+				const uint32_t handle = D3D12API()->DescriptorAllocatorSrvCbvUav()->HandleFromGpuHandle(gpu);
+				D3D12API()->DescriptorAllocatorSrvCbvUav()->FreeHandle(handle);
+			};
+
+		ImGui_ImplDX12_Init(&init_info);
 	}
 
 	const Viewport& Renderer::GetViewport(const ViewportHandle& handle)
@@ -382,7 +393,6 @@ namespace Butterfly
 
 				// Default Init stuff.
 				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 				GraphicsCommands::SetRenderTargets(list, { &rt }, params.DepthStencil->Resource().get());
 
 				GraphicsCommands::ClearDepthStencil(list, *params.DepthStencil->Resource());
@@ -401,7 +411,6 @@ namespace Butterfly
 				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
 
 				uint32_t entityIndex = 0;
-				BFSampler sampler;
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 				for (auto [entity, transform, meshRenderer] : view.each())
 				{
@@ -417,7 +426,7 @@ namespace Butterfly
 						.Add(mesh->GPUNormals->SRV().View())
 						.Add(mesh->GPUUVs->SRV().View())
 						.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-						.Add(sampler.View())
+						.Add(m_defaultSampler->View())
 						.Add(m_whiteTexture->SRV().View())
 						.Add(viewport.ModelMatrices->SRV().View())
 						.Add(entityIndex)

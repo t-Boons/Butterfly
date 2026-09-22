@@ -29,11 +29,15 @@ namespace Butterfly
 	public:
 		DX12DescriptorAllocatorCbvSrvUav(const uint32_t numDescriptors);
 
+		uint32_t Allocate();
+
 		uint32_t CreateCbv(uint32_t numBytes, const D3D12Resource& resource, uint32_t offset);
 		uint32_t CreateSrv(const D3D12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* description);
 	
+		D3D12_CPU_DESCRIPTOR_HANDLE CpuHandleFromSrvHandle(uint32_t handle) const;
 		D3D12_GPU_DESCRIPTOR_HANDLE  GpuHandleFromSrvHandle(uint32_t handle) const;
-		void AllocateDummy();
+		uint32_t HandleFromGpuHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle) const;
+		uint32_t HandleFromCpuHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle) const;
 	};
 
 	class DX12DescriptorAllocatorRtv : public DX12DescriptorAllocator
