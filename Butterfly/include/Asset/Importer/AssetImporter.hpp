@@ -16,22 +16,11 @@ namespace Butterfly
 														\
 	static ImporterRegistrar<type> s_##type##Importer;
 
-
-	struct ImportedAsset
-	{
-		AssetType Type;
-		std::shared_ptr<void> Data;
-	};
-
-	struct ImportResult
-	{
-		ImportedAsset Asset;
-	};
-
+	class AssetManager;
 	class IAssetImporter
 	{
 	public:
-		virtual bool Import(const AssetMetadata& path, ImportResult& ret) const = 0;
+		virtual bool Import(const AssetMetadata& path, AssetManager& manager) const = 0;
 		virtual bool CanImport(const std::string& fileExtention) const = 0;
 		virtual bool CanImportType(const std::type_info& type) const = 0;
 	};

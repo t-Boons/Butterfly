@@ -19,7 +19,7 @@ namespace Butterfly
 			   type == typeid(ModelAsset);
 	}
 
-	bool OBJImporter::Import(const AssetMetadata& path, ImportResult& ret) const
+	bool OBJImporter::Import(const AssetMetadata& path, AssetManager& manager) const
 	{
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
@@ -72,15 +72,15 @@ namespace Butterfly
 				mesh->UVs.push_back({ uvx, uvy });
 			}
 			indexOffset += vertexElementCount;
+		
 		}
+
+		mesh->SubMeshes.push_back({ 0, static_cast<uint32_t>(mesh->Indices.size()) });
 
 		mesh->GPULoad();
 
-		ImportedAsset meshAsset;
-		meshAsset.Data = StaticCastRef<void>(mesh);
-		meshAsset.Type = AssetType{ "Mesh" };
-		ret.Asset = meshAsset;
 
+		manager.AddAssetEntry<MeshAsset>(AssetEntry{ path.ID, AssetType{ "Mesh" }, StaticCastRef<void>(mesh) });
 		return true;
 	}
 }

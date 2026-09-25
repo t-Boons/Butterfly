@@ -192,13 +192,10 @@ namespace Butterfly
 
 		frame.CmdList->Reset();
 
-		frame.CmdList->BeginGPUMarker("Render Frame -> " + std::to_string(frame.FrameIndex));
+		frame.CmdList->BeginGPUMarker("Render");
 
 		// Clear composite render target.
-		frame.CmdList->BeginGPUMarker("Composite Clear.");
 		GraphicsCommands::ClearRenderTarget(*frame.CmdList, *frame.CompositeRenderTarget, { 0.05f, 0.05f, 0.05f, 1.0f });
-		frame.CmdList->EndGPUMarker();
-
 
 		// New ImGUI Frame.
 		ImGui_ImplDX12_NewFrame();
@@ -235,17 +232,17 @@ namespace Butterfly
 			frame.CmdList->EndGPUMarker();
 		}
 
-		ImGui::Render();
-		ID3D12DescriptorHeap* heaps[] = { D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get() };
-		frame.CmdList->List()->SetDescriptorHeaps(_countof(heaps), heaps);
-		GraphicsCommands::SetRenderTargets(*frame.CmdList, { frame.CompositeRenderTarget.get()}, nullptr);
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), frame.CmdList->List());
+		{
+			frame.CmdList->BeginGPUMarker("ImGUI");
+			ImGui::Render();
+			GraphicsCommands::SetRenderTargets(*frame.CmdList, { frame.CompositeRenderTarget.get() }, nullptr);
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), frame.CmdList->List());
 
-		Application::Get().GetWindow().Context().RecordCopyToBackBuffer(*frame.CompositeRenderTarget->Resource(), *frame.CmdList);
-
+			Application::Get().GetWindow().Context().RecordCopyToBackBuffer(*frame.CompositeRenderTarget->Resource(), *frame.CmdList);
+			frame.CmdList->EndGPUMarker();
+		}
 
 		frame.CmdList->EndGPUMarker();
-
 		frame.CmdList->Close();
 		D3D12API()->Queue(QueueType::Direct)->Execute(*frame.CmdList);
 		frame.Fence->Signal(*D3D12API()->Queue(QueueType::Direct));
@@ -421,19 +418,31 @@ namespace Butterfly
 
 					AssetManager& as = Application::Get().GetAssetManager();
 					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-					ShaderVariables()
-						.Add(mesh->GPUPositions->SRV().View())
-						.Add(mesh->GPUNormals->SRV().View())
-						.Add(mesh->GPUUVs->SRV().View())
-						.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-						.Add(m_defaultSampler->View())
-						.Add(m_whiteTexture->SRV().View())
-						.Add(viewport.ModelMatrices->SRV().View())
-						.Add(entityIndex)
-						.Submit(list);
 
 					list.List()->IASetIndexBuffer(&mesh->GPUIndices->IBV());
-					list.List()->DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);
+
+					for (auto& subMesh : mesh->SubMeshes)
+					{
+						BFTexture* albedo = m_whiteTexture.get();
+						if (subMesh.Material.Valid())
+						{
+							MaterialAsset* material = as.Resolve<MaterialAsset>(subMesh.Material);
+							albedo = as.Resolve<TextureAsset>(material->ColorTexture)->Texture.get();
+						}
+
+						ShaderVariables()
+							.Add(mesh->GPUPositions->SRV().View())
+							.Add(mesh->GPUNormals->SRV().View())
+							.Add(mesh->GPUUVs->SRV().View())
+							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
+							.Add(m_defaultSampler->View())
+							.Add(albedo->SRV().View())
+							.Add(viewport.ModelMatrices->SRV().View())
+							.Add(entityIndex)
+							.Submit(list);
+
+						list.List()->DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);
+					}
 
 					entityIndex++;
 				}

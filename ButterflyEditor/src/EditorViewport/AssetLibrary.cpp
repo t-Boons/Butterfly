@@ -137,7 +137,7 @@ namespace Butterfly
 				{
 					icon.IconCode = FontAwesome::CubeStack;
 				}
-				else if (meta.Extention == ".obj")
+				else if (meta.Extention == ".obj" || meta.Extention == ".gltf" || meta.Extention == ".glb")
 				{
 					icon.IconCode = FontAwesome::Cube;
 				}
@@ -157,6 +157,37 @@ namespace Butterfly
 						ImGui::EndChild();
 						ImGui::End();
 						return;
+					}
+					else if (meta.Extention == ".gltf" || meta.Extention == ".glb")
+					{
+						AssetHandle<ModelAsset> handle;
+						Application::Get().GetAssetManager().Acquire(AssetUUID<ModelAsset>(meta.ID), handle);
+						ModelAsset* model = Application::Get().GetAssetManager().Resolve(handle);
+
+						std::function<void(ModelNode*, entt::entity)> traverse = [&](ModelNode* node, entt::entity parent)
+							{
+								entt::entity entity = Application::Get().GetScene().CreateEntity(node->Name);
+								auto& tr = Application::Get().GetScene().m_activeScene->GetComponent<TransformComponent>(entity);
+								tr.SetWorldMatrix(node->ModelMatrix);
+
+								if (parent != entt::null)
+								{
+									Application::Get().GetScene().m_activeScene->GetComponent<TransformComponent>(parent).Attach(tr);
+								}
+
+								if (node->Mesh)
+								{
+									MeshRendererComponent& mr = Application::Get().GetScene().m_activeScene->AddComponent<MeshRendererComponent>(entity);
+									mr.SetMeshHandle(node->Mesh);
+								}
+
+								for (auto& child : node->Children)
+								{
+									traverse(child.get(), entity);
+								}
+							};
+
+						traverse(model->RootNode.get(), entt::null);
 					}
 				}
 			}

@@ -46,9 +46,6 @@
 #include "Serialization/ENTT/ComponentRegistry.hpp"
 
 
-// Model loading.
-#include "Renderer/ModelLoading/ModelImporter.hpp"
-
 // Butterfly types.
 #include "Renderer/D3D12Sampler.hpp"
 #include "Renderer/D3D12Buffer.hpp"

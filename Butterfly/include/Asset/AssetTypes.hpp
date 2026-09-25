@@ -6,17 +6,33 @@
 
 namespace Butterfly
 {
+	struct MaterialAsset;
+
 	struct MeshAsset
 	{
+		std::string Name;
+
 		std::vector<glm::vec3> Positions;
 		std::vector<glm::vec3> Normals;
 		std::vector<glm::vec2> UVs;
+		std::vector<glm::vec4> Tangents;
+		std::vector<glm::vec3> Bitangents;
 		std::vector<uint32_t> Indices;
 
 		RefPtr<BFStructuredBuffer> GPUPositions;
 		RefPtr<BFStructuredBuffer> GPUNormals;
 		RefPtr<BFStructuredBuffer> GPUUVs;
 		RefPtr<BFIndexBuffer> GPUIndices;
+
+
+		struct SubMesh
+		{
+			uint32_t IndexOffset;
+			uint32_t IndexCount;
+			AssetHandle<MaterialAsset> Material;
+		};
+
+		std::vector<SubMesh> SubMeshes;
 
 		bool GPULoaded = false;
 
@@ -54,7 +70,7 @@ namespace Butterfly
 				desc.Data = UVs.data();
 				desc.NumElements = static_cast<uint32_t>(UVs.size());
 				desc.Stride = sizeof(glm::vec2);
-				desc.DebugName = "Positions";
+				desc.DebugName = "UVs";
 				GPUUVs = MakeRef<BFStructuredBuffer>(desc);
 			}
 
@@ -68,8 +84,33 @@ namespace Butterfly
 		RefPtr<BFTexture> Texture;
 	};
 
+	struct ModelNode
+	{
+		std::string Name;
+		glm::mat4 ModelMatrix = glm::mat4(1.0f);
+		std::vector<RefPtr<ModelNode>> Children;
+
+		AssetHandle<MeshAsset> Mesh;
+	};
+
 	struct ModelAsset
 	{
-		std::vector<AssetHandle<MeshAsset>> Assets;
+		RefPtr<ModelNode> RootNode;
+	};
+
+	struct MaterialAsset
+	{
+		float Metallic = 0.5f;
+		float Roughness = 0.5f;
+		glm::vec4 BaseColor = glm::vec4(1.0f);
+		glm::vec4 EmissiveColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		AssetHandle<TextureAsset> ColorTexture;
+		AssetHandle<TextureAsset> NormalTexture;
+		AssetHandle<TextureAsset> MetallicRoughnessTexture;
+		AssetHandle<TextureAsset> EmissionTexture;
+		AssetHandle<TextureAsset> AmbientOcclusionTexture;
+		float NormalScale = 1.0f;
+
+		std::string Name;
 	};
 }

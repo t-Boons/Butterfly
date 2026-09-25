@@ -33,6 +33,7 @@ add_library(Butterfly STATIC
     src/Asset/Importer/AssetImporter.cpp
     src/Asset/Importer/ImageImporter.cpp
     src/Asset/Importer/OBJImporter.cpp
+    src/Asset/Importer/GLTFImporter.cpp
 
     src/Serialization/ENTT/ComponentRegistry.cpp
 
@@ -58,8 +59,6 @@ add_library(Butterfly STATIC
     src/Renderer/Graph/Graph.cpp
     src/Renderer/Graph/GraphTypes.cpp
     src/Renderer/ModelLoading/MikkTSpaceWrapper.cpp
-    src/Renderer/ModelLoading/ModelImporter.cpp
-    src/Renderer/ModelLoading/GLTF/ModelImporterGLTF.cpp
 )
 
 target_include_directories(Butterfly

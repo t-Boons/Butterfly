@@ -4,7 +4,7 @@
 namespace Butterfly
 {
 	class AssetManager;
-	class OBJImporter : public IAssetImporter
+	class GLTFImporter : public IAssetImporter
 	{
 	public:
 		virtual bool Import(const AssetMetadata& path, AssetManager& manager) const override;

@@ -25,7 +25,7 @@ namespace Butterfly
 		uint32_t ArraySize = 1;
 		uint32_t Flags = None;
 		std::string DebugName = "Texture";
-		void* Data;
+		const void* Data = nullptr;
 
 		enum Flag : uint32_t
 		{

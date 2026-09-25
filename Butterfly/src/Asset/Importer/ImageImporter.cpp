@@ -25,7 +25,7 @@ namespace Butterfly
 		return type == typeid(TextureAsset);
 	}
 
-	bool ImageImporter::Import(const AssetMetadata& path, ImportResult& ret) const
+	bool ImageImporter::Import(const AssetMetadata& path, AssetManager& manager) const
 	{
 		BFTextureDesc textureDesc;
 		int channels, width, height = 0;
@@ -49,8 +49,7 @@ namespace Butterfly
 		RefPtr<TextureAsset> textureAsset = MakeRef<TextureAsset>();
 		textureAsset->Texture = BFTexture::CreateTextureFromCPUBuffer(textureDesc);
 
-		ret.Asset.Data = StaticCastRef<void>(textureAsset);
-		ret.Asset.Type = AssetType{ "Texture" };
+		manager.AddAssetEntry<TextureAsset>(AssetEntry{ path.ID, AssetType{ "Texture" }, StaticCastRef<void>(textureAsset) });
 
 		stbi_image_free(pixels);
 		return true;

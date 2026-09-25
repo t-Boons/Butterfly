@@ -31,6 +31,9 @@ namespace Butterfly
 
         void GarbageCollect();
 
+		template<typename T>
+        AssetHandle<T> AddAssetEntry(const AssetEntry& entry);
+
     private:
         template<typename T>
         friend class AssetHandle;
@@ -74,10 +77,8 @@ namespace Butterfly
             return false;
         }
 
-        auto& entry = m_entries[id.ID()];
-
-        // For now return if the asset is already loaded. In the future we may want to check if the type matches and return an error if it doesn't.
-        if (entry.Data)
+		auto it = m_entries.find(id.ID());
+        if (it != m_entries.end())
         {
             ret = AssetHandle<T>(this, id.ID());
             return true;
@@ -107,19 +108,27 @@ namespace Butterfly
             return false;
         }
 
-        ImportResult result;
-        if (!importer->Import(meta, result))
+        if (!importer->Import(meta, *this))
         {
             BF_CORE_LOG_ERROR("Import for ID failed: %s", meta.ID.ToString().c_str());
             return false;
         }
 
-        auto& e = m_entries[id.ID()];
-        e.ID = id.ID();
-        e.Data = result.Asset.Data;
-        e.Type = result.Asset.Type;
-
         ret = AssetHandle<T>(this, id.ID());
         return true;
+    }
+
+    template<typename T>
+    AssetHandle<T> AssetManager::AddAssetEntry(const AssetEntry& entry)
+    {
+		auto it = m_entries.find(entry.ID);
+        if(it == m_entries.end())
+        {
+            m_entries[entry.ID] = entry;
+            return AssetHandle<T>(this, entry.ID);
+        }
+
+        BF_CORE_LOG_WARN("Asset with ID: %s already exists", entry.ID.ToString().c_str());
+        return AssetHandle<T>(this, entry.ID);
     }
 }
