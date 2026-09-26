@@ -27,7 +27,7 @@ namespace Butterfly
 					std::string path;
 					if (Application::Get().GetWindow().OpenFileDialog(path))
 					{
-						AssetMetadata meta;
+						AssetFileMetadata meta;
 						if (Application::Get().GetAssetManager().GetAssetRegistry().ImportFromDisk(path, meta))
 						{
 							BF_LOG_INFO("Imported file");

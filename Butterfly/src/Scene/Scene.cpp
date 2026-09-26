@@ -65,8 +65,14 @@ namespace Butterfly
 		}
 
 		// Get the root from any of the other existing transformcomponents since they are all parented to the root.
-		auto firstEntity = *out->m_registry.view<TransformComponent>().begin();
-		out->m_rootEntity = out->m_registry.get<TransformComponent>(firstEntity).GetRoot().GetHandle();
+		for (const auto& [entity, transform] : out->m_registry.view<TransformComponent>().each())
+		{
+			if (!transform.GetParent())
+			{
+				out->m_rootEntity = entity;
+				break;
+			}
+		}
 		return out;
 	}
 
@@ -110,7 +116,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		AssetMetadata meta;
+		AssetFileMetadata meta;
 		Application::Get().GetAssetManager().GetAssetRegistry().NewFile(m_activeScene->GetName(), ".bfscene", Scene::Serialize(*m_activeScene), meta);
 	}
 

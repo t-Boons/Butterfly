@@ -171,9 +171,7 @@ namespace Butterfly
 		return bitangents;
 	}
 
-	AssetHandle<TextureAsset> LoadTextureFromMaterial(const tinygltf::Model& model,
-		const tinygltf::Material& material,
-		const std::string& attribName, AssetManager& manager)
+	AssetHandle<TextureAsset> LoadTextureFromMaterial(const tinygltf::Model& model, const tinygltf::Material& material, const std::string& attribName, AssetManager& manager, const AssetFileMetadata& meta)
 	{
 		const bool foundValue = material.values.find(attribName) != material.values.end();
 		const bool foundAdditionalValue = material.additionalValues.find(attribName) != material.additionalValues.end();
@@ -206,121 +204,237 @@ namespace Butterfly
 		RefPtr<TextureAsset> outAsset = MakeRef<TextureAsset>();
 		outAsset->Texture = BFTexture::CreateTextureFromCPUBuffer(desc);
 
-		return manager.AddAssetEntry<TextureAsset>(AssetEntry{ UUID::Generate(), {"Texture"}, outAsset });
-	}
-
-	AssetHandle<MaterialAsset> LoadMaterialFromGltfMaterial(const tinygltf::Model& model, const tinygltf::Material& material, AssetManager& manager)
-	{
-		RefPtr<MaterialAsset> outMaterial = MakeRef<MaterialAsset>();
-		outMaterial->ColorTexture = LoadTextureFromMaterial(model, material, "baseColorTexture", manager);
-		outMaterial->MetallicRoughnessTexture = LoadTextureFromMaterial(model, material, "metallicRoughnessTexture", manager);
-		outMaterial->NormalTexture = LoadTextureFromMaterial(model, material, "normalTexture", manager);
-		outMaterial->EmissionTexture = LoadTextureFromMaterial(model, material, "emissiveTexture", manager);
-		outMaterial->AmbientOcclusionTexture = LoadTextureFromMaterial(model, material, "occlusionTexture", manager);
-		outMaterial->Name = material.name;
-
-		const uint32_t numCV = static_cast<uint32_t>(material.pbrMetallicRoughness.baseColorFactor.size());
-		for (uint32_t i = 0; i < numCV; i++)
+		std::string name = (tex.name + "_" + attribName);
+		if (tex.name.empty())
 		{
-			outMaterial->BaseColor[i] = static_cast<float>(material.pbrMetallicRoughness.baseColorFactor[i]);
+			name = "Texture_" + std::to_string(index) + "_" + attribName;
 		}
-
-		const uint32_t numEC = static_cast<uint32_t>(material.emissiveFactor.size());
-		for (uint32_t i = 0; i < numEC; i++)
-		{
-			outMaterial->EmissiveColor[i] = static_cast<float>(material.emissiveFactor[i]);
-		}
-
-		outMaterial->Metallic = static_cast<float>(material.pbrMetallicRoughness.metallicFactor);
-		outMaterial->Roughness = static_cast<float>(material.pbrMetallicRoughness.roughnessFactor);
-		outMaterial->NormalScale = static_cast<float>(material.normalTexture.scale);
-
-		return manager.AddAssetEntry<MaterialAsset>(AssetEntry{ UUID::Generate(), {"Material"}, outMaterial });
-	}
-
-	AssetHandle<MeshAsset> LoadMeshFromGltfMesh(const tinygltf::Model& model, const tinygltf::Mesh& mesh, const std::vector<AssetHandle<MaterialAsset>>& materials, AssetManager& manager)
-	{
-		RefPtr<MeshAsset> outMesh = MakeRef<MeshAsset>();
-		outMesh->Name = mesh.name;
-
-		// Load attributes.
-		const LoadedAttribute<glm::vec3> positions = LoadAttribute<glm::vec3>(model, mesh.primitives, "POSITION");
-		const LoadedAttribute<glm::vec3> normals = LoadAttribute<glm::vec3>(model, mesh.primitives, "NORMAL");
-		const LoadedAttribute<glm::vec2> uvs = LoadAttribute<glm::vec2>(model, mesh.primitives, "TEXCOORD_0");
-		const LoadedAttribute<glm::vec4> tangents = LoadAttribute<glm::vec4>(model, mesh.primitives, "TANGENT");
-		const LoadedIndices loadedIndices = LoadIndices(model, mesh.primitives, positions.Offsets);
-
-		outMesh->Indices = loadedIndices.Indices;
-		outMesh->Positions = positions.Data;
-		outMesh->Normals = normals.Data;
-		outMesh->UVs = uvs.Data;
-		outMesh->Tangents = tangents.Data;
-
-		// Generate tangents if they are not present in the GLTF file.
-		if (outMesh->Tangents.empty())
-		{
-			MikkTSpaceTangent::MikktSpaceMesh m;
-			m.m_indices = &outMesh->Indices;
-			m.m_positions = &outMesh->Positions;
-			m.m_normals = &outMesh->Normals;
-			m.m_texcoords = &outMesh->UVs;
-
-			MikkTSpaceTangent::GetTangents(m, outMesh->Tangents);
-		}
-
-		outMesh->Bitangents = CalculateBITangents(outMesh->Tangents, outMesh->Normals);
-
-		// Create submeshes.
-		for (size_t i = 0; i < mesh.primitives.size(); i++)
-		{
-			const auto& prim = mesh.primitives[i];
-			const auto& accessor = model.accessors[prim.indices];
-
-			MeshAsset::SubMesh subMesh;
-			subMesh.IndexOffset = loadedIndices.Offsets[i];
-			subMesh.IndexCount = static_cast<uint32_t>(accessor.count);
-
-			if (prim.material >= 0)
+		const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)
 			{
-				subMesh.Material = materials[prim.material];
-			}
+				return subMeta.second.Name == name && subMeta.second.Type.TypeName == "Texture";
+			});	
 
-			outMesh->SubMeshes.push_back(subMesh);
+		if (subMetaData == meta.Assets.end())
+		{
+			BF_CORE_LOG_ERROR("Failed to find sub asset metadata for material: %s", tex.name.c_str());
+			return {};
 		}
 
-		outMesh->GPULoad();
-
-		return manager.AddAssetEntry<MeshAsset>(AssetEntry{ UUID::Generate(), {"Mesh"}, outMesh });
+		return manager.AddAssetEntry<TextureAsset>(AssetEntry{ subMetaData->second.AssetID, subMetaData->second.Type, outAsset });
 	}
 
-	std::vector<AssetHandle<MaterialAsset>> LoadMaterials(const tinygltf::Model& model, AssetManager& manager)
+	bool LoadTextureMetadataFromGltfMaterial(const tinygltf::Model& model, const tinygltf::Material& material, const std::string& attribName, std::unordered_map<UUID, AssetMetadata>& metadata)
+	{
+		const bool foundValue = material.values.find(attribName) != material.values.end();
+		const bool foundAdditionalValue = material.additionalValues.find(attribName) != material.additionalValues.end();
+
+		if (!foundValue && !foundAdditionalValue)
+		{
+			return false;
+		}
+
+		int index = -1;
+		if (foundValue)
+		{
+			index = material.values.at(attribName).TextureIndex();
+		}
+		else
+		{
+			index = material.additionalValues.at(attribName).TextureIndex();
+		}
+
+		const tinygltf::Texture& tex = model.textures[index];
+
+		AssetMetadata newMeta;
+		newMeta.Name = tex.name + "_" + attribName;
+		if (tex.name.empty())
+		{
+			newMeta.Name = "Texture_" + std::to_string(index) + "_" + attribName;
+		}
+		newMeta.Type = { "Texture" };
+		newMeta.AssetID = UUID::Generate();
+		metadata.insert({ newMeta.AssetID, newMeta });
+		return true;
+	}
+
+	std::vector<AssetHandle<MaterialAsset>> LoadMaterials(const tinygltf::Model& model, AssetManager& manager, const AssetFileMetadata& meta)
 	{
 		std::vector<AssetHandle<MaterialAsset>> materials;
 		const size_t count = model.materials.size();
 		if (count == 0) return materials;
-		materials.resize(count);
+		materials.reserve(count);
 
 		for (size_t i = 0; i < count; i++)
 		{
-			materials[i] = LoadMaterialFromGltfMaterial(model, model.materials[i], manager);
+			const tinygltf::Material& material = model.materials[i];
+			RefPtr<MaterialAsset> outMaterial = MakeRef<MaterialAsset>();
+			outMaterial->ColorTexture = LoadTextureFromMaterial(model, material, "baseColorTexture", manager, meta);
+			outMaterial->MetallicRoughnessTexture = LoadTextureFromMaterial(model, material, "metallicRoughnessTexture", manager, meta);
+			outMaterial->NormalTexture = LoadTextureFromMaterial(model, material, "normalTexture", manager, meta);
+			outMaterial->EmissionTexture = LoadTextureFromMaterial(model, material, "emissiveTexture", manager, meta);
+			outMaterial->AmbientOcclusionTexture = LoadTextureFromMaterial(model, material, "occlusionTexture", manager, meta);
+			outMaterial->Name = material.name;
+
+			const uint32_t numCV = static_cast<uint32_t>(material.pbrMetallicRoughness.baseColorFactor.size());
+			for (uint32_t i = 0; i < numCV; i++)
+			{
+				outMaterial->BaseColor[i] = static_cast<float>(material.pbrMetallicRoughness.baseColorFactor[i]);
+			}
+
+			const uint32_t numEC = static_cast<uint32_t>(material.emissiveFactor.size());
+			for (uint32_t i = 0; i < numEC; i++)
+			{
+				outMaterial->EmissiveColor[i] = static_cast<float>(material.emissiveFactor[i]);
+			}
+
+			outMaterial->Metallic = static_cast<float>(material.pbrMetallicRoughness.metallicFactor);
+			outMaterial->Roughness = static_cast<float>(material.pbrMetallicRoughness.roughnessFactor);
+			outMaterial->NormalScale = static_cast<float>(material.normalTexture.scale);
+
+
+			std::string name = material.name;
+			if (material.name.empty())
+			{
+				name = "Material_" + std::to_string(i);
+			}
+
+			const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)
+				{
+					return subMeta.second.Name == name && subMeta.second.Type.TypeName == "Material";
+				});
+
+			if (subMetaData == meta.Assets.end())
+			{
+				BF_CORE_LOG_ERROR("Failed to find sub asset metadata for material: %s", material.name.c_str());
+				return {};
+			}
+
+			materials.push_back(manager.AddAssetEntry<MaterialAsset>(AssetEntry{ subMetaData->second.AssetID, subMetaData->second.Type, outMaterial }));
 		}
 
 		return materials;
 	}
 
-	std::vector<AssetHandle<MeshAsset>> LoadMeshes(const tinygltf::Model& model, const std::vector<AssetHandle<MaterialAsset>>& materials, AssetManager& manager)
+	void LoadMaterialMetadata(const tinygltf::Model& model, std::unordered_map<UUID, AssetMetadata>& metadata)
+	{
+		for (uint32_t i = 0; i < model.materials.size(); i++)
+		{
+			AssetMetadata matMetadata;
+			matMetadata.Name = model.materials[i].name;
+			if (model.materials[i].name.empty())
+			{
+				matMetadata.Name = "Material_" + std::to_string(i);
+			}
+			matMetadata.Type = { "Material" };
+			matMetadata.AssetID = UUID::Generate();
+
+			metadata.insert({ matMetadata.AssetID, matMetadata });
+			LoadTextureMetadataFromGltfMaterial(model, model.materials[i], "baseColorTexture", metadata);
+			LoadTextureMetadataFromGltfMaterial(model, model.materials[i], "metallicRoughnessTexture", metadata);
+			LoadTextureMetadataFromGltfMaterial(model, model.materials[i], "normalTexture", metadata);
+			LoadTextureMetadataFromGltfMaterial(model, model.materials[i], "emissiveTexture", metadata);
+			LoadTextureMetadataFromGltfMaterial(model, model.materials[i], "occlusionTexture", metadata);
+		}
+	}
+
+	std::vector<AssetHandle<MeshAsset>> LoadMeshes(const tinygltf::Model& model, const std::vector<AssetHandle<MaterialAsset>>& materials, AssetManager& manager, const AssetFileMetadata& meta)
 	{
 		std::vector<AssetHandle<MeshAsset>> meshes;
 		const size_t count = model.meshes.size();
 		if (count == 0) return meshes;
-		meshes.resize(count);
+		meshes.reserve(count);
 
 		for (size_t i = 0; i < count; i++)
 		{
-			meshes[i] = LoadMeshFromGltfMesh(model, model.meshes[i], materials, manager);
+			const tinygltf::Mesh& mesh = model.meshes[i];
+
+			RefPtr<MeshAsset> outMesh = MakeRef<MeshAsset>();
+			outMesh->Name = mesh.name;
+
+			// Load attributes.
+			const LoadedAttribute<glm::vec3> positions = LoadAttribute<glm::vec3>(model, mesh.primitives, "POSITION");
+			const LoadedAttribute<glm::vec3> normals = LoadAttribute<glm::vec3>(model, mesh.primitives, "NORMAL");
+			const LoadedAttribute<glm::vec2> uvs = LoadAttribute<glm::vec2>(model, mesh.primitives, "TEXCOORD_0");
+			const LoadedAttribute<glm::vec4> tangents = LoadAttribute<glm::vec4>(model, mesh.primitives, "TANGENT");
+			const LoadedIndices loadedIndices = LoadIndices(model, mesh.primitives, positions.Offsets);
+
+			outMesh->Indices = loadedIndices.Indices;
+			outMesh->Positions = positions.Data;
+			outMesh->Normals = normals.Data;
+			outMesh->UVs = uvs.Data;
+			outMesh->Tangents = tangents.Data;
+
+			// Generate tangents if they are not present in the GLTF file.
+			if (outMesh->Tangents.empty())
+			{
+				MikkTSpaceTangent::MikktSpaceMesh m;
+				m.m_indices = &outMesh->Indices;
+				m.m_positions = &outMesh->Positions;
+				m.m_normals = &outMesh->Normals;
+				m.m_texcoords = &outMesh->UVs;
+
+				MikkTSpaceTangent::GetTangents(m, outMesh->Tangents);
+			}
+
+			outMesh->Bitangents = CalculateBITangents(outMesh->Tangents, outMesh->Normals);
+
+			// Create submeshes.
+			for (size_t i = 0; i < mesh.primitives.size(); i++)
+			{
+				const auto& prim = mesh.primitives[i];
+				const auto& accessor = model.accessors[prim.indices];
+
+				MeshAsset::SubMesh subMesh;
+				subMesh.IndexOffset = loadedIndices.Offsets[i];
+				subMesh.IndexCount = static_cast<uint32_t>(accessor.count);
+
+				if (prim.material >= 0)
+				{
+					subMesh.Material = materials[prim.material];
+				}
+
+				outMesh->SubMeshes.push_back(subMesh);
+			}
+
+			outMesh->GPULoad();
+
+			std::string name = mesh.name;
+			if (mesh.name.empty())
+			{
+				name = "Mesh_" + std::to_string(i);
+			}
+			const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)
+				{
+					return subMeta.second.Name == name && subMeta.second.Type.TypeName == "Mesh";
+				});
+
+			if (subMetaData == meta.Assets.end())
+			{
+				BF_CORE_LOG_ERROR("Failed to find sub asset metadata for mesh: %s", name.c_str());
+				return {};
+			}
+
+			meshes.push_back(manager.AddAssetEntry<MeshAsset>(AssetEntry{ subMetaData->second.AssetID, subMetaData->second.Type, outMesh }));
 		}
 
 		return meshes;
+	}
+
+	void LoadMeshMetadata(const tinygltf::Model& model, std::unordered_map<UUID, AssetMetadata>& metadata)
+	{
+		for (uint32_t i = 0; i < model.meshes.size(); i++)
+		{
+			AssetMetadata matMetadata;
+			matMetadata.Name = model.meshes[i].name;
+			if (model.meshes[i].name.empty())
+			{
+				matMetadata.Name = "Mesh_" + std::to_string(i);
+			}
+			matMetadata.Type = { "Mesh" };
+			matMetadata.AssetID = UUID::Generate();
+
+			metadata.insert({ matMetadata.AssetID, matMetadata });
+		}
 	}
 
 	RefPtr<ModelNode> LoadNode(const tinygltf::Model& gltfModel, const tinygltf::Node& gltfNode, const std::vector<AssetHandle<MeshAsset>>& meshes)
@@ -414,25 +528,50 @@ namespace Butterfly
 			extension == ".glb";
 	}
 
-	bool GLTFImporter::CanImportType(const std::type_info& type) const
+	bool GLTFImporter::CanImportType(const AssetType& type) const
 	{
-		return type == typeid(ModelAsset);
+		return type == ModelAsset::Type;
 	}
 
-	bool GLTFImporter::Import(const AssetMetadata& path, AssetManager& manager) const
+	bool GLTFImporter::Import(const AssetFileMetadata& meta, AssetManager& manager) const
 	{
 		tinygltf::Model gltfModel;
-		LoadGltfModel(path.Path, gltfModel);
+		LoadGltfModel(meta.Path.string(), gltfModel);
 
-		std::vector<AssetHandle<MaterialAsset>> materials = LoadMaterials(gltfModel, manager);
-		std::vector<AssetHandle<MeshAsset>> meshes = LoadMeshes(gltfModel, materials, manager);
+		std::vector<AssetHandle<MaterialAsset>> materials = LoadMaterials(gltfModel, manager, meta);
+		std::vector<AssetHandle<MeshAsset>> meshes = LoadMeshes(gltfModel, materials, manager, meta);
 		RefPtr<ModelNode> root = CreateNodes(gltfModel, meshes);
 
 		RefPtr<ModelAsset> outModel = MakeRef<ModelAsset>();
 		outModel->RootNode = root;
 
-		manager.AddAssetEntry<ModelAsset>(AssetEntry{ path.ID, {"ModelAsset"}, outModel });
+		manager.AddAssetEntry<ModelAsset>(AssetEntry{ meta.RootAssetID, ModelAsset::Type, outModel, true});
 
+		return true;
+	}
+
+	bool GLTFImporter::CreateMeta(const std::filesystem::path& file, AssetFileMetadata& outMetadata) const
+	{
+		tinygltf::Model gltfModel;
+		LoadGltfModel(file.string(), gltfModel);
+
+		outMetadata.Path = file;
+		outMetadata.SourceFileID = UUID::Generate();
+
+		outMetadata.Assets.clear();
+		LoadMeshMetadata(gltfModel, outMetadata.Assets);
+		LoadMaterialMetadata(gltfModel, outMetadata.Assets);
+
+		const auto uuid = UUID::Generate();
+
+		std::string name = gltfModel.nodes[gltfModel.defaultScene].name;
+		if (name.empty())
+		{
+			name = "Model_0";
+		}
+		outMetadata.Assets[uuid] = { outMetadata.SourceFileID, name, ModelAsset::Type, uuid };
+		outMetadata.RootAssetID = uuid;
+		outMetadata.SyncSourceFileIDWithAssets();
 		return true;
 	}
 }

@@ -13,20 +13,20 @@ namespace Butterfly
 		return extension == ".obj";
 	}
 
-	bool OBJImporter::CanImportType(const std::type_info& type) const
+	bool OBJImporter::CanImportType(const AssetType& type) const
 	{
-		return type == typeid(MeshAsset) ||
-			   type == typeid(ModelAsset);
+		return type == MeshAsset::Type ||
+			   type == ModelAsset::Type;
 	}
 
-	bool OBJImporter::Import(const AssetMetadata& path, AssetManager& manager) const
+	bool OBJImporter::Import(const AssetFileMetadata& meta, AssetManager& manager) const
 	{
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;
 		std::string err;
 
-		bool ok = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, path.Path.c_str(), std::filesystem::path(path.Path).parent_path().string().c_str(), true);
+		bool ok = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, meta.Path.string().c_str(), meta.Path.parent_path().string().c_str(), true);
 
 		if (!ok)
 		{
@@ -80,7 +80,19 @@ namespace Butterfly
 		mesh->GPULoad();
 
 
-		manager.AddAssetEntry<MeshAsset>(AssetEntry{ path.ID, AssetType{ "Mesh" }, StaticCastRef<void>(mesh) });
+		manager.AddAssetEntry<MeshAsset>(AssetEntry{ meta.RootAssetID, MeshAsset::Type, StaticCastRef<void>(mesh) });
+		return true;
+	}
+
+	bool OBJImporter::CreateMeta(const std::filesystem::path& file, AssetFileMetadata& meta) const
+	{
+		meta.SourceFileID = UUID::Generate();
+		meta.Path = file;
+
+		const auto uuid = UUID::Generate();
+		meta.RootAssetID = uuid;
+		meta.Assets[uuid] = AssetMetadata{ meta.SourceFileID, file.filename().string(), MeshAsset::Type, uuid };
+		meta.SyncSourceFileIDWithAssets();
 		return true;
 	}
 }

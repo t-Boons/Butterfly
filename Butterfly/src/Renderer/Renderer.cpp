@@ -110,7 +110,6 @@ namespace Butterfly
 			[](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* cpu, D3D12_GPU_DESCRIPTOR_HANDLE* gpu)
 			{
 				const uint32_t handle = D3D12API()->DescriptorAllocatorSrvCbvUav()->Allocate();
-				BF_CORE_LOG_INFO("Creating SRV with handle: %u", handle);
 				*cpu = D3D12API()->DescriptorAllocatorSrvCbvUav()->CpuHandleFromSrvHandle(handle);
 				*gpu = D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(handle);
 			};

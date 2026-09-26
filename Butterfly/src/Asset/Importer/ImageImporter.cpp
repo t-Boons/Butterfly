@@ -20,17 +20,17 @@ namespace Butterfly
 			   extension == ".hdr";
 	}
 
-	bool ImageImporter::CanImportType(const std::type_info& type) const
+	bool ImageImporter::CanImportType(const AssetType& type) const
 	{
-		return type == typeid(TextureAsset);
+		return type == TextureAsset::Type;
 	}
 
-	bool ImageImporter::Import(const AssetMetadata& path, AssetManager& manager) const
+	bool ImageImporter::Import(const AssetFileMetadata& meta, AssetManager& manager) const
 	{
 		BFTextureDesc textureDesc;
 		int channels, width, height = 0;
 
-		stbi_uc* pixels = stbi_load(path.Path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+		stbi_uc* pixels = stbi_load(meta.Path.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
 		if (!pixels)
 		{
@@ -41,7 +41,7 @@ namespace Butterfly
 
 		textureDesc.Width = static_cast<uint32_t>(width);
 		textureDesc.Height = static_cast<uint32_t>(height);
-		textureDesc.DebugName = std::filesystem::path(path.Path).filename().string();
+		textureDesc.DebugName = std::filesystem::path(meta.Path).filename().string();
 		textureDesc.Flags = BFTextureDesc::Flag::ShaderResource;
 		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		textureDesc.Data = pixels;
@@ -49,9 +49,22 @@ namespace Butterfly
 		RefPtr<TextureAsset> textureAsset = MakeRef<TextureAsset>();
 		textureAsset->Texture = BFTexture::CreateTextureFromCPUBuffer(textureDesc);
 
-		manager.AddAssetEntry<TextureAsset>(AssetEntry{ path.ID, AssetType{ "Texture" }, StaticCastRef<void>(textureAsset) });
+		manager.AddAssetEntry<TextureAsset>(AssetEntry{ meta.RootAssetID, TextureAsset::Type, StaticCastRef<void>(textureAsset) });
 
 		stbi_image_free(pixels);
+		return true;
+	}
+
+	bool ImageImporter::CreateMeta(const std::filesystem::path& file, AssetFileMetadata& meta) const
+	{
+		meta.SourceFileID = UUID::Generate();
+		meta.Path = file;
+
+		const auto uuid = UUID::Generate();
+		meta.RootAssetID = uuid;
+		meta.Assets[uuid] = AssetMetadata{ meta.SourceFileID, file.filename().string(), TextureAsset::Type, uuid };
+
+		meta.SyncSourceFileIDWithAssets();
 		return true;
 	}
 }

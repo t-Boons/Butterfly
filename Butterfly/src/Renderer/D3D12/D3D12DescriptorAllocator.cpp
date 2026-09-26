@@ -92,7 +92,6 @@ namespace Butterfly
 		BF_CORE_ASSERT(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap has overflown.");
 
 		const uint32_t nextFreeValue = Allocate();
-		BF_CORE_LOG_INFO("Creating SRV for resource: %s with handle: %u", resource.DebugName.c_str(), nextFreeValue);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = CpuHandleFromSrvHandle(nextFreeValue);
 

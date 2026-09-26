@@ -13,14 +13,14 @@ namespace Butterfly
 		RefPtr<Thumbnail> Thumbnail;
 	};
 
-	void DrawAssetLibraryCell(const LibraryIcon& iconType, const std::string& name, const UUID& id, const AssetMetadata& meta, bool& doubleClicked)
+	void DrawAssetLibraryCell(const LibraryIcon& iconType, const std::string& name, const AssetFileMetadata& meta, bool& doubleClicked)
 	{
 		const float cellSize = 96.0f;
 		const float cellPadding = 8.0f;
 		const float margin = 7.0f;
 
 		ImGui::TableNextColumn();
-		ImGui::PushID(static_cast<int>(std::hash<Butterfly::UUID>()(id)));
+		ImGui::PushID(static_cast<int>(std::hash<Butterfly::UUID>()(meta.SourceFileID)));
 
 		const ImVec2 cellStart = ImGui::GetCursorScreenPos();
 		const ImVec2 cellMarginStart = ImVec2(cellStart.x + margin, cellStart.y + margin);
@@ -38,7 +38,7 @@ namespace Butterfly
 		{
 			if (ImGui::MenuItem("Show in Explorer"))
 			{
-				system(("explorer.exe /select," + meta.Path).c_str());
+				system(("explorer.exe /select," + meta.Path.string()).c_str());
 			}
 
 			ImGui::EndPopup();
@@ -46,7 +46,7 @@ namespace Butterfly
 
 		if (ImGui::BeginDragDropSource())
 		{
-			UUID id = meta.ID;
+			UUID id = meta.RootAssetID;
 
 			ImGui::SetDragDropPayload("ASSET", &id, sizeof(UUID));
 			ImGui::Text("Dragging %s", name.c_str());
@@ -118,50 +118,51 @@ namespace Butterfly
 		{
 			for (auto& [id, meta] : Application::Get().GetAssetManager().GetAssetRegistry().GetAll())
 			{
-				if (ThumbnailProcessor::IsSupportedImageType(meta.Path) && !EditorApplication::Get().GetEditorCache().Exists(meta.ID))
+				if (ThumbnailProcessor::IsSupportedImageType(meta.Path) && !EditorApplication::Get().GetEditorCache().Exists(meta.SourceFileID))
 				{
 					RefPtr<Thumbnail> thumbnail = ThumbnailProcessor::GetThumbnailFromFile(meta.Path);
 					thumbnail = ThumbnailProcessor::Resize(*thumbnail, 64, 64);
 
 					ThumbnailCacheEntry entry(thumbnail);
-					EditorApplication::Get().GetEditorCache().Add<ThumbnailCacheEntry>(meta.ID, entry);
+					EditorApplication::Get().GetEditorCache().Add<ThumbnailCacheEntry>(meta.SourceFileID, entry);
 				}
 
 				ThumbnailCacheEntry entry;
-				EditorApplication::Get().GetEditorCache().Get<ThumbnailCacheEntry>(meta.ID, entry);
+				EditorApplication::Get().GetEditorCache().Get<ThumbnailCacheEntry>(meta.SourceFileID, entry);
 
 				LibraryIcon icon;
 				icon.Thumbnail = entry.GetThumbnail();
 				icon.IconCode = FontAwesome::File;
-				if (meta.Extention == ".bfscene")
+
+				const std::string ext = meta.Path.extension().string();
+				if (ext == ".bfscene")
 				{
 					icon.IconCode = FontAwesome::CubeStack;
 				}
-				else if (meta.Extention == ".obj" || meta.Extention == ".gltf" || meta.Extention == ".glb")
+				else if (ext == ".obj" || ext == ".gltf" || ext == ".glb")
 				{
 					icon.IconCode = FontAwesome::Cube;
 				}
 
 				bool doubleClicked = false;
-				DrawAssetLibraryCell(icon, std::filesystem::path(meta.Path).filename().string(), meta.ID, meta, doubleClicked);
+				DrawAssetLibraryCell(icon, std::filesystem::path(meta.Path).filename().string(), meta, doubleClicked);
 
 				if (doubleClicked)
 				{
-					if (meta.Extention == ".bfscene")
+					if (ext == ".bfscene")
 					{
 						const std::string& scene = FileSystem::ReadText(meta.Path);
 						Application::Get().GetScene().LoadSceneFromFile(std::filesystem::path(meta.Path));
 						EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
-						ImGui::PopID();
 						ImGui::EndTable();
 						ImGui::EndChild();
 						ImGui::End();
 						return;
 					}
-					else if (meta.Extention == ".gltf" || meta.Extention == ".glb")
+					else if (ext == ".gltf" || ext == ".glb")
 					{
 						AssetHandle<ModelAsset> handle;
-						Application::Get().GetAssetManager().Acquire(AssetUUID<ModelAsset>(meta.ID), handle);
+						Application::Get().GetAssetManager().Acquire(AssetUUID<ModelAsset>(meta.RootAssetID), handle);
 						ModelAsset* model = Application::Get().GetAssetManager().Resolve(handle);
 
 						std::function<void(ModelNode*, entt::entity)> traverse = [&](ModelNode* node, entt::entity parent)

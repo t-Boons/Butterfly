@@ -10,6 +10,8 @@ namespace Butterfly
 
 	struct MeshAsset
 	{
+		inline static const AssetType Type = { "Mesh" };
+
 		std::string Name;
 
 		std::vector<glm::vec3> Positions;
@@ -81,6 +83,7 @@ namespace Butterfly
 
 	struct TextureAsset
 	{
+		inline static const AssetType Type = { "Texture" };
 		RefPtr<BFTexture> Texture;
 	};
 
@@ -95,11 +98,14 @@ namespace Butterfly
 
 	struct ModelAsset
 	{
+		inline static const AssetType Type = { "Model" };
 		RefPtr<ModelNode> RootNode;
 	};
 
 	struct MaterialAsset
 	{
+		inline static const AssetType Type = { "Material" };
+
 		float Metallic = 0.5f;
 		float Roughness = 0.5f;
 		glm::vec4 BaseColor = glm::vec4(1.0f);

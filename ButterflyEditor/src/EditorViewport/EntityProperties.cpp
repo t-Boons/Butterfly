@@ -104,17 +104,17 @@ namespace Butterfly
             if (uuid)
             {
                 AssetMetadata meta;
-                Application::Get().GetAssetManager().GetAssetRegistry().Find(uuid, meta);
-                assetName = std::filesystem::path(meta.Path).stem().string();
+                Application::Get().GetAssetManager().GetAssetRegistry().FindAsset(uuid, meta);
+                assetName = meta.Name;
             }
 
 			ImGUIHelpers::AssetReferenceField(uuid, name, "Mesh", assetName.c_str(), uuid.Valid(), [&](UUID newReference)
                 {
-                    if (Application::Get().GetAssetManager().IsType(typeid(MeshAsset), newReference))
-                    {
-                        AssetMetadata meta;
-                        Application::Get().GetAssetManager().GetAssetRegistry().Find(newReference, meta);
+                    AssetMetadata meta;
+                    Application::Get().GetAssetManager().GetAssetRegistry().FindAsset(newReference, meta);
 
+                    if (meta.Type == MeshAsset::Type)
+                    {
                         value = AssetUUID<MeshAsset>{ newReference };
                         data.set(component, value);
                     }
@@ -128,17 +128,16 @@ namespace Butterfly
             if (uuid)
             {
                 AssetMetadata meta;
-                Application::Get().GetAssetManager().GetAssetRegistry().Find(uuid, meta);
-                assetName = std::filesystem::path(meta.Path).stem().string();
+                Application::Get().GetAssetManager().GetAssetRegistry().FindAsset(uuid, meta);
+                assetName = meta.Name;
             }
 
             ImGUIHelpers::AssetReferenceField(uuid, name, "Texture", assetName.c_str(), uuid.Valid(), [&](UUID newReference)
                 {
-                    if (Application::Get().GetAssetManager().IsType(typeid(TextureAsset), newReference))
+                    AssetMetadata meta;
+                    Application::Get().GetAssetManager().GetAssetRegistry().FindAsset(newReference, meta);
+                    if (meta.Type == TextureAsset::Type)
                     {
-                        AssetMetadata meta;
-                        Application::Get().GetAssetManager().GetAssetRegistry().Find(newReference, meta);
-
                         value = AssetUUID<TextureAsset>{ newReference };
                         data.set(component, value);
                     }

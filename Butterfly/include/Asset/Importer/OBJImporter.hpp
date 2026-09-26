@@ -7,8 +7,9 @@ namespace Butterfly
 	class OBJImporter : public IAssetImporter
 	{
 	public:
-		virtual bool Import(const AssetMetadata& path, AssetManager& manager) const override;
+		virtual bool CreateMeta(const std::filesystem::path& file, AssetFileMetadata& meta) const override;
+		virtual bool Import(const AssetFileMetadata& path, AssetManager& manager) const override;
 		virtual bool CanImport(const std::string& fileExtention) const override;
-		virtual bool CanImportType(const std::type_info& type) const override;
+		virtual bool CanImportType(const AssetType& type) const override;
 	};
 }

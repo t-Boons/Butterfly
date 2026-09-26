@@ -14,7 +14,16 @@ namespace Butterfly
 		Scan();
 	}
 
-	bool AssetRegistry::NewFile(const std::string& name, const std::string& extention, const std::string& contents, AssetMetadata& meta)
+	void AssetRegistry::Register(const AssetFileMetadata& meta)
+	{
+		m_registeredFiles[meta.SourceFileID] = meta;
+		for (auto& asset : meta.Assets)
+		{
+			m_registeredAssets[asset.first] = asset.second;
+		}
+	}
+
+	bool AssetRegistry::NewFile(const std::string& name, const std::string& extention, const std::string& contents, AssetFileMetadata& meta)
 	{
 		std::string stem = name;
 
@@ -27,9 +36,10 @@ namespace Butterfly
 
 		if (FileSystem::WriteText(m_assetPath / newName, contents))
 		{
-			AssetMetadata newMeta = WriteNewMetaForFile(m_assetPath / newName);
+			AssetFileMetadata newMeta = WriteNewMetaForFile(m_assetPath / newName);
 			meta = newMeta;
-			m_registeredAssets[meta.ID] = meta;
+			Register(meta);
+
 			return true;
 		}
 		else
@@ -39,7 +49,7 @@ namespace Butterfly
 		}
 	}
 
-	bool AssetRegistry::ImportFromDisk(const std::filesystem::path& file, AssetMetadata& meta)
+	bool AssetRegistry::ImportFromDisk(const std::filesystem::path& file, AssetFileMetadata& meta)
 	{
 		if (!FileSystem::Copy(file, m_assetPath / file.filename()))
 		{
@@ -47,23 +57,42 @@ namespace Butterfly
 			return false;
 		}
 
-		AssetMetadata newMeta = WriteNewMetaForFile(file);
+		AssetFileMetadata newMeta = WriteNewMetaForFile(file);
 		meta = newMeta;
-		m_registeredAssets[meta.ID] = meta;
-
+		Register(meta);
 		return true;
 	}
 
-	bool AssetRegistry::Find(const UUID& id, AssetMetadata& out) const
+	bool AssetRegistry::FindAsset(const UUID& id, AssetMetadata& out) const
 	{
-		if (!id) return false;
-		auto it = m_registeredAssets.find(id);
-		if (it == m_registeredAssets.end())
+		if (!id)
 		{
 			return false;
 		}
-		out = it->second;
-		return true;
+
+		auto it = m_registeredAssets.find(id);
+		if (it != m_registeredAssets.end())
+		{
+			out = it->second;
+			return true;
+		}
+
+		return false;
+	}
+
+	bool AssetRegistry::FindFile(const UUID& id, AssetFileMetadata& out) const
+	{
+		if (!id)
+		{
+			return false;
+		}
+		auto it = m_registeredFiles.find(id);
+		if (it != m_registeredFiles.end())
+		{
+			out = it->second;
+			return true;
+		}
+		return false;
 	}
 
 	void AssetRegistry::Scan()
@@ -79,26 +108,38 @@ namespace Butterfly
 			const std::filesystem::path metaPath = file.string() + m_metaFileExtention;
 			if (FileSystem::Exists(metaPath)) 
 			{
-				AssetMetadata meta = ReadMetaFromFile(file);
-				m_registeredAssets[meta.ID] = meta;
+				AssetFileMetadata meta = ReadMetaFromFile(file);
+				Register(meta);
 			}
 			else
 			{
-				AssetMetadata meta = WriteNewMetaForFile(file);
-				m_registeredAssets[meta.ID] = meta;
+				AssetFileMetadata meta = WriteNewMetaForFile(file);
+				Register(meta);
 			}
 		}
 	}
 
-	AssetMetadata AssetRegistry::WriteNewMetaForFile(const std::filesystem::path& file) const
+	AssetFileMetadata AssetRegistry::WriteNewMetaForFile(const std::filesystem::path& file) const
 	{
 		const std::filesystem::path metaPath = file.string() + m_metaFileExtention;
 
-		AssetMetadata meta;
-		meta.Path = file.string();
-		meta.ID = UUID::Generate();
-		meta.Extention = file.extension().string();
-		meta.Type = AssetType{ "Unknown" };
+		IAssetImporter* importer = m_manager->GetImporterForExtention(file.extension().string());
+
+		AssetFileMetadata meta;
+		if(importer)
+		{
+			importer->CreateMeta(file, meta);
+		}
+		else
+		{
+			// Fall back on default meta creation if no importer is found with the given file type.
+			meta.Path = file;
+			meta.SourceFileID = UUID::Generate();
+
+			BF_CORE_LOG_WARN("Unable to create meta file for asset: %s, no importer found for filetype: %s", file.string().c_str(), file.extension().string().c_str());
+		}
+
+
 
 		YAML::Node node;
 		node["Meta"] = meta;
@@ -112,12 +153,12 @@ namespace Butterfly
 		return meta;
 	}
 
-	AssetMetadata AssetRegistry::ReadMetaFromFile(const std::filesystem::path& file) const
+	AssetFileMetadata AssetRegistry::ReadMetaFromFile(const std::filesystem::path& file) const
 	{
 		const std::filesystem::path metaPath = file.string() + m_metaFileExtention;
 
 		YAML::Node node;
 		node = YAML::LoadFile(metaPath.string());
-		return node["Meta"].as<AssetMetadata>();
+		return node["Meta"].as<AssetFileMetadata>();
 	}
 }

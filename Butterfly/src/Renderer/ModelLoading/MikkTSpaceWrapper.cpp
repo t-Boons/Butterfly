@@ -30,9 +30,13 @@ namespace Butterfly
 		tangents = context.m_outTangents;
 
 		if (!succes)
+		{
 			BF_CORE_LOG_ERROR("Error loading MikktSpaceMesh tangents.");
+		}
 		else
-			BF_CORE_LOG_INFO("Generated tangents using MikktSpace.");
+		{
+			BF_CORE_LOG_TRACE("Generating tangents for mesh with %d vertices", static_cast<int>(mesh.m_positions->size()));
+		}
 
 		return succes;
 	}
