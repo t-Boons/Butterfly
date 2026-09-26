@@ -64,7 +64,7 @@ namespace Butterfly
 			transform.ValidateAfterDeserialization(*out);
 		}
 
-		// Get the root from any of the other existing transformcomponents since they are all parented to the root.
+		// Find the root entity (the one without a parent) and set it as the scene's root entity.
 		for (const auto& [entity, transform] : out->m_registry.view<TransformComponent>().each())
 		{
 			if (!transform.GetParent())

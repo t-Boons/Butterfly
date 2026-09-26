@@ -437,10 +437,15 @@ namespace Butterfly
 		}
 	}
 
-	RefPtr<ModelNode> LoadNode(const tinygltf::Model& gltfModel, const tinygltf::Node& gltfNode, const std::vector<AssetHandle<MeshAsset>>& meshes)
+	RefPtr<ModelNode> LoadNode(const tinygltf::Model& gltfModel, const tinygltf::Node& gltfNode, uint32_t nodeIndex, const std::vector<AssetHandle<MeshAsset>>& meshes)
 	{
 		RefPtr<ModelNode> newNode = MakeRef<ModelNode>();
 		newNode->Name = gltfNode.name;
+		if (newNode->Name.empty())
+		{
+			newNode->Name = "Node_" + std::to_string(nodeIndex);
+		}
+
 		if (gltfNode.matrix.size() == 16)
 		{
 			glm::mat4 matrix(1.0f);
@@ -494,7 +499,7 @@ namespace Butterfly
 		int childIndex = 0;
 		for (int nodeIndex : childrenIndices)
 		{
-			RefPtr<ModelNode> newNode = LoadNode(gltfModel, gltfModel.nodes[nodeIndex], meshes);
+			RefPtr<ModelNode> newNode = LoadNode(gltfModel, gltfModel.nodes[nodeIndex], nodeIndex, meshes);
 			newNode->Children = TraverseNode(gltfModel, gltfModel.nodes[nodeIndex].children, meshes);
 
 			outNodes[childIndex] = newNode;
@@ -513,7 +518,7 @@ namespace Butterfly
 
 		const int rootNodeIndex = scene.nodes[0];
 		const tinygltf::Node& gltfRoot = gltfModel.nodes[rootNodeIndex];
-		root = LoadNode(gltfModel, gltfRoot, meshes);
+		root = LoadNode(gltfModel, gltfRoot, rootNodeIndex, meshes);
 
 		root->Children = TraverseNode(gltfModel, gltfRoot.children, meshes);
 
