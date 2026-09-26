@@ -10,7 +10,7 @@ namespace Butterfly
 
 	struct MeshAsset
 	{
-		inline static const AssetType Type = { "Mesh" };
+		inline static const AssetType Type() { return { "Mesh" }; }
 
 		std::string Name;
 
@@ -83,7 +83,7 @@ namespace Butterfly
 
 	struct TextureAsset
 	{
-		inline static const AssetType Type = { "Texture" };
+		inline static const AssetType Type() { return { "Texture" }; }
 		RefPtr<BFTexture> Texture;
 	};
 
@@ -98,13 +98,13 @@ namespace Butterfly
 
 	struct ModelAsset
 	{
-		inline static const AssetType Type = { "Model" };
+		inline static const AssetType Type() { return { "Model" }; }
 		RefPtr<ModelNode> RootNode;
 	};
 
 	struct MaterialAsset
 	{
-		inline static const AssetType Type = { "Material" };
+		inline static const AssetType Type() { return { "Material" }; }
 
 		float Metallic = 0.5f;
 		float Roughness = 0.5f;

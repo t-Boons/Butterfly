@@ -15,8 +15,8 @@ namespace Butterfly
 
 	bool OBJImporter::CanImportType(const AssetType& type) const
 	{
-		return type == MeshAsset::Type ||
-			   type == ModelAsset::Type;
+		return type == MeshAsset::Type() ||
+			   type == ModelAsset::Type();
 	}
 
 	bool OBJImporter::Import(const AssetFileMetadata& meta, AssetManager& manager) const
@@ -80,7 +80,7 @@ namespace Butterfly
 		mesh->GPULoad();
 
 
-		manager.AddAssetEntry<MeshAsset>(AssetEntry{ meta.RootAssetID, MeshAsset::Type, StaticCastRef<void>(mesh) });
+		manager.AddAssetEntry<MeshAsset>(AssetEntry{ meta.RootAssetID, MeshAsset::Type(), StaticCastRef<void>(mesh) });
 		return true;
 	}
 
@@ -91,7 +91,7 @@ namespace Butterfly
 
 		const auto uuid = UUID::Generate();
 		meta.RootAssetID = uuid;
-		meta.Assets[uuid] = AssetMetadata{ meta.SourceFileID, file.filename().string(), MeshAsset::Type, uuid };
+		meta.Assets[uuid] = AssetMetadata{ meta.SourceFileID, file.filename().string(), MeshAsset::Type(), uuid };
 		meta.SyncSourceFileIDWithAssets();
 		return true;
 	}

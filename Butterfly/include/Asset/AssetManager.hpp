@@ -106,7 +106,7 @@ namespace Butterfly
             return false;
         }
 
-        if(meta.Type != T::Type)
+        if(meta.Type != T::Type())
         {
             BF_CORE_LOG_ERROR("Meta for ID: %s is not of type: %s", id.ToString().c_str(), typeid(T).name());
             return false;

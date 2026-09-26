@@ -535,7 +535,7 @@ namespace Butterfly
 
 	bool GLTFImporter::CanImportType(const AssetType& type) const
 	{
-		return type == ModelAsset::Type;
+		return type == ModelAsset::Type();
 	}
 
 	bool GLTFImporter::Import(const AssetFileMetadata& meta, AssetManager& manager) const
@@ -550,7 +550,7 @@ namespace Butterfly
 		RefPtr<ModelAsset> outModel = MakeRef<ModelAsset>();
 		outModel->RootNode = root;
 
-		manager.AddAssetEntry<ModelAsset>(AssetEntry{ meta.RootAssetID, ModelAsset::Type, outModel, true});
+		manager.AddAssetEntry<ModelAsset>(AssetEntry{ meta.RootAssetID, ModelAsset::Type(), outModel, true});
 
 		return true;
 	}
@@ -574,7 +574,7 @@ namespace Butterfly
 		{
 			name = "Model_0";
 		}
-		outMetadata.Assets[uuid] = { outMetadata.SourceFileID, name, ModelAsset::Type, uuid };
+		outMetadata.Assets[uuid] = { outMetadata.SourceFileID, name, ModelAsset::Type(), uuid };
 		outMetadata.RootAssetID = uuid;
 		outMetadata.SyncSourceFileIDWithAssets();
 		return true;

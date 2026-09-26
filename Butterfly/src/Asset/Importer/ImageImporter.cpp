@@ -22,7 +22,7 @@ namespace Butterfly
 
 	bool ImageImporter::CanImportType(const AssetType& type) const
 	{
-		return type == TextureAsset::Type;
+		return type == TextureAsset::Type();
 	}
 
 	bool ImageImporter::Import(const AssetFileMetadata& meta, AssetManager& manager) const
@@ -49,7 +49,7 @@ namespace Butterfly
 		RefPtr<TextureAsset> textureAsset = MakeRef<TextureAsset>();
 		textureAsset->Texture = BFTexture::CreateTextureFromCPUBuffer(textureDesc);
 
-		manager.AddAssetEntry<TextureAsset>(AssetEntry{ meta.RootAssetID, TextureAsset::Type, StaticCastRef<void>(textureAsset) });
+		manager.AddAssetEntry<TextureAsset>(AssetEntry{ meta.RootAssetID, TextureAsset::Type(), StaticCastRef<void>(textureAsset) });
 
 		stbi_image_free(pixels);
 		return true;
@@ -62,7 +62,7 @@ namespace Butterfly
 
 		const auto uuid = UUID::Generate();
 		meta.RootAssetID = uuid;
-		meta.Assets[uuid] = AssetMetadata{ meta.SourceFileID, file.filename().string(), TextureAsset::Type, uuid };
+		meta.Assets[uuid] = AssetMetadata{ meta.SourceFileID, file.filename().string(), TextureAsset::Type(), uuid };
 
 		meta.SyncSourceFileIDWithAssets();
 		return true;

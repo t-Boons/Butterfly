@@ -113,7 +113,7 @@ namespace Butterfly
                     AssetMetadata meta;
                     Application::Get().GetAssetManager().GetAssetRegistry().FindAsset(newReference, meta);
 
-                    if (meta.Type == MeshAsset::Type)
+                    if (meta.Type == MeshAsset::Type())
                     {
                         value = AssetUUID<MeshAsset>{ newReference };
                         data.set(component, value);
@@ -136,7 +136,7 @@ namespace Butterfly
                 {
                     AssetMetadata meta;
                     Application::Get().GetAssetManager().GetAssetRegistry().FindAsset(newReference, meta);
-                    if (meta.Type == TextureAsset::Type)
+                    if (meta.Type == TextureAsset::Type())
                     {
                         value = AssetUUID<TextureAsset>{ newReference };
                         data.set(component, value);

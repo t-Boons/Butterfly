@@ -52,6 +52,7 @@ namespace Butterfly
 		if (entry == m_loadedEntries.end())
 		{
 			RefPtr<T> entryData = MakeRef<T>();
+			BF_CORE_LOG_TRACE("Loading EditorCache entry with ID: %s", id.ToString().c_str());
 			entryData->Deserialize(it->second.Data);
 			m_loadedEntries[id] = entryData;
 		}
@@ -70,6 +71,7 @@ namespace Butterfly
 	inline void EditorCache::Scan()
 	{
 		const std::vector<std::filesystem::path> files = FileSystem::WalkDirectoryRecursive(m_editorCachePath);
+		BF_CORE_LOG_INFO("EditorCache::Scan: NumFiles %d, Directory: %s", files.size(), m_editorCachePath.string().c_str());
 
 		for (auto& file : files)
 		{
@@ -89,6 +91,7 @@ namespace Butterfly
 	{
 		if (!Exists(id))
 		{
+			BF_CORE_LOG_TRACE("Adding EditorCache entry with ID: %s", id.ToString().c_str());
 			EditorCacheFileMetadata meta;
 			meta.ID = id;
 			meta.CachedDataType = typeid(T).name();

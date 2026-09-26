@@ -16,6 +16,7 @@ namespace Butterfly
 
 	void AssetRegistry::Register(const AssetFileMetadata& meta)
 	{
+		BF_CORE_LOG_TRACE("Registering asset file: %ls", meta.Path.filename().c_str());
 		m_registeredFiles[meta.SourceFileID] = meta;
 		for (auto& asset : meta.Assets)
 		{
@@ -97,7 +98,9 @@ namespace Butterfly
 
 	void AssetRegistry::Scan()
 	{
-		for (auto& file : FileSystem::WalkDirectoryRecursive(m_assetPath))
+		const auto files = FileSystem::WalkDirectoryRecursive(m_assetPath);
+		BF_CORE_LOG_INFO("AssetRegistry::Scan: NumFiles: %d, Directory: %s", files.size(), m_assetPath.string().c_str());
+		for (auto& file : files)
 		{
 			const std::string extention = file.extension().string();
 			if (extention == ".meta")
