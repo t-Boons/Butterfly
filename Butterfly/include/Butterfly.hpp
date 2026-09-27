@@ -13,7 +13,7 @@
 #include "Core/Application.hpp"
 #include "Core/Time.hpp"
 #include "Core/FileSystem.hpp"
-
+#include "Core/JobSystem.hpp"
 #include "Input/Input.hpp"
 
 // Asset types

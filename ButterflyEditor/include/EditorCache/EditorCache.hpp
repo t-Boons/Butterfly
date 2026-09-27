@@ -4,6 +4,14 @@
 
 namespace Butterfly
 {
+	template<typename T>
+	class EditorCacheHandle
+	{
+	public:
+		bool Loaded = false;
+		RefPtr<T> Data;
+	};
+
 	class IEditorCacheEntry
 	{
 	public:
@@ -17,7 +25,7 @@ namespace Butterfly
 		EditorCache();
 
 		template<typename T>
-		bool Get(UUID id, T& out);
+		bool Get(UUID id, EditorCacheHandle<T>& out);
 
 		template<typename T>
 		void Add(UUID id, const T& data);
@@ -26,6 +34,7 @@ namespace Butterfly
 		void Scan();
 
 	private:
+		std::mutex m_loadedEntriesMutex;
 		std::unordered_map<UUID, EditorCacheFileMetadata> m_metaEntries;
 		std::unordered_map<UUID, RefPtr<void>> m_loadedEntries;
 		std::filesystem::path m_editorCachePath;
@@ -40,7 +49,7 @@ namespace Butterfly
 	}
 
 	template<typename T>
-	inline bool EditorCache::Get(UUID id, T& out)
+	inline bool EditorCache::Get(UUID id, EditorCacheHandle<T>& out)
 	{
 		auto it = m_metaEntries.find(id);
 		if (it == m_metaEntries.end())
@@ -51,19 +60,36 @@ namespace Butterfly
 		auto entry = m_loadedEntries.find(id);
 		if (entry == m_loadedEntries.end())
 		{
-			RefPtr<T> entryData = MakeRef<T>();
-			BF_CORE_LOG_TRACE("Loading EditorCache entry with ID: %s", id.ToString().c_str());
-			entryData->Deserialize(it->second.Data);
-			m_loadedEntries[id] = entryData;
+			Application::Get().GetJobSystem().Submit([this, id]()
+				{
+					std::lock_guard<std::mutex> lock(m_loadedEntriesMutex);
+
+					BF_CORE_LOG_TRACE("Loading EditorCache entry with ID: %s", id.ToString().c_str());
+					auto it = m_metaEntries.find(id);
+					if (it == m_metaEntries.end())
+					{
+						BF_CORE_LOG_ERROR("EditorCache entry with ID: %s not found in meta entries", id.ToString().c_str());
+						return;
+					}
+					RefPtr<IEditorCacheEntry> entryData = MakeRef<T>();
+					entryData->Deserialize(it->second.Data);
+					m_loadedEntries[id] = entryData;
+				});
+
+			out.Loaded = false;
+			return true;
 		}
 
-		out = *StaticCastRef<T>(m_loadedEntries[id]);
+		std::lock_guard<std::mutex> lock(m_loadedEntriesMutex);
+		out.Loaded = true;
+		out.Data = StaticCastRef<T>(m_loadedEntries[id]);
 
 		return true;
 	}
 
 	inline bool EditorCache::Exists(UUID id)
 	{
+		std::lock_guard<std::mutex> lock(m_loadedEntriesMutex);
 		return m_metaEntries.find(id) != m_metaEntries.end();
 	}
 
@@ -81,6 +107,7 @@ namespace Butterfly
 				node = YAML::LoadFile(file.string());
 
 				EditorCacheFileMetadata meta = node["Meta"].as<EditorCacheFileMetadata>();
+				std::lock_guard<std::mutex> lock(m_loadedEntriesMutex);
 				m_metaEntries[meta.ID] = meta;
 			}
 		}

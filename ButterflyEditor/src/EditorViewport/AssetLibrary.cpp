@@ -127,12 +127,15 @@ namespace Butterfly
 					EditorApplication::Get().GetEditorCache().Add<ThumbnailCacheEntry>(meta.SourceFileID, entry);
 				}
 
-				ThumbnailCacheEntry entry;
+				EditorCacheHandle<ThumbnailCacheEntry> entry;
 				EditorApplication::Get().GetEditorCache().Get<ThumbnailCacheEntry>(meta.SourceFileID, entry);
 
 				LibraryIcon icon;
-				icon.Thumbnail = entry.GetThumbnail();
 				icon.IconCode = FontAwesome::File;
+				if (entry.Loaded)
+				{
+					icon.Thumbnail = entry.Data->GetThumbnail();
+				}
 
 				const std::string ext = meta.Path.extension().string();
 				if (ext == ".bfscene")
