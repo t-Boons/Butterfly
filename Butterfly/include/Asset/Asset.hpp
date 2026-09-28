@@ -6,12 +6,24 @@ namespace Butterfly
 {
 	struct AssetType
 	{
-		bool operator ==(const AssetType& other) const
+		AssetType() = default;
+		AssetType(std::string typeName)
+			: m_typeName(typeName)
 		{
-			return TypeName == other.TypeName;
 		}
 
-		std::string TypeName;
+		bool operator ==(const AssetType& other) const
+		{
+			return m_typeName == other.m_typeName;
+		}
+
+		const std::string& TypeName() const
+		{
+			return m_typeName;
+		}
+
+	private:
+		std::string m_typeName;
 	};
 
 	struct AssetMetadata

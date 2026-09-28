@@ -18,6 +18,8 @@ struct BufferIndices
     int textureIndex;
     int modelIndex;
     int entityIndex;
+    int lightBuffer;
+    int numLights;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);

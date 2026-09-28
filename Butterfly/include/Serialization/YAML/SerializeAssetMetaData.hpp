@@ -12,7 +12,7 @@ namespace YAML
 
 			node["SourceFileID"] = meta.SourceFileID.ToString();
 			node["Name"] = meta.Name;
-			node["Type"] = meta.Type.TypeName;
+			node["Type"] = meta.Type.TypeName();
 			node["AssetID"] = meta.AssetID.ToString();
 
 			return node;
@@ -27,7 +27,7 @@ namespace YAML
 
 			meta.SourceFileID = Butterfly::UUID::FromString(node["SourceFileID"].as<std::string>());
 			meta.Name = node["Name"].as<std::string>();
-			meta.Type.TypeName = node["Type"].as<std::string>();
+			meta.Type = Butterfly::AssetType(node["Type"].as<std::string>());
 			meta.AssetID = Butterfly::UUID::FromString(node["AssetID"].as<std::string>());
 
 			return true;

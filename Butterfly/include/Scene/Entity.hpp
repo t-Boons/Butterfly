@@ -6,48 +6,6 @@
 
 namespace Butterfly
 {
-	struct EntityUUID
-	{
-		EntityUUID() = default;
-		EntityUUID(const UUID& uuid)
-			: _UUID(uuid)
-		{
-		}
-
-		void operator =(const UUID& uuid)
-		{
-			_UUID = uuid;
-		}
-
-		void operator =(const EntityUUID& other)
-		{
-			_UUID = other._UUID;
-		}
-
-		const UUID& ID() const
-		{
-			return _UUID;
-		}
-
-		UUID& IDRef()
-		{
-			return _UUID;
-		}
-
-		std::string ToString() const
-		{
-			return _UUID.ToString();
-		}
-
-		bool operator ==(const EntityUUID& other) const
-		{
-			return _UUID == other._UUID;
-		}
-
-	private:
-		UUID _UUID;
-	};
-
 	class Entity
 	{
 	public:
@@ -136,17 +94,5 @@ namespace Butterfly
 		friend class Scene;
 
 		entt::entity m_handle = entt::null;
-	};
-}
-
-namespace std
-{
-	template<>
-	struct hash<Butterfly::EntityUUID>
-	{
-		size_t operator()(const Butterfly::EntityUUID& id) const
-		{
-			return std::hash<Butterfly::UUID>()(id.ID());
-		}
 	};
 }

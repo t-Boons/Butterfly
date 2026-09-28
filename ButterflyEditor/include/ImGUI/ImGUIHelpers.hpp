@@ -8,6 +8,63 @@ namespace Butterfly
 {
 	namespace ImGUIHelpers
 	{
+		static bool IntField(const std::string& propertyName, int& value)
+		{
+			ImGui::Text((propertyName + ": ").c_str());
+			ImGui::SameLine(0.0f, 0.0f);
+			if (ImGui::InputInt(("##" + propertyName).c_str(), &value))
+			{
+				return true;
+			}
+			return false;
+		}
+
+		static bool FloatField(const std::string& propertyName, float& value)
+		{
+			ImGui::Text((propertyName + ": ").c_str());
+			ImGui::SameLine(0.0f, 0.0f);
+
+			if (ImGui::InputFloat(("##" + propertyName).c_str(), &value))
+			{
+				return true;
+			}
+
+			return false;
+		}
+
+		static bool EnumSelector(const std::string& propertyName, const std::vector<std::string>& enumNames, uint32_t& out)
+		{
+			ImGui::Text((propertyName + ": ").c_str());
+			ImGui::SameLine(0.0f, 0.0f);
+
+			static int currentItem = 0;
+			bool changed = false;
+
+			if (ImGui::BeginCombo(("##combo" + propertyName).c_str(), enumNames[currentItem].c_str()))
+			{
+				for (int i = 0; i < enumNames.size(); i++)
+				{
+					bool selected = currentItem == i;
+
+					if (ImGui::Selectable(enumNames[i].c_str(), selected))
+					{
+						currentItem = i;
+						out = i;
+						changed = true;
+					}
+
+					if (selected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+
+			return changed;
+		}
+
 		static bool DrawFloatControl(const char* label, float& value, float resetValue = 0.0f)
 		{
 			bool changed = false;
@@ -186,11 +243,13 @@ namespace Butterfly
 		}
 
 
-		static bool AssetReferenceField(const UUID& uuid, const std::string& labelname, const std::string& assetReferenceTypeName, const std::string& name, bool referenceIsSet, std::function<void(UUID)> onDropNewReference)
+		static bool AssetReferenceField(const std::string& propertyName, const std::string& assetReferenceTypeName, const std::string& name, bool referenceIsSet, bool& droppedNewReference, UUID& outPayload)
 		{
+			droppedNewReference = false;
+
 			const ImVec4 buttonRefColor = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
 			const ImVec4 buttonNoRefColor = ImVec4(0.10f, 0.10f, 0.10f, 1.0f);
-			const ImVec4 buttonColor = uuid ? buttonRefColor : buttonNoRefColor;
+			const ImVec4 buttonColor = referenceIsSet ? buttonRefColor : buttonNoRefColor;
 			ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
@@ -199,7 +258,7 @@ namespace Butterfly
 			const float fieldWidth = 200.0f;
 			const float pickerWidth = fieldHeight;
 
-			ImGui::Text((std::string(labelname) + ": ").c_str());
+			ImGui::Text((std::string(propertyName) + ": ").c_str());
 			ImGui::SameLine(0.0f, 0.0f);
 			ImGui::Button(FontAwesome::Search, ImVec2(pickerWidth, fieldHeight));
 			ImGui::SameLine(0.0f, 0.0f);
@@ -226,9 +285,10 @@ namespace Butterfly
 					{
 						const UUID payloadUUID = *static_cast<const UUID*>(payload->Data);
 
-						if (uuid != payloadUUID)
+						if (payloadUUID)
 						{
-							onDropNewReference(payloadUUID);
+							droppedNewReference = true;
+							outPayload = payloadUUID;
 						}
 
 						ImGui::EndDragDropTarget();

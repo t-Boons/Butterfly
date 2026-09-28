@@ -10,6 +10,6 @@ namespace Butterfly
 		{
 		}
 
-		EntityUUID EntityUUID;
+		UUID EntityUUID;
 	};
 }

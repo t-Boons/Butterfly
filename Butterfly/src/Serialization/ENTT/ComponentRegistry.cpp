@@ -57,53 +57,24 @@ namespace Butterfly
 			return true;
 		}
 
-		if (value.type() == entt::resolve<Butterfly::EntityUUID>())
+		if (value.type() == entt::resolve<Butterfly::UUID>())
 		{
-			node = YAML::Node(value.cast<Butterfly::EntityUUID>());
+			node = YAML::Node(value.cast<Butterfly::UUID>());
 			return true;
 		}
 
-		if (value.type() == entt::resolve<Butterfly::AssetUUID<TextureAsset>>())
-		{
-			node = YAML::Node(value.cast<Butterfly::AssetUUID<TextureAsset>>());
-			return true;
-		}
-
-		if (value.type() == entt::resolve<Butterfly::AssetUUID<MeshAsset>>())
-		{
-			node = YAML::Node(value.cast<Butterfly::AssetUUID<MeshAsset>>());
-			return true;
-		}
-
-		if (value.type() == entt::resolve<std::vector<Butterfly::EntityUUID>>())
+		if (value.type() == entt::resolve<std::vector<Butterfly::UUID>>())
 		{
 			node = YAML::Node(YAML::NodeType::Sequence);
 
-			for (const EntityUUID& uuid : value.cast<const std::vector<EntityUUID>&>())
+			for (const UUID& uuid : value.cast<const std::vector<UUID>&>())
+			{
 				node.push_back(uuid);
+			}
 
 			return true;
 		}
 
-		if (value.type() == entt::resolve<std::vector<Butterfly::AssetUUID<TextureAsset>>>())
-		{
-			node = YAML::Node(YAML::NodeType::Sequence);
-
-			for (const AssetUUID<TextureAsset>& uuid : value.cast<const std::vector<AssetUUID<TextureAsset>>&>())
-				node.push_back(uuid);
-
-			return true;
-		}
-
-		if (value.type() == entt::resolve<std::vector<Butterfly::AssetUUID<MeshAsset>>>())
-		{
-			node = YAML::Node(YAML::NodeType::Sequence);
-
-			for (const AssetUUID<MeshAsset>& uuid : value.cast<const std::vector<AssetUUID<MeshAsset>>&>())
-				node.push_back(uuid);
-
-			return true;
-		}
 
 		return false;
 	}
@@ -158,59 +129,12 @@ namespace Butterfly
 			return true;
 		}
 
-		if (value.type() == entt::resolve<Butterfly::EntityUUID>())
+		if (value.type() == entt::resolve<Butterfly::UUID>())
 		{
-			value.cast<Butterfly::EntityUUID&>() = node.as<Butterfly::EntityUUID>();
+			value.cast<Butterfly::UUID&>() = node.as<Butterfly::UUID>();
 			return true;
 		}
 
-		if (value.type() == entt::resolve<Butterfly::AssetUUID<TextureAsset>>())
-		{
-			value.cast<Butterfly::AssetUUID<TextureAsset>&>() = node.as<Butterfly::AssetUUID<TextureAsset>>();
-			return true;
-		}
-
-		if (value.type() == entt::resolve<Butterfly::AssetUUID<MeshAsset>>())
-		{
-			value.cast<Butterfly::AssetUUID<MeshAsset>&>() = node.as<Butterfly::AssetUUID<MeshAsset>>();
-			return true;
-		}
-
-		if (value.type() == entt::resolve<std::vector<Butterfly::EntityUUID>>())
-		{
-			auto& children = value.cast<std::vector<Butterfly::EntityUUID>&>();
-
-			children.clear();
-
-			for (const auto& childNode : node)
-				children.push_back(childNode.as<Butterfly::EntityUUID>());
-
-			return true;
-		}
-
-		if (value.type() == entt::resolve<std::vector<Butterfly::AssetUUID<TextureAsset>>>())
-		{
-			auto& children = value.cast<std::vector<Butterfly::AssetUUID<TextureAsset>>&>();
-
-			children.clear();
-
-			for (const auto& childNode : node)
-				children.push_back(childNode.as<Butterfly::AssetUUID<TextureAsset>>());
-
-			return true;
-		}
-
-		if (value.type() == entt::resolve<std::vector<Butterfly::AssetUUID<MeshAsset>>>())
-		{
-			auto& children = value.cast<std::vector<Butterfly::AssetUUID<MeshAsset>>&>();
-
-			children.clear();
-
-			for (const auto& childNode : node)
-				children.push_back(childNode.as<Butterfly::AssetUUID<MeshAsset>>());
-
-			return true;
-		}
 		return false;
 	}
 }

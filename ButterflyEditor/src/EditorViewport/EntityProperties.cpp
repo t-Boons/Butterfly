@@ -6,10 +6,10 @@
 
 namespace Butterfly
 {
-
     bool InspectorValue(const entt::meta_data& data, auto& component, entt::meta_any& value, const char* name)
     {
         const entt::meta_type& type = value.type();
+		const ComponentProperties& props = GetProperties(data.custom());
 
         if (type == entt::resolve<std::string>())
         {
@@ -45,6 +45,17 @@ namespace Butterfly
         {
             glm::vec3 v = value.cast<glm::vec3>();
 
+			if(props.TryGetProperty<AsColor>())
+			{
+				if (ImGui::ColorPicker3(name, &v[0]))
+				{
+					value = v;
+					data.set(component, value);
+					return true;
+				}
+				return false;
+			}
+
             if (ImGUIHelpers::DrawVec3Control(name, v))
             {
                 value = v;
@@ -73,7 +84,7 @@ namespace Butterfly
         {
             float v = value.cast<float>();
 
-            if (ImGUIHelpers::DrawFloatControl(name, v))
+            if (ImGUIHelpers::FloatField(name, v))
             {
                 value = v;
                 data.set(component, value);
@@ -97,34 +108,35 @@ namespace Butterfly
             return false;
         }
 
-		if (type == entt::resolve<AssetUUID<MeshAsset>>())
+		if (type == entt::resolve<uint32_t>())
 		{
-			std::string assetName = "";
-			const UUID& uuid = value.cast<AssetUUID<MeshAsset>>().ID();
-            if (uuid)
-            {
-                AssetMetadata meta;
-                Application::Get().GetAssetManager().GetAssetRegistry().FindAsset(uuid, meta);
-                assetName = meta.Name;
-            }
+			uint32_t v = value.cast<uint32_t>();
 
-			ImGUIHelpers::AssetReferenceField(uuid, name, "Mesh", assetName.c_str(), uuid.Valid(), [&](UUID newReference)
-                {
-                    AssetMetadata meta;
-                    Application::Get().GetAssetManager().GetAssetRegistry().FindAsset(newReference, meta);
+			if (const AsEnumSelector* enumSelectorProps = props.TryGetProperty<AsEnumSelector>())
+			{
+				if (ImGUIHelpers::EnumSelector(name, enumSelectorProps->GetEnumNames(), v))
+				{
+					value = v;
+					data.set(component, value);
+					return true;
+				}
+				return false;
+			}
 
-                    if (meta.Type == MeshAsset::Type())
-                    {
-                        value = AssetUUID<MeshAsset>{ newReference };
-                        data.set(component, value);
-                    }
-                });
+			if (ImGui::InputScalar(name, ImGuiDataType_U32, &v))
+			{
+				value = v;
+				data.set(component, value);
+				return true;
+			}
 		}
 
-        if (type == entt::resolve<AssetUUID<TextureAsset>>())
-        {
-            std::string assetName = "";
-            const UUID& uuid = value.cast<AssetUUID<TextureAsset>>().ID();
+		if (type == entt::resolve<UUID>())
+		{
+			AsAssetSelector* assetSelectorProps = GetProperties(data.custom()).TryGetProperty<AsAssetSelector>();
+
+			std::string assetName = "";
+			const UUID& uuid = value.cast<UUID>();
             if (uuid)
             {
                 AssetMetadata meta;
@@ -132,27 +144,22 @@ namespace Butterfly
                 assetName = meta.Name;
             }
 
-            ImGUIHelpers::AssetReferenceField(uuid, name, "Texture", assetName.c_str(), uuid.Valid(), [&](UUID newReference)
-                {
-                    AssetMetadata meta;
-                    Application::Get().GetAssetManager().GetAssetRegistry().FindAsset(newReference, meta);
-                    if (meta.Type == TextureAsset::Type())
-                    {
-                        value = AssetUUID<TextureAsset>{ newReference };
-                        data.set(component, value);
-                    }
-                });
-        }
+			bool droppedNewReference = false;
+			UUID newReference;
+			ImGUIHelpers::AssetReferenceField(name, assetSelectorProps->Type.TypeName(), assetName.c_str(), uuid.Valid(), droppedNewReference, newReference);
+			if (droppedNewReference)
+			{
+				AssetMetadata meta;
+				Application::Get().GetAssetManager().GetAssetRegistry().FindAsset(newReference, meta);
 
-		if (type == entt::resolve<EntityUUID>())
-		{
-            std::string assetName = "";
-            const UUID& uuid = value.cast<AssetUUID<MeshAsset>>().ID();
+				if (meta.Type != assetSelectorProps->Type)
+				{
+					return false;
+				}
 
-            ImGUIHelpers::AssetReferenceField(uuid, name, "Entity", assetName.c_str(), uuid.Valid(), [&](UUID newReference)
-                {
-
-                });
+				value = newReference;
+				data.set(component, value);
+			}
 		}
 
 
@@ -193,7 +200,7 @@ namespace Butterfly
 			T& component = selectedEntity.GetComponent<T>();
 			entt::meta_type type = entt::resolve<T>();
 
-			if (!Utils::HasFlag(type.traits<ComponentMetaFlags>(), ComponentMetaFlags::Inspector))
+			if (!GetProperties(type.custom()).TryGetProperty<InspectComponent>())
 			{
 				return;
 			}
@@ -206,7 +213,11 @@ namespace Butterfly
 
 				for (const auto& [id, data] : type.data())
 				{
-                    if (!Utils::HasFlag(data.traits<ComponentMetaFlags>(), ComponentMetaFlags::Inspector))
+					const auto props = GetProperties(data.custom());
+					const InspectPropertyWithCondition<T>* inspectPropertyWithCondition = props.TryGetProperty<InspectPropertyWithCondition<T>>();
+					const bool inspect = props.TryGetProperty<InspectProperty>() || (inspectPropertyWithCondition && inspectPropertyWithCondition->Condition(component));
+
+					if(!inspect)
                     {
                         continue;
                     }

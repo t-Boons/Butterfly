@@ -3,7 +3,6 @@
 #include "Asset.hpp"
 #include "AssetRegistry.hpp"
 #include "Asset/Importer/AssetImporter.hpp"
-#include "Asset/AssetUUID.hpp"
 
 namespace Butterfly
 {
@@ -24,7 +23,7 @@ namespace Butterfly
 
 
         template<typename T>
-        bool Acquire(const AssetUUID<T>& id, AssetHandle<T>& ret);
+        bool Acquire(const UUID& id, AssetHandle<T>& ret);
 
         const std::vector<RefPtr<IAssetImporter>>& GetImporters() const { return s_importers; }
 
@@ -81,26 +80,26 @@ namespace Butterfly
     }
 
     template<typename T>
-    inline bool AssetManager::Acquire(const AssetUUID<T>& id, AssetHandle<T>& ret)
+    inline bool AssetManager::Acquire(const UUID& id, AssetHandle<T>& ret)
     {
-        if (!id.ID().Valid())
+        if (!id.Valid())
         {
             BF_CORE_LOG_ERROR("AssetManager::Acquire: Invalid UUID");
             return false;
         }
 
 		// Asset is already loaded, return the handle.
-		auto it = m_entries.find(id.ID());
+		auto it = m_entries.find(id);
         if (it != m_entries.end())
         {
 			BF_CORE_LOG_TRACE("Asset with ID: %s is already loaded, returning handle", id.ToString().c_str());
-            ret = AssetHandle<T>(this, id.ID());
+            ret = AssetHandle<T>(this, id);
             return true;
         }
 
         AssetMetadata meta;
 
-        if (!m_assetRegistry.FindAsset(id.ID(), meta))
+        if (!m_assetRegistry.FindAsset(id, meta))
         {
             BF_CORE_LOG_ERROR("Meta for ID: %s cannot be found", id.ToString().c_str());
             return false;
@@ -116,9 +115,9 @@ namespace Butterfly
         LoadSourceFile(meta);
 		BF_CORE_LOG_INFO("Asset loaded with ID: %s", id.ToString().c_str());
 
-        BF_CORE_ASSERT(m_entries.find(id.ID()) != m_entries.end(), "Asset does not exist in the asset entries.");
+        BF_CORE_ASSERT(m_entries.find(id) != m_entries.end(), "Asset does not exist in the asset entries.");
 
-        ret = AssetHandle<T>(this, id.ID());
+        ret = AssetHandle<T>(this, id);
         return true;
     }
 
@@ -128,7 +127,7 @@ namespace Butterfly
 		auto it = m_entries.find(entry.ID);
         if(it == m_entries.end())
         {
-            BF_CORE_LOG_TRACE("Adding asset entry of type %s with ID: %s", entry.Type.TypeName.c_str(), entry.ID.ToString().c_str());
+            BF_CORE_LOG_TRACE("Adding asset entry of type %s with ID: %s", entry.Type.TypeName().data(), entry.ID.ToString().c_str());
             m_entries[entry.ID] = entry;
             return AssetHandle<T>(this, entry.ID);
         }

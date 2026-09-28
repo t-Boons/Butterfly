@@ -7,19 +7,136 @@
 #include "Scene/Registry/IDComponent.hpp"
 #include "Scene/Registry/NameComponent.hpp"
 #include "Scene/Registry/SkyboxComponent.hpp"
+#include "Scene/Registry/LightComponent.hpp"
 
 namespace Butterfly
 {
-	enum ComponentMetaFlags : uint16_t
+	template<typename T>
+	class InspectPropertyWithCondition
 	{
-		None = 0,
-		Serialize = 1 << 0,
-		Inspector = 1 << 1
+	public:
+		InspectPropertyWithCondition(std::function<bool(const T& component)> condition)
+			: m_condition(condition)
+		{
+		}
+
+		bool Condition(const T& component) const
+		{
+			return m_condition(component);
+		}
+
+	private:
+		std::function<bool(const T& component)> m_condition;
 	};
 
-	constexpr ComponentMetaFlags operator|(ComponentMetaFlags lhs, ComponentMetaFlags rhs)
+
+	class InspectProperty
 	{
-		return static_cast<ComponentMetaFlags>(static_cast<uint16_t>(lhs) | static_cast<uint16_t>(rhs));
+	};
+
+	class InspectComponent
+	{
+	};
+	class Serializable
+	{
+	};
+
+	class AsSlider
+	{
+	public:
+		AsSlider(float min, float max)
+			: m_min(min), m_max(max)
+		{
+		}
+
+		float GetMin() const { return m_min; }
+		float GetMax() const { return m_max; }
+			
+	private:
+		float m_min;
+		float m_max;
+	};
+
+	class AsColor
+	{
+	};
+
+	class AsAssetSelector
+	{
+	public:
+		AsAssetSelector(AssetType type)
+			: Type(type)
+		{
+		}
+
+		AssetType Type;
+	};
+
+	class AsEnumSelector
+	{
+	public:
+		AsEnumSelector(std::initializer_list<std::string> names)
+			: m_EnumNames(names)
+		{
+		}
+
+		const std::vector<std::string>& GetEnumNames() const
+		{
+			return m_EnumNames;
+		}
+
+	private:
+		std::vector<std::string> m_EnumNames;
+	};
+
+	class ComponentProperties
+	{
+	public:
+		template<typename... T>
+		ComponentProperties(T... properties)
+		{
+			(SetProperty(properties), ...);
+		}
+
+		template<typename T>
+		T* TryGetProperty()
+		{
+			auto it = m_properties.find(typeid(T));
+
+			if (it != m_properties.end())
+			{
+				return std::any_cast<T>(&it->second);
+			}
+
+			return nullptr;
+		}
+
+		template<typename T>
+		const T* TryGetProperty() const
+		{
+			auto it = m_properties.find(typeid(T));
+
+			if (it != m_properties.end())
+			{
+				return std::any_cast<T>(&it->second);
+			}
+
+			return nullptr;
+		}
+
+		template<typename T>
+		void SetProperty(const T& value)
+		{
+			m_properties[typeid(T)] = value;
+		}
+
+	private:
+		std::unordered_map<std::type_index, std::any> m_properties;
+	};
+
+	inline ComponentProperties& GetProperties(entt::meta_custom custom)
+	{
+		return *custom.operator ComponentProperties * ();
 	}
 
 	class ComponentRegistry
@@ -48,43 +165,48 @@ namespace Butterfly
 			IDComponent,
 			TransformComponent,
 			MeshRendererComponent,
-			SkyboxComponent>;
+			SkyboxComponent,
+			LightComponent>;
 
 		static void RegisterComponents()
 		{
 			entt::meta_factory<NameComponent>{}
-			.type("Name").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&NameComponent::Name>("Name").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&NameComponent::Tag>("Tag").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector);
+			.type("Name").custom<ComponentProperties>(Serializable{}, InspectComponent{})
+				.data<&NameComponent::Name>("Name").custom<ComponentProperties>(Serializable{}, InspectProperty{})
+				.data<&NameComponent::Tag>("Tag").custom<ComponentProperties>(Serializable{}, InspectProperty{});
 
 			entt::meta_factory<IDComponent>{}
-			.type("ID").traits(ComponentMetaFlags::Serialize)
-				.data<&IDComponent::EntityUUID>("EntityUUID").traits(ComponentMetaFlags::Serialize);
+			.type("ID").custom<ComponentProperties>(Serializable{})
+				.data<&IDComponent::EntityUUID>("EntityUUID").custom<ComponentProperties>(Serializable{});
 
 
 			entt::meta_factory<TransformComponent>{}
-			.type("Transform").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&TransformComponent::SetPosition, &TransformComponent::GetPosition>("Position").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&TransformComponent::SetRotation, &TransformComponent::GetRotation>("Rotation").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&TransformComponent::SetScale, &TransformComponent::GetScale>("Scale").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&TransformComponent::SetChildrenUUIDs, &TransformComponent::GetChildrenUUIDs>("Children").traits(ComponentMetaFlags::Serialize)
-				.data<&TransformComponent::SetParentUUID, &TransformComponent::GetParentUUID>("Parent").traits(ComponentMetaFlags::Serialize);
+			.type("Transform").custom<ComponentProperties>(Serializable{}, InspectComponent{})
+				.data<&TransformComponent::SetPosition, &TransformComponent::GetPosition>("Position").custom<ComponentProperties>(Serializable{}, InspectProperty{})
+				.data<&TransformComponent::SetRotation, &TransformComponent::GetRotation>("Rotation").custom<ComponentProperties>(Serializable{}, InspectProperty{})
+				.data<&TransformComponent::SetScale, &TransformComponent::GetScale>("Scale").custom<ComponentProperties>(Serializable{}, InspectProperty{})
+				.data<&TransformComponent::SetChildrenUUIDs, &TransformComponent::GetChildrenUUIDs>("Children").custom<ComponentProperties>(Serializable{})
+				.data<&TransformComponent::SetParentUUID, &TransformComponent::GetParentUUID>("Parent").custom<ComponentProperties>(Serializable{});
 
 			entt::meta_factory<MeshRendererComponent>{}
-			.type("Mesh")
-				.traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&MeshRendererComponent::SetMeshUUID, &MeshRendererComponent::GetMeshUUID>("MeshUUID")
-				.traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector);
+			.type("Mesh").custom<ComponentProperties>(Serializable{}, InspectComponent{})
+				.data<&MeshRendererComponent::SetMeshUUID, &MeshRendererComponent::GetMeshUUID>("MeshUUID").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{MeshAsset::Type()});
 
 			entt::meta_factory<SkyboxComponent>{}
-			.type("Skybox").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&SkyboxComponent::SetTextureUUIDRight, &SkyboxComponent::GetTextureUUIDRight>("TextureUUIDRight").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&SkyboxComponent::SetTextureUUIDLeft, &SkyboxComponent::GetTextureUUIDLeft>("TextureUUIDLeft").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&SkyboxComponent::SetTextureUUIDTop, &SkyboxComponent::GetTextureUUIDTop>("TextureUUIDTop").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&SkyboxComponent::SetTextureUUIDBottom, &SkyboxComponent::GetTextureUUIDBottom>("TextureUUIDBottom").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&SkyboxComponent::SetTextureUUIDFront, &SkyboxComponent::GetTextureUUIDFront>("TextureUUIDFront").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector)
-				.data<&SkyboxComponent::SetTextureUUIDBack, &SkyboxComponent::GetTextureUUIDBack>("TextureUUIDBack").traits(ComponentMetaFlags::Serialize | ComponentMetaFlags::Inspector);
+			.type("Skybox").custom<ComponentProperties>(Serializable{}, InspectComponent{})
+				.data<&SkyboxComponent::SetTextureUUIDRight, &SkyboxComponent::GetTextureUUIDRight>("TextureUUIDRight").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDLeft, &SkyboxComponent::GetTextureUUIDLeft>("TextureUUIDLeft").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDTop, &SkyboxComponent::GetTextureUUIDTop>("TextureUUIDTop").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDBottom, &SkyboxComponent::GetTextureUUIDBottom>("TextureUUIDBottom").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDFront, &SkyboxComponent::GetTextureUUIDFront>("TextureUUIDFront").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDBack, &SkyboxComponent::GetTextureUUIDBack>("TextureUUIDBack").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()});
 
+			entt::meta_factory<LightComponent>{}
+			.type("Light").custom<ComponentProperties>(Serializable{}, InspectComponent{})
+				.data<&LightComponent::SetTypeAsUInt, &LightComponent::GetTypeAsUInt>("Type").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsEnumSelector{ {"Directional", "Point", "Spot"} })
+				.data<&LightComponent::SetColor, &LightComponent::GetColor>("Color").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsColor{})
+				.data<&LightComponent::SetRange, &LightComponent::GetRange>("Range").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Point || component.GetType() == LightType::Spot; }})
+				.data<&LightComponent::SetConeAngle, &LightComponent::GetConeAngle>("ConeAngle").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Spot; }});
 
 			RunOnAllComponents([&]<typename T>()
 			{

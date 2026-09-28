@@ -211,7 +211,7 @@ namespace Butterfly
 		}
 		const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)
 			{
-				return subMeta.second.Name == name && subMeta.second.Type.TypeName == "Texture";
+				return subMeta.second.Name == name && subMeta.second.Type.TypeName() == "Texture";
 			});	
 
 		if (subMetaData == meta.Assets.end())
@@ -300,7 +300,7 @@ namespace Butterfly
 
 			const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)
 				{
-					return subMeta.second.Name == name && subMeta.second.Type.TypeName == "Material";
+					return subMeta.second.Name == name && subMeta.second.Type.TypeName() == "Material";
 				});
 
 			if (subMetaData == meta.Assets.end())
@@ -405,7 +405,7 @@ namespace Butterfly
 			}
 			const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)
 				{
-					return subMeta.second.Name == name && subMeta.second.Type.TypeName == "Mesh";
+					return subMeta.second.Name == name && subMeta.second.Type.TypeName() == "Mesh";
 				});
 
 			if (subMetaData == meta.Assets.end())

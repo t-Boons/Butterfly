@@ -21,7 +21,7 @@ namespace Butterfly
 		return m_textureHandles[side];
 	}
 
-	void SkyboxComponent::SetTextureUUIDRight(const AssetUUID<TextureAsset>& uuid)
+	void SkyboxComponent::SetTextureUUIDRight(const UUID& uuid)
 	{
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[0]))
 		{
@@ -30,7 +30,7 @@ namespace Butterfly
 		}
 	}
 
-	void SkyboxComponent::SetTextureUUIDLeft(const AssetUUID<TextureAsset>& uuid)
+	void SkyboxComponent::SetTextureUUIDLeft(const UUID& uuid)
 	{
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[1]))
 		{
@@ -39,7 +39,7 @@ namespace Butterfly
 		}
 	}
 
-	void SkyboxComponent::SetTextureUUIDTop(const AssetUUID<TextureAsset>& uuid)
+	void SkyboxComponent::SetTextureUUIDTop(const UUID& uuid)
 	{
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[2]))
 		{
@@ -48,7 +48,7 @@ namespace Butterfly
 		}
 	}
 
-	void SkyboxComponent::SetTextureUUIDBottom(const AssetUUID<TextureAsset>& uuid)
+	void SkyboxComponent::SetTextureUUIDBottom(const UUID& uuid)
 	{
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[3]))
 		{
@@ -57,7 +57,7 @@ namespace Butterfly
 		}
 	}
 
-	void SkyboxComponent::SetTextureUUIDFront(const AssetUUID<TextureAsset>& uuid)
+	void SkyboxComponent::SetTextureUUIDFront(const UUID& uuid)
 	{
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[4]))
 		{
@@ -66,7 +66,7 @@ namespace Butterfly
 		}
 	}
 
-	void SkyboxComponent::SetTextureUUIDBack(const AssetUUID<TextureAsset>& uuid)
+	void SkyboxComponent::SetTextureUUIDBack(const UUID& uuid)
 	{
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[5]))
 		{

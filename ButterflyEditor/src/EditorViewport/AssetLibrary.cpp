@@ -165,7 +165,7 @@ namespace Butterfly
 					else if (ext == ".gltf" || ext == ".glb")
 					{
 						AssetHandle<ModelAsset> handle;
-						Application::Get().GetAssetManager().Acquire(AssetUUID<ModelAsset>(meta.RootAssetID), handle);
+						Application::Get().GetAssetManager().Acquire(meta.RootAssetID, handle);
 						ModelAsset* model = Application::Get().GetAssetManager().Resolve(handle);
 
 						std::function<void(ModelNode*, entt::entity)> traverse = [&](ModelNode* node, entt::entity parent)
@@ -184,7 +184,7 @@ namespace Butterfly
 									MeshRendererComponent& mr = Application::Get().GetScene().m_activeScene->AddComponent<MeshRendererComponent>(entity);
 									mr.SetMeshHandle(node->Mesh);
 								}
-
+	
 								for (auto& child : node->Children)
 								{
 									traverse(child.get(), entity);
