@@ -27,6 +27,8 @@ namespace Butterfly
 	struct CameraData
 	{
 		glm::mat4 ViewProjection;
+		glm::mat3 NormalMatrix;
+		glm::vec3 CameraPosition;
 	};
 
 	struct InverseCameraData

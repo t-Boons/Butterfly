@@ -1,6 +1,8 @@
-struct Uniforms
+struct CameraData
 {
     float4x4 ViewProjection;
+    float3x3 NormalMatrix;
+    float3 CameraPosition;
 };
 
 struct ModelMatrix
@@ -28,7 +30,7 @@ struct V2P
 V2P main(uint vertexID : SV_VertexID)
 {
     StructuredBuffer<float3> position = ResourceDescriptorHeap[resources.positionBuffer];
-    ConstantBuffer<Uniforms> uniforms = ResourceDescriptorHeap[resources.uniformIndex];
+    ConstantBuffer<CameraData> uniforms = ResourceDescriptorHeap[resources.uniformIndex];
     StructuredBuffer<ModelMatrix> modelMatrices = ResourceDescriptorHeap[resources.modelIndex];
     
     float4x4 MVP = mul(uniforms.ViewProjection, modelMatrices[resources.entityRenderIndex].modelMatrix);

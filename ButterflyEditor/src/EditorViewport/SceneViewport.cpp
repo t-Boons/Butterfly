@@ -156,6 +156,8 @@ namespace Butterfly
 	{
 		CameraData cameraData;
 		cameraData.ViewProjection = m_spectatorCam.GetCamera()->ViewProjectionMatrix();
+		cameraData.NormalMatrix = glm::mat3(glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ViewMatrix())));
+		cameraData.CameraPosition = m_spectatorCam.GetCamera()->Position();
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
 
@@ -213,11 +215,11 @@ namespace Butterfly
 
 		static ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
 
-		if (ImGui::IsKeyPressed(ImGuiKey_W))
+		if (ImGui::IsKeyPressed(ImGuiKey_W) && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
 			currentGizmoOperation = ImGuizmo::TRANSLATE;
-		if (ImGui::IsKeyPressed(ImGuiKey_E))
+		if (ImGui::IsKeyPressed(ImGuiKey_E) && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
 			currentGizmoOperation = ImGuizmo::ROTATE;
-		if (ImGui::IsKeyPressed(ImGuiKey_R))
+		if (ImGui::IsKeyPressed(ImGuiKey_R) && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
 			currentGizmoOperation = ImGuizmo::SCALE;
 
 		if (EditorApplication().Get().GetEditorViewport().m_selectedEntity)
