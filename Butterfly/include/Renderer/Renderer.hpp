@@ -2,6 +2,7 @@
 #include "Core/Common.hpp"
 #include "Renderer/Viewport.hpp"
 #include "Core/Window.hpp"
+#include "Renderer/Light.hpp"
 
 #define NUM_RENDER_BUFFERS 3
 

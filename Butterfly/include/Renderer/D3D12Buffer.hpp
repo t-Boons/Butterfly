@@ -31,6 +31,7 @@ namespace Butterfly
 
 		uint32_t NumBytes() const { return m_desc.NumElements * m_desc.Stride; }
 		void Write(const void* src, uint32_t numBytes, uint32_t offset = 0);
+		uint32_t NumElements() const { return m_desc.NumElements; }
 
 		ID3D12Resource2* Resource() const;
 		D3D12Resource& DXResource() const;

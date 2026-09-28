@@ -337,6 +337,8 @@ namespace Butterfly
 				desc.DebugName = "ModelMatrices";
 
 				viewport.ModelMatrices = MakeRef<BFStructuredBuffer>(desc);
+
+				viewport.Lights = MakeRef<LightBuffer>();
 			}
 		}
 	}
@@ -358,6 +360,7 @@ namespace Butterfly
 
 		params->Comp = viewport.RenderTarget.get();
 
+		ev.Viewport.Lights->Update();
 
 		BFTextureDesc desc2;
 		desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -438,6 +441,8 @@ namespace Butterfly
 							.Add(albedo->SRV().View())
 							.Add(viewport.ModelMatrices->SRV().View())
 							.Add(entityIndex)
+							.Add(viewport.Lights->SRV().View())
+							.Add(viewport.Lights->GetNumLights())
 							.Submit(list);
 
 						list.List()->DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);

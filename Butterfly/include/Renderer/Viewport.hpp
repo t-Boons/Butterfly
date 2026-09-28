@@ -26,6 +26,7 @@ namespace Butterfly
 	class BFUniformBuffer;
 	class BFStructuredBuffer;
 	class GraphTransientResourceCache;
+	class LightBuffer;
 
 	struct Viewport
 	{
@@ -36,6 +37,7 @@ namespace Butterfly
 		RefPtr<BFUniformBuffer> Uniforms;
 
 		RefPtr<BFStructuredBuffer> ModelMatrices;
+		RefPtr<LightBuffer> Lights;
 	private:
 		friend class Renderer;
 		RefPtr<GraphTransientResourceCache> GraphResources;
