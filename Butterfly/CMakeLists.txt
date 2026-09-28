@@ -56,6 +56,10 @@ add_library(Butterfly STATIC
     src/Renderer/D3D12/D3D12View.cpp
     src/Renderer/Camera.cpp
 
+    src/Renderer/RenderPipeline/RenderPipeline.cpp
+    src/Renderer/RenderPipeline/PBRRenderPipelineStage.cpp
+    src/Renderer/RenderPipeline/SkyboxRenderPipelineStage.cpp
+
     src/Renderer/Graph/Graph.cpp
     src/Renderer/Graph/GraphTypes.cpp
     src/Renderer/ModelLoading/MikkTSpaceWrapper.cpp

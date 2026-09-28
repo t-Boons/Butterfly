@@ -19,13 +19,10 @@ namespace Butterfly
 		void RenderObjectPicker(const ViewportRenderEvent& event);
 
 	private:
-		RefPtr<BFTextureReadback> m_objectPickerReadback;
 		ViewportHandle m_viewportHandle;
 		SpectatorCamera m_spectatorCam;
 
 		EventReceiver<ViewportResizeEvent> m_viewportResizeReceiver;
-		EventReceiver<ViewportRenderEvent> m_viewportRenderReceiver;
 		EventReceiver<ViewportPrerenderEvent> m_viewportPrerenderReceiver;
-		EventReceiver<ViewportRenderEvent> m_skyboxRender;
 	};
 }

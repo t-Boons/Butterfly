@@ -18,15 +18,15 @@ namespace Butterfly
 		void DrawSphere(const glm::vec3& center, float radius, const glm::vec4& color);
 		void DrawCircle(const glm::vec3& center, float radius, const glm::vec4& color);
 		void DrawFrustum(const glm::mat4& projection, const glm::vec4& color);
-	private:
+
 		struct Vertex
 		{
 			glm::vec3 Position;
 			glm::vec4 Color;
 		};
 
+	private:
+		friend class DebugRendererPipelineStage;
 		std::vector<Vertex> m_debugVertices;
-		EventReceiver<ViewportRenderEvent> m_viewportRenderReceiver;
-		EventReceiver<> m_renderFinishedReceiver;
 	};
 }

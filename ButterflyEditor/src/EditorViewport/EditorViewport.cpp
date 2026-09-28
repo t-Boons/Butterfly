@@ -56,7 +56,11 @@ namespace Butterfly
 		{
 			if (sb.IsDirty())
 			{
-				Application::Get().GetRenderer().m_tempSkybox->LoadSkybox(sb);
+				SkyboxRenderPipelineStage* renderPipeline = Application::Get().GetRenderer().GetRenderPipeline().TryGetStage<SkyboxRenderPipelineStage>();
+				if (renderPipeline)
+				{
+					renderPipeline->LoadSkybox(sb);
+				}
 				sb.ClearDirty();
 			}
 		}

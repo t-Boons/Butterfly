@@ -96,6 +96,6 @@ namespace Butterfly
     template <typename T, typename... Args>
     inline RefPtr<T> DynamicCastRef(Args&&... args)
     {
-        return std::static_pointer_cast<T>(std::forward<Args>(args)...);
+        return std::dynamic_pointer_cast<T>(std::forward<Args>(args)...);
     }
 }

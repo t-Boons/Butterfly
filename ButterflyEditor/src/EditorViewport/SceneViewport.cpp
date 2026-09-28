@@ -14,14 +14,106 @@ namespace Butterfly
 		BFRGTexture* RenderTarget;
 	};
 
+	class ObjectPickerRenderPipelineStage : public IRenderPipelineStage
+	{
+	public:
+		ObjectPickerRenderPipelineStage()
+		{
+			m_objectPickerReadback = MakeRef<BFTextureReadback>();
+		}
+
+		virtual void OnPostRender() override {}
+		virtual void OnRecordPass(const ViewportRenderEvent& event) override
+		{
+			GraphBuilder& builder = event.Builder;
+			Viewport& viewport = event.Viewport;
+
+			ObjectPickerPassData* params = builder.AllocParameters<ObjectPickerPassData>();
+
+			BFTextureDesc desc;
+			desc.Format = DXGI_FORMAT_R32_UINT;
+			desc.Width = viewport.RenderTarget->Width();
+			desc.Height = viewport.RenderTarget->Height();
+			desc.Flags = BFTextureDesc::RenderTargettable;
+			desc.DebugName = "R32 Viewport objectpicker";
+			params->RenderTarget = builder.CreateTransientTexture("R32 Viewport objectpicker", desc);
+
+			BFTextureDesc desc2;
+			desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+			desc2.Width = viewport.RenderTarget->Width();
+			desc2.Height = viewport.RenderTarget->Height();
+			desc2.Flags = BFTextureDesc::DepthStencilable;
+			desc2.DebugName = "DepthStencil Viewport objectpicker";
+			params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport objectpicker", desc2);
+
+
+			event.Builder.AddPass<ObjectPickerPassData>("RenderObjectPickerPass", [&](const ObjectPickerPassData& data, D3D12CommandList& list)
+				{
+					BFTexture& rt = *data.RenderTarget->Resource();
+
+					// Default Init stuff.
+					list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+					GraphicsCommands::SetRenderTargets(list, { &rt }, data.DepthStencil->Resource().get());
+
+					GraphicsCommands::ClearDepthStencil(list, *data.DepthStencil->Resource());
+					GraphicsCommands::ClearRenderTarget(list, rt, { 0.0f, 0.0f, 0.0f, 0.0f });
+
+					GraphicsCommands::SetFullscreenViewportAndRect(list, rt.Width(), rt.Height());
+
+					BFPipelineBuilder psoBuilder;
+					psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+					psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R32_UINT });
+					psoBuilder.DepthStencilFormat({ DXGI_FORMAT_D24_UNORM_S8_UINT });
+					psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_vert.hlsl", ShaderType::Vertex));
+					psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_frag.hlsl", ShaderType::Pixel));
+					psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
+
+					list.List()->SetPipelineState(psoBuilder.Create().GetHW());
+
+					uint32_t entityRenderIndex = 0;
+					auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+					for (auto [entity, transform, meshRenderer] : view.each())
+					{
+						if (!meshRenderer.GetMeshHandle())
+						{
+							continue;
+						}
+
+						AssetManager& as = Application::Get().GetAssetManager();
+						MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+						ShaderVariables()
+							.Add(mesh->GPUPositions->SRV().View())
+							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
+							.Add(viewport.ModelMatrices->SRV().View())
+							.Add(entityRenderIndex) // Rendered entity index.
+							.Add(static_cast<int>(entity)) // uint32_t Entity ID in registry.
+							.Submit(list);
+
+						entityRenderIndex++;
+
+						list.List()->IASetIndexBuffer(&mesh->GPUIndices->IBV());
+						list.List()->DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);
+					}
+
+					m_objectPickerReadback->ReadbackCopy(list, data.RenderTarget->Resource());
+				});
+		}
+
+	private:
+		friend class SceneViewport;
+		RefPtr<BFTextureReadback> m_objectPickerReadback;
+	};
+
+
+
 	SceneViewport::SceneViewport()
 	{
 		m_viewportHandle = Application::Get().GetRenderer().AddViewport();
 
-		m_objectPickerReadback = MakeRef<BFTextureReadback>();
+		Application::Get().GetRenderer().GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
 
 		m_viewportResizeReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
-		m_viewportRenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnRender, BF_BIND_FUNC_PARAM(&SceneViewport::RenderObjectPicker));
 		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
 	}
 	
@@ -89,7 +181,13 @@ namespace Butterfly
 		const glm::ivec2 contentPos = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
 		const glm::ivec2 relativePos = mousePos - contentPos;
 		uint32_t readbackID = 0;
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_objectPickerReadback->ReadPixel(relativePos, readbackID) && !ImGuizmo::IsOver())
+
+		ObjectPickerRenderPipelineStage* objectPickerStage = Application::Get().GetRenderer().GetRenderPipeline().TryGetStage<ObjectPickerRenderPipelineStage>();
+
+		if (objectPickerStage &&
+			objectPickerStage->m_objectPickerReadback->ReadPixel(relativePos, readbackID) &&
+			ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
+			!ImGuizmo::IsOver())
 		{
 			if (readbackID > 0)
 			{
@@ -150,82 +248,5 @@ namespace Butterfly
 
 		ImGui::PopStyleVar(2);
 		ImGui::End();
-	}
-
-	void SceneViewport::RenderObjectPicker(const ViewportRenderEvent& event)
-	{
-		GraphBuilder& builder = event.Builder;
-		Viewport& viewport = event.Viewport;
-
-		ObjectPickerPassData* params = builder.AllocParameters<ObjectPickerPassData>();
-
-		BFTextureDesc desc;
-		desc.Format = DXGI_FORMAT_R32_UINT;
-		desc.Width = viewport.RenderTarget->Width();
-		desc.Height = viewport.RenderTarget->Height();
-		desc.Flags = BFTextureDesc::RenderTargettable;
-		desc.DebugName = "R32 Viewport objectpicker";
-		params->RenderTarget = builder.CreateTransientTexture("R32 Viewport objectpicker", desc);
-
-		BFTextureDesc desc2;
-		desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		desc2.Width = viewport.RenderTarget->Width();
-		desc2.Height = viewport.RenderTarget->Height();
-		desc2.Flags = BFTextureDesc::DepthStencilable;
-		desc2.DebugName = "DepthStencil Viewport objectpicker";
-		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport objectpicker", desc2);
-
-
-		event.Builder.AddPass<ObjectPickerPassData>("RenderObjectPickerPass", [&](const ObjectPickerPassData& data, D3D12CommandList& list)
-			{
-				BFTexture& rt = *data.RenderTarget->Resource();
-
-				// Default Init stuff.
-				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-				GraphicsCommands::SetRenderTargets(list, { &rt }, data.DepthStencil->Resource().get());
-
-				GraphicsCommands::ClearDepthStencil(list, *data.DepthStencil->Resource());
-				GraphicsCommands::ClearRenderTarget(list, rt, { 0.0f, 0.0f, 0.0f, 0.0f });
-
-				GraphicsCommands::SetFullscreenViewportAndRect(list, rt.Width(), rt.Height());
-
-				BFPipelineBuilder psoBuilder;
-				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-				psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R32_UINT });
-				psoBuilder.DepthStencilFormat({ DXGI_FORMAT_D24_UNORM_S8_UINT });
-				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_vert.hlsl", ShaderType::Vertex));
-				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_frag.hlsl", ShaderType::Pixel));
-				psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
-
-				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
-
-				uint32_t entityRenderIndex = 0;
-				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
-				for (auto [entity, transform, meshRenderer] : view.each())
-				{
-					if (!meshRenderer.GetMeshHandle())
-					{
-						continue;
-					}
-
-					AssetManager& as = Application::Get().GetAssetManager();
-					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-					ShaderVariables()
-						.Add(mesh->GPUPositions->SRV().View())
-						.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-						.Add(viewport.ModelMatrices->SRV().View())
-						.Add(entityRenderIndex) // Rendered entity index.
-						.Add(static_cast<int>(entity)) // uint32_t Entity ID in registry.
-						.Submit(list);
-
-					entityRenderIndex++;
-
-					list.List()->IASetIndexBuffer(&mesh->GPUIndices->IBV());
-					list.List()->DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);
-				}
-
-				m_objectPickerReadback->ReadbackCopy(list, data.RenderTarget->Resource());
-			});
 	}
 }

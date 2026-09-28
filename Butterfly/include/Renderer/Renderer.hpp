@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Common.hpp"
+#include "Renderer/RenderIncludes.hpp"
 #include "Renderer/Viewport.hpp"
 #include "Core/Window.hpp"
 #include "Renderer/Light.hpp"
@@ -12,6 +13,7 @@ namespace Butterfly
 	class D3D12CommandList;
 	class BFTexture;
 	class BFSampler;
+	class RenderPipeline;
 
 	struct FrameData
 	{
@@ -58,13 +60,10 @@ namespace Butterfly
 
 		// ImGui Helper functions.
 		EventDispatcher<>& GetImGUIRenderEvent() { return m_ImGuiRenderEvent; }
-		EventDispatcher<>& GetRenderFinishedEvent() { return m_renderFinishedEvent; }
-		EventDispatcher<ViewportRenderEvent>& GetOnRenderAnyViewportEvent() { return m_onRenderAnyViewportEvent; }
 		void ImGUIImage(const ViewportHandle& handle);
 
-		RefPtr<Skybox> m_tempSkybox;
-		RefPtr<BFTexture> m_whiteTexture;
-		RefPtr<BFSampler> m_defaultSampler;
+		RenderPipeline& GetRenderPipeline() { return *m_renderPipeline; }
+
 	private:
 		void InvalidateFrameDatas();
 		void WaitForInflightFrames();
@@ -74,6 +73,7 @@ namespace Butterfly
 		void OnWindowResize(const WindowResizeEvent& ev);
 		void OnWindowRefresh();
 
+		RefPtr<RenderPipeline> m_renderPipeline;
 
 		uint32_t m_frameIndex = 0;
 		uint32_t m_previousFrame = 0;
@@ -89,9 +89,7 @@ namespace Butterfly
 		std::unordered_map<ViewportHandle, ViewportEvents> m_viewportEvents;
 		uint32_t m_viewportHandleIndex = 1;
 
-		EventDispatcher<ViewportRenderEvent> m_onRenderAnyViewportEvent;
 		EventDispatcher<> m_ImGuiRenderEvent;
-		EventDispatcher<> m_renderFinishedEvent;
 
 		EventReceiver<WindowResizeEvent> m_windowResizeReceiver;
 		EventReceiver<> m_windowRefreshReceiver;

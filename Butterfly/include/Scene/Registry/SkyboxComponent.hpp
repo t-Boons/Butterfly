@@ -32,7 +32,6 @@ namespace Butterfly
 		const UUID& GetTextureUUIDBack() const { return m_serializeUUIDs[5]; }
 
 		friend class ComponentRegistry;
-		friend class Skybox;
 		std::array<UUID, 6> m_serializeUUIDs;
 		std::array<AssetHandle<TextureAsset>, 6> m_textureHandles;
 		bool m_isDirty = false;

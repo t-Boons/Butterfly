@@ -30,7 +30,6 @@
 
 #include "Renderer/Renderer.hpp" 
 #include "Renderer/Camera.hpp"
-#include "Renderer/Skybox.hpp"
 #include "Renderer/D3D12/D3D12DescriptorAllocator.hpp"
 #include "Renderer/D3D12/D3D12CommandQueue.hpp"
 #include "Renderer/D3D12/D3D12CommandList.hpp"
@@ -43,6 +42,11 @@
 #include "Renderer/D3D12/D3D12Shader.hpp"
 #include "Renderer/D3D12/D3D12ShaderVariables.hpp"
 
+#include "Renderer/RenderPipeline/RenderPipeline.hpp"
+#include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"
+#include "Renderer/RenderPipeline/PBRRenderPipelineStage.hpp"
+
+
 #include "Serialization/ENTT/ComponentRegistry.hpp"
 
 
@@ -50,7 +54,6 @@
 #include "Renderer/D3D12Sampler.hpp"
 #include "Renderer/D3D12Buffer.hpp"
 #include "Renderer/D3D12Texture.hpp"
-#include "Renderer/D3D12/D3D12Fence.hpp"
 
 // Butterfly (Render)Graph
 #include "Renderer/Graph/GraphBuilder.hpp"
@@ -61,6 +64,3 @@
 // Utils.
 #include "Utils/Utils.hpp"
 #include "Utils/Profiler.hpp"
-
-
-#include "Renderer/Skybox.hpp"
