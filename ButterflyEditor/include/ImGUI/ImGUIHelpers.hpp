@@ -37,7 +37,7 @@ namespace Butterfly
 			ImGui::Text((propertyName + ": ").c_str());
 			ImGui::SameLine(0.0f, 0.0f);
 
-			static int currentItem = 0;
+			static int currentItem = out;
 			bool changed = false;
 
 			if (ImGui::BeginCombo(("##combo" + propertyName).c_str(), enumNames[currentItem].c_str()))

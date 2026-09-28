@@ -34,7 +34,7 @@ namespace Butterfly
 			return m_range;
 		}
 
-		float GetConeAngle() const
+		const glm::vec2& GetConeAngle() const
 		{
 			return m_coneAngle;
 		}
@@ -59,7 +59,7 @@ namespace Butterfly
 			m_dirty = true;
 		}
 
-		void SetConeAngle(float coneAngle)
+		void SetConeAngle(const glm::vec2& coneAngle)
 		{
 			m_coneAngle = coneAngle;
 			m_dirty = true;
@@ -83,10 +83,10 @@ namespace Butterfly
 
 		friend class ComponentRegistry;
 
-		uint32_t m_type;
-		glm::vec3 m_color;
-		float m_range;
-		float m_coneAngle;
+		uint32_t m_type = static_cast<uint32_t>(LightType::Point);
+		glm::vec3 m_color = { 1.0f, 1.0f, 1.0f };
+		float m_range = 2.0f;
+		glm::vec2 m_coneAngle = { 30.0f, 45.0f };
 		bool m_dirty = true;
 	};
 }

@@ -2,10 +2,11 @@ struct Light
 {
     uint Type;
     float3 Color;
-    float Range;
-    float ConeAngle;
-    float3 Direction;
     float3 Position;
+    float3 Direction;
+    float Range;
+    float InnerConeAngleCos;
+    float OuterConeAngleCos;
 };
 
 struct BufferIndices
@@ -52,9 +53,40 @@ float4 main(V2P pixelInput) : SV_TARGET0
     for (int i = 0; i < resources.numLights; i++)
     {
         Light light = lights[i];
+       
+        if(light.Type == 0) // Directional Light
+        {
+            float3 lightDir = normalize(light.Direction);
+            float3 diffuse = max(dot(normal, lightDir), 0.0) * light.Color * albedo;
+            lighting += diffuse;
+            continue;
+        }
+        
+        float distance = length(light.Position - pixelInput.fragPos);
+        if (distance >= light.Range)
+        {
+            continue;
+        }
+        
         float3 lightDir = normalize(light.Position - pixelInput.fragPos);
-        float3 diffuse = max(dot(normal, lightDir), 0.0) * light.Color * albedo;
-        lighting += diffuse;
+        float inverseSquare = 1.0 / max(distance * distance, 0.0001);
+        float rangeFade = 1.0 - saturate(distance / light.Range);
+        rangeFade *= rangeFade;
+        float attenuation = inverseSquare * rangeFade;
+        
+        if (light.Type == 1) // Point Light
+        {
+            float3 diffuse = max(dot(normal, lightDir), 0.0) * light.Color * albedo * attenuation;
+            lighting += diffuse;
+            continue;
+        }
+        if(light.Type == 2) // Spot light
+        {
+            float coneAttenuation = smoothstep(light.OuterConeAngleCos, light.InnerConeAngleCos, dot(-lightDir, normalize(light.Direction)));
+            float3 diffuse = max(dot(normal, lightDir), 0.0) * light.Color * albedo * attenuation * coneAttenuation;
+            lighting += diffuse;   
+            continue;
+        }
     }
     
     return float4(lighting, 1.0f);

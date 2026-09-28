@@ -51,6 +51,18 @@ namespace Butterfly
 			return true;
 		}
 
+		if (value.type() == entt::resolve<uint32_t>())
+		{
+			node = YAML::Node(value.cast<uint32_t>());
+			return true;
+		}
+
+		if (value.type() == entt::resolve<uint64_t>())
+		{
+			node = YAML::Node(value.cast<uint64_t>());
+			return true;
+		}
+
 		if (value.type() == entt::resolve<std::string>())
 		{
 			node = YAML::Node(value.cast<std::string>());
@@ -120,6 +132,18 @@ namespace Butterfly
 		if (value.type() == entt::resolve<int>())
 		{
 			value.cast<int&>() = node.as<int>();
+			return true;
+		}
+
+		if (value.type() == entt::resolve<uint32_t>())
+		{
+			value.cast<uint32_t&>() = node.as<uint32_t>();
+			return true;
+		}
+
+		if (value.type() == entt::resolve<uint64_t>())
+		{
+			value.cast<uint64_t&>() = node.as<uint64_t>();
 			return true;
 		}
 

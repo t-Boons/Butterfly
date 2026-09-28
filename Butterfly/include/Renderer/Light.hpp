@@ -11,10 +11,11 @@ namespace Butterfly
 	{
 		uint32_t Type;
 		glm::vec3 Color;
-		float Range;
-		float ConeAngle;
-		glm::vec3 Direction;
 		glm::vec3 Position;
+		glm::vec3 Direction;
+		float Range;
+		float InnerConeAngleCos;
+		float OuterConeAngleCos;
 	};
 
 
@@ -40,9 +41,10 @@ namespace Butterfly
 				gpuLight.Type = static_cast<uint32_t>(light.GetType());
 				gpuLight.Color = light.GetColor();
 				gpuLight.Range = light.GetRange();
-				gpuLight.ConeAngle = light.GetConeAngle();
-				gpuLight.Direction = transform.GetRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
+				gpuLight.InnerConeAngleCos = glm::cos(glm::radians(light.GetConeAngle().x));
+				gpuLight.OuterConeAngleCos = glm::cos(glm::radians(light.GetConeAngle().y));
 				gpuLight.Position = transform.GetPosition();
+				gpuLight.Direction = transform.GetRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
 				m_lights.push_back(gpuLight);
 			}
 
