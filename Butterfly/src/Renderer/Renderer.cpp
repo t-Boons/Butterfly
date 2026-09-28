@@ -159,14 +159,27 @@ namespace Butterfly
 
 			it->second.GraphResources->Flush();
 
-			BFTextureDesc desc;
-			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			desc.Width = size.x;
-			desc.Height = size.y;
-			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
-			desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " RenderTarget";
+			{
+				BFTextureDesc desc;
+				desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				desc.Width = size.x;
+				desc.Height = size.y;
+				desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
+				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " RenderTarget";
 
-			it->second.RenderTarget = BFTexture::CreateTextureForGPU(desc);
+				it->second.RenderTarget = BFTexture::CreateTextureForGPU(desc);
+			}
+			{
+				BFTextureDesc desc;
+				desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+				desc.Width = size.x;
+				desc.Height = size.y;
+				desc.Flags = BFTextureDesc::DepthStencilable;
+				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " DepthStencil";
+
+				it->second.DepthStencil = BFTexture::CreateTextureForGPU(desc);
+			}
+			
 
 			GetViewportEvents(handle).OnResize.Broadcast(ViewportResizeEvent({ size.x, size.y }));
 		}
@@ -222,6 +235,7 @@ namespace Butterfly
 			GetViewportEvents(viewport.Handle).OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
 			RecordCmdList(ViewportRenderEvent{ builder, viewport });
 			GetViewportEvents(viewport.Handle).OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
+			m_onRenderAnyViewportEvent.Broadcast(ViewportRenderEvent{ builder, viewport });
 			GetViewportEvents(viewport.Handle).OnPostRender.Broadcast(ViewportPostRenderEvent{ builder, viewport });
 			auto graph = builder.Create();
 			graph->Execute(*frame.CmdList);
@@ -362,13 +376,6 @@ namespace Butterfly
 
 		ev.Viewport.Lights->Update();
 
-		BFTextureDesc desc2;
-		desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		desc2.Width = viewport.RenderTarget->Width();
-		desc2.Height = viewport.RenderTarget->Height();
-		desc2.Flags = BFTextureDesc::DepthStencilable;
-		params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport", desc2);
-
 		uint32_t entityIndex = 0;
 		auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 		for (auto [entity, transform, meshRenderer] : view.each())
@@ -392,9 +399,9 @@ namespace Butterfly
 
 				// Default Init stuff.
 				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				GraphicsCommands::SetRenderTargets(list, { &rt }, params.DepthStencil->Resource().get());
+				GraphicsCommands::SetRenderTargets(list, { &rt }, viewport.DepthStencil.get());
 
-				GraphicsCommands::ClearDepthStencil(list, *params.DepthStencil->Resource());
+				GraphicsCommands::ClearDepthStencil(list, *viewport.DepthStencil);
 				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.15f, 1.0f });
 
 				GraphicsCommands::SetFullscreenViewportAndRect(list, rt.Width(), rt.Height());

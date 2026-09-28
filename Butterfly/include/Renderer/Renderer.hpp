@@ -36,7 +36,6 @@ namespace Butterfly
 	class BFRGTexture;
 	struct ForwardRenderer
 	{
-		BFRGTexture* DepthStencil;
 		BFTexture* Comp;
 	};
 
@@ -60,6 +59,7 @@ namespace Butterfly
 		// ImGui Helper functions.
 		EventDispatcher<>& GetImGUIRenderEvent() { return m_ImGuiRenderEvent; }
 		EventDispatcher<>& GetRenderFinishedEvent() { return m_renderFinishedEvent; }
+		EventDispatcher<ViewportRenderEvent>& GetOnRenderAnyViewportEvent() { return m_onRenderAnyViewportEvent; }
 		void ImGUIImage(const ViewportHandle& handle);
 
 		RefPtr<Skybox> m_tempSkybox;
@@ -89,6 +89,7 @@ namespace Butterfly
 		std::unordered_map<ViewportHandle, ViewportEvents> m_viewportEvents;
 		uint32_t m_viewportHandleIndex = 1;
 
+		EventDispatcher<ViewportRenderEvent> m_onRenderAnyViewportEvent;
 		EventDispatcher<> m_ImGuiRenderEvent;
 		EventDispatcher<> m_renderFinishedEvent;
 

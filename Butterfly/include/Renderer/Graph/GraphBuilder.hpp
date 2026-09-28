@@ -29,6 +29,9 @@ namespace Butterfly
 		template<typename Args>
 		[[nodiscard]] BFRGTexture* CreateTransientTexture(const std::string& key, Args&& args);
 
+		template<typename Args>
+		[[nodiscard]] BFStructuredBuffer* CreateTransientStructuredBuffer(const std::string& key, Args&& args);
+
 		template<typename ParamStruct>
 		bool HasPassType() const;
 
@@ -69,7 +72,13 @@ namespace Butterfly
 	template<typename Args>
 	inline BFRGTexture* GraphBuilder::CreateTransientTexture(const std::string& key, Args&& args)
 	{
-		return &m_graph->ResourceInitializer.GetOrCreateTexture<BFRGTexture>(key, args);
+		return &m_graph->ResourceInitializer.GetOrCreate<BFRGTexture>(key, args);
+	}
+
+	template<typename Args>
+	inline BFStructuredBuffer* GraphBuilder::CreateTransientStructuredBuffer(const std::string& key, Args&& args)
+	{
+		return &m_graph->ResourceInitializer.GetOrCreate<BFStructuredBuffer>(key, args);
 	}
 
 

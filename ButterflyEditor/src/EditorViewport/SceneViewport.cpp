@@ -4,6 +4,7 @@
 #include "ImGuizmo/ImGuizmo.h"
 #include "Core/EditorApplication.hpp"
 #include "EditorViewport/EditorViewport.hpp"
+#include "Core/DebugRenderer.hpp"
 
 namespace Butterfly
 {
@@ -32,6 +33,24 @@ namespace Butterfly
 	void SceneViewport::OnTick()
 	{
 		m_spectatorCam.Tick(Application::Get().GetInput(), Application::Get().GetTime().DeltaTime());
+
+		glm::vec3 position = m_spectatorCam.GetCamera()->Position();
+		position.x = std::round(position.x);
+		position.y = std::round(position.y);
+		position.z = std::round(position.z);
+
+		const uint32_t gridLineCount = 64;
+		const glm::vec4 color(0.3f, 0.3f, 0.3f, 0.1f);
+		
+		for(int i = position.x - gridLineCount; i <= position.x + gridLineCount; ++i)
+		{
+			EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(i, 0, position.z - gridLineCount), glm::vec3(i, 0, position.z + gridLineCount), color);
+		}
+
+		for(int i = position.z - gridLineCount; i <= position.z + gridLineCount; ++i)
+		{
+			EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(position.x - gridLineCount, 0, i), glm::vec3(position.x + gridLineCount, 0, i), color);
+		}
 	}
 
 	void SceneViewport::OnResize(const ViewportResizeEvent& event)

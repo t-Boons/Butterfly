@@ -1,6 +1,7 @@
 #include "Core/EditorApplication.hpp"
 #include "EditorCache/EditorCache.hpp"
 #include "EditorViewport/EditorViewport.hpp"
+#include "Core/DebugRenderer.hpp"
 
 namespace Butterfly
 {
@@ -12,6 +13,7 @@ namespace Butterfly
 
 		m_editorCache = new EditorCache();
 		m_editorViewport = new EditorViewport();
+		m_debugRenderer = new DebugRenderer();
 	}
 
 	void EditorApplication::OnTick()
@@ -25,6 +27,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
+		delete m_debugRenderer;
 		delete m_editorCache;
 		delete m_editorViewport;
 	}

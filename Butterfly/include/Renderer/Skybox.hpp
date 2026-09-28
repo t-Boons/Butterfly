@@ -82,7 +82,7 @@ namespace Butterfly
 					// Default Init stuff.
 					list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-					GraphicsCommands::SetRenderTargets(list, { viewport.RenderTarget.get()}, forwardParams->DepthStencil->Resource().get());
+					GraphicsCommands::SetRenderTargets(list, { viewport.RenderTarget.get()}, viewport.DepthStencil.get());
 
 					GraphicsCommands::SetFullscreenViewportAndRect(list, viewport.RenderTarget->Width(), viewport.RenderTarget->Height());
 

@@ -1,6 +1,7 @@
 add_executable(ButterflyEditor
     src/Main.cpp
     src/EditorApplication.cpp
+    src/Core/DebugRenderer.cpp
     src/EditorViewport/SpectatorCamera.cpp
     src/EditorViewport/EditorViewport.cpp
     src/EditorViewport/SceneViewport.cpp

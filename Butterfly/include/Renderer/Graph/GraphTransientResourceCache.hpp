@@ -19,11 +19,11 @@ namespace Butterfly
 		uint32_t NumResources() const { return static_cast<uint32_t>(m_resources.size()); }
 
 		template<typename Type, typename Args>
-		Type& GetOrCreateTexture(const std::string& key, Args&& args);
+		Type& GetOrCreate(const std::string& key, Args&& args);
 
 	private:
 		template<typename Type, typename Args>
-		Type* AllocTexture(const std::string& key, Args&& args);
+		Type* Alloc(const std::string& key, Args&& args);
 
 		void DeallocDeadResources();
 
@@ -112,14 +112,14 @@ namespace Butterfly
 	}
 
 	template<typename Type, typename Args>
-	inline Type& GraphTransientResourceCache::GetOrCreateTexture(const std::string& key, Args&& args)
+	inline Type& GraphTransientResourceCache::GetOrCreate(const std::string& key, Args&& args)
 	{
 		BF_PROFILE_EVENT();
 
 		auto it = m_resources.find(key);
 		if (it == m_resources.end())
 		{
-			Type* newResource = AllocTexture<Type, Args>(key, args);
+			Type* newResource = Alloc<Type, Args>(key, args);
 			return *newResource;
 		}
 
@@ -134,10 +134,10 @@ namespace Butterfly
 	}
 
 	template<typename Type, typename Args>
-	inline Type* GraphTransientResourceCache::AllocTexture(const std::string& key, Args&& args)
+	inline Type* GraphTransientResourceCache::Alloc(const std::string& key, Args&& args)
 	{
 		std::stringstream ss;
-		ss << "Butterfly::GraphTransientResourceCache::AllocTexture -> " << key;
+		ss << "Butterfly::GraphTransientResourceCache::Alloc -> " << key;
 		BF_PROFILE_EVENT_DYNAMIC(ss.str().c_str());
 
 		// Initialize a new resource.

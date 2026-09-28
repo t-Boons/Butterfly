@@ -34,6 +34,7 @@ namespace Butterfly
 		glm::ivec2 Size() const { return { RenderTarget->Width(), RenderTarget->Height() }; }
 
 		RefPtr<BFTexture> RenderTarget;
+		RefPtr<BFTexture> DepthStencil;
 		RefPtr<BFUniformBuffer> Uniforms;
 
 		RefPtr<BFStructuredBuffer> ModelMatrices;
