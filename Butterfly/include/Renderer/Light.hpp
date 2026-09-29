@@ -41,8 +41,8 @@ namespace Butterfly
 				gpuLight.Type = static_cast<uint32_t>(light.GetType());
 				gpuLight.Color = light.GetColor();
 				gpuLight.Range = light.GetRange();
-				gpuLight.InnerConeAngleCos = glm::cos(glm::radians(light.GetConeAngle().x));
-				gpuLight.OuterConeAngleCos = glm::cos(glm::radians(light.GetConeAngle().y));
+				gpuLight.InnerConeAngleCos = glm::cos(glm::radians(light.GetInnerConeAngle()));
+				gpuLight.OuterConeAngleCos = glm::cos(glm::radians(light.GetOuterConeAngle()));
 				gpuLight.Position = transform.GetPosition();
 				gpuLight.Direction = transform.GetRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
 				m_lights.push_back(gpuLight);

@@ -38,6 +38,11 @@ namespace Butterfly
 	class InspectComponent
 	{
 	};
+
+	class NonDeletableComponent
+	{
+	};
+
 	class Serializable
 	{
 	};
@@ -173,7 +178,7 @@ namespace Butterfly
 		static void RegisterComponents()
 		{
 			entt::meta_factory<NameComponent>{}
-			.type("Name").custom<ComponentProperties>(Serializable{}, InspectComponent{})
+			.type("Name").custom<ComponentProperties>(Serializable{}, InspectComponent{}, NonDeletableComponent{})
 				.data<&NameComponent::Name>("Name").custom<ComponentProperties>(Serializable{}, InspectProperty{})
 				.data<&NameComponent::Tag>("Tag").custom<ComponentProperties>(Serializable{}, InspectProperty{});
 
@@ -183,7 +188,7 @@ namespace Butterfly
 
 
 			entt::meta_factory<TransformComponent>{}
-			.type("Transform").custom<ComponentProperties>(Serializable{}, InspectComponent{})
+			.type("Transform").custom<ComponentProperties>(Serializable{}, InspectComponent{}, NonDeletableComponent{})
 				.data<&TransformComponent::SetPosition, &TransformComponent::GetPosition>("Position").custom<ComponentProperties>(Serializable{}, InspectProperty{})
 				.data<&TransformComponent::SetRotation, &TransformComponent::GetRotation>("Rotation").custom<ComponentProperties>(Serializable{}, InspectProperty{})
 				.data<&TransformComponent::SetScale, &TransformComponent::GetScale>("Scale").custom<ComponentProperties>(Serializable{}, InspectProperty{})
@@ -208,12 +213,13 @@ namespace Butterfly
 				.data<&LightComponent::SetTypeAsUInt, &LightComponent::GetTypeAsUInt>("Type").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsEnumSelector{ {"Directional", "Point", "Spot"} })
 				.data<&LightComponent::SetColor, &LightComponent::GetColor>("Color").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsColor{})
 				.data<&LightComponent::SetRange, &LightComponent::GetRange>("Range").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Point || component.GetType() == LightType::Spot; }})
-				.data<&LightComponent::SetConeAngle, &LightComponent::GetConeAngle>("ConeAngle").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Spot; }});
+				.data<&LightComponent::SetInnerConeAngle, &LightComponent::GetInnerConeAngle>("InnerConeAngle").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Spot; }}, AsSlider{0.0f, 180.0f})
+				.data<&LightComponent::SetOuterConeAngle, &LightComponent::GetOuterConeAngle>("OuterConeAngle").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Spot; }}, AsSlider{0.0f, 180.0f});
 
 			entt::meta_factory<CameraComponent>{}
 			.type("Camera").custom<ComponentProperties>(Serializable{}, InspectComponent{})
 				.data<&CameraComponent::SetProjectionTypeAsUInt, &CameraComponent::GetProjectionTypeAsUInt>("ProjectionType").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsEnumSelector{ {"Perspective", "Orthographic"} })
-				.data<&CameraComponent::SetFov, &CameraComponent::GetFov>("Fov").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<CameraComponent>{[](const CameraComponent& component) { return component.GetProjectionType() == CameraProjectionType::Perspective; }})
+				.data<&CameraComponent::SetFov, &CameraComponent::GetFov>("Fov").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<CameraComponent>{[](const CameraComponent& component) { return component.GetProjectionType() == CameraProjectionType::Perspective; }}, AsSlider{0.0f, 180.0f})
 				.data<&CameraComponent::SetSize, &CameraComponent::GetSize>("Size").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<CameraComponent>{[](const CameraComponent& component) { return component.GetProjectionType() == CameraProjectionType::Orthographic; }})
 				.data<&CameraComponent::SetZNear, &CameraComponent::GetZNear>("ZNear").custom<ComponentProperties>(Serializable{}, InspectProperty{})
 				.data<&CameraComponent::SetZFar, &CameraComponent::GetZFar>("ZFar").custom<ComponentProperties>(Serializable{}, InspectProperty{})

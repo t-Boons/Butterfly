@@ -84,6 +84,17 @@ namespace Butterfly
         {
             float v = value.cast<float>();
 
+			if (const AsSlider* sliderProps = props.TryGetProperty<AsSlider>())
+			{
+				if (ImGUIHelpers::FloatSlider(name, v, sliderProps->GetMin(), sliderProps->GetMax()))
+				{
+					value = v;
+					data.set(component, value);
+					return true;
+				}
+				return false;
+			}
+
             if (ImGUIHelpers::FloatField(name, v))
             {
                 value = v;
@@ -211,6 +222,20 @@ namespace Butterfly
 			{
 				ImGui::PushID(componentName.data());
 
+				if (!GetProperties(type.custom()).TryGetProperty<NonDeletableComponent>())
+				{
+					if (ImGui::BeginPopupContextItem("ComponentContextMenu"))
+					{
+						if (ImGui::MenuItem("Delete Component"))
+						{
+							EditorApplication::Get().GetEditorViewport().RunBeforeImGuiRender([&selectedEntity]()
+								{
+									selectedEntity.RemoveComponent<T>();
+								});
+						}
+						ImGui::EndPopup();
+					}
+				}
 				for (const auto& [id, data] : type.data())
 				{
 					const auto props = GetProperties(data.custom());

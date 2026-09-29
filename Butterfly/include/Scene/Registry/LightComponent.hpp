@@ -34,9 +34,26 @@ namespace Butterfly
 			return m_range;
 		}
 
-		const glm::vec2& GetConeAngle() const
+		float GetInnerConeAngle() const
 		{
-			return m_coneAngle;
+			return m_innerConeAngle;
+		}
+
+		float GetOuterConeAngle() const
+		{
+			return m_outerConeAngle;
+		}
+
+		void SetInnerConeAngle(float innerConeAngle)
+		{
+			m_innerConeAngle = innerConeAngle;
+			m_dirty = true;
+		}
+
+		void SetOuterConeAngle(float outerConeAngle)
+		{
+			m_outerConeAngle = outerConeAngle;
+			m_dirty = true;
 		}
 
 		void SetType(LightType type)
@@ -56,12 +73,6 @@ namespace Butterfly
 		void SetRange(float range)
 		{
 			m_range = range;
-			m_dirty = true;
-		}
-
-		void SetConeAngle(const glm::vec2& coneAngle)
-		{
-			m_coneAngle = coneAngle;
 			m_dirty = true;
 		}
 
@@ -86,7 +97,8 @@ namespace Butterfly
 		uint32_t m_type = static_cast<uint32_t>(LightType::Point);
 		glm::vec3 m_color = { 1.0f, 1.0f, 1.0f };
 		float m_range = 2.0f;
-		glm::vec2 m_coneAngle = { 30.0f, 45.0f };
+		float m_innerConeAngle = 30.0f;
+		float m_outerConeAngle = 45.0f;
 		bool m_dirty = true;
 	};
 }

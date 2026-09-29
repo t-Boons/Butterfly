@@ -8,6 +8,17 @@ namespace Butterfly
 {
 	namespace ImGUIHelpers
 	{
+		static bool FloatSlider(const std::string& propertyName, float& value, float min, float max)
+		{
+			ImGui::Text((propertyName + ": ").c_str());
+			ImGui::SameLine(0.0f, 0.0f);
+			if (ImGui::SliderFloat(("##" + propertyName).c_str(), &value, min, max))
+			{
+				return true;
+			}
+			return false;
+		}
+
 		static bool IntField(const std::string& propertyName, int& value)
 		{
 			ImGui::Text((propertyName + ": ").c_str());
