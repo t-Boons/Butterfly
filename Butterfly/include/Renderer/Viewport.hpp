@@ -4,6 +4,9 @@
 
 #include "Renderer/D3D12Texture.hpp"
 
+
+#define NUM_RENDER_BUFFERS 3
+
 namespace Butterfly
 {
 	class ViewportHandle
@@ -15,36 +18,12 @@ namespace Butterfly
 		{
 			return m_index == other.m_index;
 		}
+
+		uint32_t Index() const { return m_index; }
 	private:
 		friend class Renderer;
 		friend struct std::hash<Butterfly::ViewportHandle>;
 		uint32_t m_index = 0;
-	};
-
-
-	class BFTexture;
-	class BFUniformBuffer;
-	class BFStructuredBuffer;
-	class GraphTransientResourceCache;
-	class LightBuffer;
-	class MaterialLibrary;
-
-	struct Viewport
-	{
-	public:
-		glm::ivec2 Size() const { return { RenderTarget->Width(), RenderTarget->Height() }; }
-
-		RefPtr<BFTexture> RenderTarget;
-		RefPtr<BFTexture> DepthStencil;
-		RefPtr<BFUniformBuffer> Uniforms;
-
-		RefPtr<BFStructuredBuffer> ModelMatrices;
-		RefPtr<MaterialLibrary> Materials;
-		RefPtr<LightBuffer> Lights;
-	private:
-		friend class Renderer;
-		RefPtr<GraphTransientResourceCache> GraphResources;
-		ViewportHandle Handle;
 	};
 
 	struct ViewportResizeEvent
@@ -77,6 +56,45 @@ namespace Butterfly
 		EventDispatcher<ViewportPrerenderEvent> OnPreRender;
 		EventDispatcher<ViewportPostRenderEvent> OnPostRender;
 		EventDispatcher<ViewportRenderEvent> OnRender;
+	};
+
+
+	class BFTexture;
+	class BFUniformBuffer;
+	class BFStructuredBuffer;
+	class GraphTransientResourceCache;
+	class LightBuffer;
+	class MaterialLibrary;
+	class RenderPipeline;
+
+	struct Viewport
+	{
+	public:
+		glm::ivec2 Size() const { return { RenderTarget[0]->Width(), RenderTarget[0]->Height()}; }
+
+		bool HasRenderTarget() const { return RenderTarget[FrameIndex] != nullptr; }
+		BFTexture& GetRenderTarget() const { return *RenderTarget[FrameIndex]; }
+		BFTexture& GetDepthStencil() const { return *DepthStencil[FrameIndex]; }
+		GraphTransientResourceCache& GetGraphResources() const { return *GraphResources[FrameIndex]; }
+
+		RefPtr<BFUniformBuffer> Uniforms;
+		RefPtr<BFStructuredBuffer> ModelMatrices;
+		RefPtr<MaterialLibrary> Materials;
+		RefPtr<LightBuffer> Lights;
+		RefPtr<RenderPipeline> RenderPipeline;
+
+		ViewportEvents Events;
+		bool ShouldRender = true;
+
+	private:
+		friend class Renderer;
+
+		std::array<RefPtr<BFTexture>, NUM_RENDER_BUFFERS> RenderTarget;
+		std::array<RefPtr<BFTexture>, NUM_RENDER_BUFFERS> DepthStencil;
+		std::array<RefPtr<GraphTransientResourceCache>, NUM_RENDER_BUFFERS> GraphResources;
+
+		ViewportHandle Handle;
+		uint32_t FrameIndex;
 	};
 }
 

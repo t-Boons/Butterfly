@@ -24,8 +24,8 @@ namespace Butterfly
 			if (it->second.RefCount == 0 && !it->second.Persistant)
 			{
 				BF_CORE_LOG_TRACE("Garbage collecting asset: %s", it->first.ToString().c_str());
-				m_onAssetRemoved.Broadcast({it->second.Type, it->first});
-				it = m_entries.erase(it);
+				RemoveAssetEntry(it->first);
+				it = m_entries.begin(); // Reset iterator after removal
 			}
 			else
 			{
@@ -92,6 +92,20 @@ namespace Butterfly
 		}
 
 		return true;
+	}
+
+	void AssetManager::RemoveAssetEntry(const UUID& id)
+	{
+		auto it = m_entries.find(id);
+		if (it != m_entries.end())
+		{
+			m_onAssetRemoved.Broadcast({ it->second.Type, it->first });
+			m_entries.erase(it);
+		}
+		else
+		{
+			BF_CORE_LOG_WARN("Trying to remove non-existing asset entry with ID: %s", id.ToString().c_str());
+		}
 	}
 
 	void AssetManager::GetAllAssetsOfType(const AssetType& type, std::vector<UUID>& out) const

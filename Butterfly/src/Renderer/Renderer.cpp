@@ -12,14 +12,11 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		m_renderPipeline = MakeRef<RenderPipeline>(*this);
-
 		m_windowResizeReceiver.Subscribe(Application::Get().GetWindow().Events().OnWindowResize, BF_BIND_FUNC_PARAM(&Renderer::OnWindowResize));
 		m_windowRefreshReceiver.Subscribe(Application::Get().GetWindow().Events().OnWindowRefresh, BF_BIND_FUNC(&Renderer::OnWindowRefresh));
 
 		m_resizeSize = { Application::Get().GetWindow().Width(), Application::Get().GetWindow().Height() };
-		InvalidateFrameDatas();
-
+		ApplyResize();
 
 		ImGui::CreateContext();
 
@@ -58,6 +55,7 @@ namespace Butterfly
 
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 		ImGui_ImplGlfw_InitForOther(Application::Get().GetWindow().GLFWWindow(), true);
 
 		ImGui_ImplDX12_InitInfo init_info{};
@@ -85,11 +83,19 @@ namespace Butterfly
 		ImGui_ImplDX12_Init(&init_info);
 	}
 
-	const Viewport& Renderer::GetViewport(const ViewportHandle& handle)
+	const Viewport& Renderer::GetViewport(const ViewportHandle& handle) const
 	{
 		BF_CORE_ASSERT(handle.Valid(), "Renderer::GetViewport: ViewportHandle is invalid.");
-		auto it = GetCurrentFrameData().Viewports.find(handle);
-		BF_CORE_ASSERT(it != GetCurrentFrameData().Viewports.end(), "Renderer::GetViewport: handle is not found in viewports.");
+		const auto it = GetFrameData().Viewports.find(handle);
+		BF_CORE_ASSERT(it != GetFrameData().Viewports.end(), "Renderer::GetViewport: handle is not found in viewports.");
+		return it->second;
+	}
+
+	Viewport& Renderer::GetViewport(const ViewportHandle& handle)
+	{
+		BF_CORE_ASSERT(handle.Valid(), "Renderer::GetViewport: ViewportHandle is invalid.");
+		auto it = GetFrameData().Viewports.find(handle);
+		BF_CORE_ASSERT(it != GetFrameData().Viewports.end(), "Renderer::GetViewport: handle is not found in viewports.");
 		return it->second;
 	}
 
@@ -101,24 +107,20 @@ namespace Butterfly
 
 		BF_CORE_ASSERT(handle.Valid(), "Renderer::ImGUIImage: ViewportHandle is invalid.");
 
-		if (GetCurrentFrameData().Viewports.empty())
+		if (GetFrameData().Viewports.empty())
 		{
 			BF_CORE_LOG_WARN("Renderer::ImGUIImage: No viewports found.");
 			return;
 		}
 
-		auto it = GetCurrentFrameData().Viewports.find(handle);
+		auto it = GetFrameData().Viewports.find(handle);
 
 		// When one of the viewports gets resized.
-		if (it == GetCurrentFrameData().Viewports.end() || !it->second.RenderTarget || it->second.RenderTarget->Width() != size.x || it->second.RenderTarget->Height() != size.y)
+		if (!it->second.HasRenderTarget() || it->second.GetRenderTarget().Width() != size.x || it->second.GetRenderTarget().Height() != size.y)
 		{
-			if (it != GetCurrentFrameData().Viewports.end() && it->second.RenderTarget)
-			{
-				WaitForInflightFrames();
-				it->second.RenderTarget.reset();
-			}
-
-			it->second.GraphResources->Flush();
+			WaitForInflightFrames();
+			it->second.RenderTarget[it->second.FrameIndex].reset();
+			it->second.GetGraphResources().Flush();
 
 			{
 				BFTextureDesc desc;
@@ -128,7 +130,7 @@ namespace Butterfly
 				desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
 				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " RenderTarget";
 
-				it->second.RenderTarget = BFTexture::CreateTextureForGPU(desc);
+				it->second.RenderTarget[it->second.FrameIndex] = BFTexture::CreateTextureForGPU(desc);
 			}
 			{
 				BFTextureDesc desc;
@@ -138,15 +140,15 @@ namespace Butterfly
 				desc.Flags = BFTextureDesc::DepthStencilable;
 				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " DepthStencil";
 
-				it->second.DepthStencil = BFTexture::CreateTextureForGPU(desc);
+				it->second.DepthStencil[it->second.FrameIndex] = BFTexture::CreateTextureForGPU(desc);
 			}
 			
 
-			GetViewportEvents(handle).OnResize.Broadcast(ViewportResizeEvent({ size.x, size.y }));
+			it->second.Events.OnResize.Broadcast(ViewportResizeEvent({ size.x, size.y }));
 		}
 
 
-		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(it->second.RenderTarget->SRV().View()).ptr;
+		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(it->second.GetRenderTarget().SRV().View()).ptr;
 		ImGui::Image(textureID, { size.x, size.y });
 	}
 
@@ -159,16 +161,19 @@ namespace Butterfly
 			ApplyResize();
 		}
 
-		FrameData& frame = m_frameDatas[m_frameIndex];
-		frame.FrameIndex = m_frameIndex;
-		frame.Fence->Wait();
+		m_frameData.FrameIndex = m_frameIndex;
+		for (auto& it : m_frameData.Viewports)
+		{
+			Viewport& viewport = it.second;
+			viewport.FrameIndex = m_frameIndex;
+		}
 
-		frame.CmdList->Reset();
-
-		frame.CmdList->BeginGPUMarker("Render");
+		m_frameData.GetFence().Wait();
+		m_frameData.GetCmdList().Reset();
+		m_frameData.GetCmdList().BeginGPUMarker("Render");
 
 		// Clear composite render target.
-		GraphicsCommands::ClearRenderTarget(*frame.CmdList, *frame.CompositeRenderTarget, { 0.05f, 0.05f, 0.05f, 1.0f });
+		GraphicsCommands::ClearRenderTarget(m_frameData.GetCmdList(), m_frameData.GetCompositeRenderTarget(), { 0.05f, 0.05f, 0.05f, 1.0f });
 
 		// New ImGUI Frame.
 		ImGui_ImplDX12_NewFrame();
@@ -180,72 +185,92 @@ namespace Butterfly
 
 
 		// Record all commands to render all viewports.
-		for (auto& it : frame.Viewports)
+		for (auto& it : m_frameData.Viewports)
 		{
 			Viewport& viewport = it.second;
 
-			if (!viewport.RenderTarget)
-			{
-				BF_CORE_LOG_WARN("Renderer::Render: Viewport %u has no render target. Skipping.", viewport.Handle.m_index);
-				continue;
-			}
+			GraphBuilder builder(viewport.GetGraphResources());
 
-			GraphBuilder builder(*viewport.GraphResources);
-
-			frame.CmdList->BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.m_index));
-			GetViewportEvents(viewport.Handle).OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
-			m_renderPipeline->RecordPasses(ViewportRenderEvent{ builder, viewport });
-			GetViewportEvents(viewport.Handle).OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
-			GetViewportEvents(viewport.Handle).OnPostRender.Broadcast(ViewportPostRenderEvent{ builder, viewport });
+			m_frameData.GetCmdList().BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.m_index));
+			viewport.Events.OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
+			viewport.RenderPipeline->RecordPasses(ViewportRenderEvent{ builder, viewport });
+			viewport.Events.OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
+			viewport.Events.OnPostRender.Broadcast(ViewportPostRenderEvent{ builder, viewport });
 			auto graph = builder.Create();
-			graph->Execute(*frame.CmdList);
+			graph->Execute(m_frameData.GetCmdList());
 			delete graph;
 
-			viewport.RenderTarget->Resource()->Transition(*frame.CmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
-			frame.CmdList->EndGPUMarker();
+			viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_GENERIC_READ);
+			m_frameData.GetCmdList().EndGPUMarker();
 		}
 
 		{
-			frame.CmdList->BeginGPUMarker("ImGUI");
+			m_frameData.GetCmdList().BeginGPUMarker("ImGUI");
 			ImGui::Render();
-			GraphicsCommands::SetRenderTargets(*frame.CmdList, { frame.CompositeRenderTarget.get() }, nullptr);
-			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), frame.CmdList->List());
+			GraphicsCommands::SetRenderTargets(m_frameData.GetCmdList(), { &m_frameData.GetCompositeRenderTarget() }, nullptr);
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_frameData.GetCmdList().List());
 
-			Application::Get().GetWindow().Context().RecordCopyToBackBuffer(*frame.CompositeRenderTarget->Resource(), *frame.CmdList);
-			frame.CmdList->EndGPUMarker();
+			Application::Get().GetWindow().Context().RecordCopyToBackBuffer(*m_frameData.GetCompositeRenderTarget().Resource(), m_frameData.GetCmdList());
+			m_frameData.GetCmdList().EndGPUMarker();
 		}
 
-		frame.CmdList->EndGPUMarker();
-		frame.CmdList->Close();
-		D3D12API()->Queue(QueueType::Direct)->Execute(*frame.CmdList);
-		frame.Fence->Signal(*D3D12API()->Queue(QueueType::Direct));
+		m_frameData.GetCmdList().EndGPUMarker();
+		m_frameData.GetCmdList().Close();
+		D3D12API()->Queue(QueueType::Direct)->Execute(m_frameData.GetCmdList());
+		m_frameData.GetFence().Signal(*D3D12API()->Queue(QueueType::Direct));
 
-		m_renderPipeline->PostRender();
+		for (auto& it : m_frameData.Viewports)
+		{
+			Viewport& viewport = it.second;
+			if (!viewport.ShouldRender)
+			{
+				continue;
+			}
+
+			viewport.RenderPipeline->PostRender();
+		}
 
 		Application::Get().GetWindow().Context().Present();
+
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+		}
 
 		m_previousFrame = m_frameIndex;
 		m_frameIndex++;
 		m_frameIndex = m_frameIndex % NUM_RENDER_BUFFERS;
 	}
 
-	ViewportEvents& Renderer::GetViewportEvents(const ViewportHandle& handle)
-	{
-		BF_CORE_ASSERT(handle.Valid(), "Renderer::GetViewportEvents: ViewportHandle is invalid.");
-		auto it = m_viewportEvents.find(handle);
-		BF_CORE_ASSERT(it != m_viewportEvents.end(), "Renderer::GetViewportEvents: ViewportHandle does not exist.");
-		return it->second;
-	}
-
 	ViewportHandle Renderer::AddViewport()
 	{
 		ViewportHandle handle;
 		handle.m_index = m_viewportHandleIndex++;
-		m_existingViewportHandles.push_back(handle);
 
-		InvalidateFrameDatas();
+		for (uint32_t i = 0; i < NUM_RENDER_BUFFERS; ++i)
+		{
+			Viewport viewport;
+			viewport.GraphResources.fill(MakeRef<GraphTransientResourceCache>());
+			viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(handle.m_index) + " Uniforms");
+			viewport.Handle = handle;
 
-		m_viewportEvents[handle] = ViewportEvents();
+			BFStructuredBufferDesc desc;
+			desc.Data = nullptr;
+			desc.HeapType = BFHeapType::Upload;
+			desc.NumElements = 128;
+			desc.Stride = sizeof(ModelMatrixData);
+			desc.DebugName = "Materials";
+
+			viewport.ModelMatrices = MakeRef<BFStructuredBuffer>(desc);
+
+
+			viewport.Materials = MakeRef<MaterialLibrary>();
+			viewport.Lights = MakeRef<LightBuffer>();
+			viewport.RenderPipeline = MakeRef<RenderPipeline>(*this);
+
+			m_frameData.Viewports[handle] = viewport;
+		}
 
 		return handle;
 	}
@@ -253,78 +278,29 @@ namespace Butterfly
 
 	void Renderer::RemoveViewport(const ViewportHandle& handle)
 	{
-		auto it = std::find(m_existingViewportHandles.begin(), m_existingViewportHandles.end(), handle);
-
-		if (it != m_existingViewportHandles.end())
+		bool found = false;
+		for (auto& it : m_frameData.Viewports)
 		{
-			m_existingViewportHandles.erase(it);
-			InvalidateFrameDatas();
+			if (it.first == handle)
+			{
+				m_frameData.Viewports.erase(it.first);
+				found = true;
+				break;
+			}
 		}
-		else
+
+		if (!found)
 		{
 			BF_CORE_LOG_WARN("Renderer::RemoveViewport: ViewportHandle does not exist. Index: %u", handle.m_index);
-		}
-	}
 
-	void Renderer::InvalidateFrameDatas()
-	{
-		WaitForInflightFrames();
-
-		m_frameDatas.clear();
-		m_frameDatas.resize(NUM_RENDER_BUFFERS);
-
-		for (uint32_t i = 0; i < NUM_RENDER_BUFFERS; ++i)
-		{
-			BFTextureDesc desc;
-			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			desc.Width = m_resizeSize.x;
-			desc.Height = m_resizeSize.y;
-			desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
-			desc.DebugName = "Frame " + std::to_string(i) + " RenderTarget";
-
-			FrameData& data = m_frameDatas[i];
-
-			data.CompositeRenderTarget = BFTexture::CreateTextureForGPU(desc);
-
-			data.CmdList = MakeRef<D3D12CommandList>();
-			data.Fence = MakeRef<D3D12Fence>();
-
-			data.Viewports.clear();
-
-
-			// Recreate all viewports for this frame.
-			for (uint32_t j = 0; j < m_existingViewportHandles.size(); ++j)
-			{
-				ViewportHandle& handle = m_existingViewportHandles[j];
-				Viewport& viewport = data.Viewports[handle];
-
-				viewport.Handle = handle;
-
-				viewport.GraphResources = MakeRef<GraphTransientResourceCache>();
-				viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(handle.m_index) + " Uniforms");
-
-				{
-					BFStructuredBufferDesc desc;
-					desc.Data = nullptr;
-					desc.HeapType = BFHeapType::Upload;
-					desc.NumElements = 128;
-					desc.Stride = sizeof(ModelMatrixData);
-					desc.DebugName = "Materials";
-
-					viewport.ModelMatrices = MakeRef<BFStructuredBuffer>(desc);
-				}
-
-				viewport.Materials = MakeRef<MaterialLibrary>();
-				viewport.Lights = MakeRef<LightBuffer>();
-			}
 		}
 	}
 
 	void Renderer::WaitForInflightFrames()
 	{
-		for (auto& frameData : m_frameDatas)
+		for (auto& fence : m_frameData.Fence)
 		{
-			frameData.Fence->SignalAndWait(*D3D12API()->Queue(QueueType::Direct));
+			fence->SignalAndWait(*D3D12API()->Queue(QueueType::Direct));
 		}
 	}
 
@@ -336,21 +312,36 @@ namespace Butterfly
 
 	void Renderer::OnWindowRefresh()
 	{
-		Render();
+		//Render();
 	}
 
 	void Renderer::ApplyResize()
 	{
 		m_resizePending = false;
 
-		InvalidateFrameDatas();
+		m_frameData.CmdList.fill(MakeRef<D3D12CommandList>());
+		m_frameData.Fence.fill(MakeRef<D3D12Fence>());
+		m_frameData.FrameIndex = 0;
+
+		for (uint32_t j = 0; j < NUM_RENDER_BUFFERS; j++)
+		{
+			m_frameData.CompositeRenderTarget[j] = BFTexture::CreateTextureForGPU({
+				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+				.Width = static_cast<uint32_t>(m_resizeSize.x),
+				.Height = static_cast<uint32_t>(m_resizeSize.y),
+				.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource,
+				.DebugName = "Composite Render Target:" + std::to_string(j)
+				});
+		}
 	}
 
 	Renderer::~Renderer()
 	{
 		WaitForInflightFrames();
 
-		m_frameDatas.clear();
+		m_frameData.CompositeRenderTarget.fill(nullptr);
+		m_frameData.CmdList.fill(nullptr);
+		m_frameData.Fence.fill(nullptr);
 
 		ImGui_ImplDX12_Shutdown();
 		ImGui_ImplGlfw_Shutdown();

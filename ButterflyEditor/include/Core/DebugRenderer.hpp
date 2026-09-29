@@ -6,11 +6,17 @@
 
 namespace Butterfly
 {
+
+	class DebugRendererPipelineStage : public IRenderPipelineStage
+	{
+	public:
+		virtual void OnRecordPass(const ViewportRenderEvent& event) override;
+		virtual void OnPostRender() override;
+	};
+
 	class DebugRenderer
 	{
 	public:
-		DebugRenderer();
-
 		void OnPostRender();
 		void OnViewportRender(const ViewportRenderEvent& event);
 		void DrawLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);

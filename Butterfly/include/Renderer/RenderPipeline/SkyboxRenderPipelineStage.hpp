@@ -22,7 +22,7 @@ namespace Butterfly
 
 		void LoadSkybox(const SkyboxComponent& component);
 		void UnloadSkybox();
-
+		bool IsSkyboxLoaded() const { return m_skyboxTexture != nullptr; }
 	private:
 		RefPtr<BFTexture> m_skyboxTexture;
 	};

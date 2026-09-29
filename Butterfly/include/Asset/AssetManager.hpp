@@ -42,6 +42,8 @@ namespace Butterfly
 		template<typename T>
         AssetHandle<T> AddAssetEntry(const AssetEntry& entry);
 
+		void RemoveAssetEntry(const UUID& id);
+
 		bool AssetEntryExists(const UUID& id) const;
 
         template<typename T>

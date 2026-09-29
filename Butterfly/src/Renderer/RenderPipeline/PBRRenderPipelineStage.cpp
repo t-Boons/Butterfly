@@ -32,7 +32,7 @@ namespace Butterfly
 
 		ForwardRenderer* params = builder.AllocParameters<ForwardRenderer>();
 
-		params->Comp = viewport.RenderTarget.get();
+		params->Comp = &viewport.GetRenderTarget();
 
 		ev.Viewport.Lights->Update();
 		ev.Viewport.Materials->Validate();
@@ -64,9 +64,9 @@ namespace Butterfly
 
 				// Default Init stuff.
 				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				GraphicsCommands::SetRenderTargets(list, { &rt }, viewport.DepthStencil.get());
+				GraphicsCommands::SetRenderTargets(list, { &rt }, &viewport.GetDepthStencil());
 
-				GraphicsCommands::ClearDepthStencil(list, *viewport.DepthStencil);
+				GraphicsCommands::ClearDepthStencil(list, viewport.GetDepthStencil());
 				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.15f, 1.0f });
 
 				GraphicsCommands::SetFullscreenViewportAndRect(list, rt.Width(), rt.Height());

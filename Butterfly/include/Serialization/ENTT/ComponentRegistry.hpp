@@ -8,6 +8,7 @@
 #include "Scene/Registry/NameComponent.hpp"
 #include "Scene/Registry/SkyboxComponent.hpp"
 #include "Scene/Registry/LightComponent.hpp"
+#include "Scene/Registry/CameraComponent.hpp"
 
 namespace Butterfly
 {
@@ -75,18 +76,18 @@ namespace Butterfly
 	class AsEnumSelector
 	{
 	public:
-		AsEnumSelector(std::initializer_list<std::string> names)
-			: m_EnumNames(names)
+		AsEnumSelector(std::vector<std::string> names)
+			: m_enumNames(names)
 		{
 		}
 
 		const std::vector<std::string>& GetEnumNames() const
 		{
-			return m_EnumNames;
+			return m_enumNames;
 		}
 
 	private:
-		std::vector<std::string> m_EnumNames;
+		std::vector<std::string> m_enumNames;
 	};
 
 	class ComponentProperties
@@ -166,7 +167,8 @@ namespace Butterfly
 			TransformComponent,
 			MeshRendererComponent,
 			SkyboxComponent,
-			LightComponent>;
+			LightComponent,
+			CameraComponent>;
 
 		static void RegisterComponents()
 		{
@@ -208,6 +210,15 @@ namespace Butterfly
 				.data<&LightComponent::SetRange, &LightComponent::GetRange>("Range").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Point || component.GetType() == LightType::Spot; }})
 				.data<&LightComponent::SetConeAngle, &LightComponent::GetConeAngle>("ConeAngle").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Spot; }});
 
+			entt::meta_factory<CameraComponent>{}
+			.type("Camera").custom<ComponentProperties>(Serializable{}, InspectComponent{})
+				.data<&CameraComponent::SetProjectionTypeAsUInt, &CameraComponent::GetProjectionTypeAsUInt>("ProjectionType").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsEnumSelector{ {"Perspective", "Orthographic"} })
+				.data<&CameraComponent::SetFov, &CameraComponent::GetFov>("Fov").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<CameraComponent>{[](const CameraComponent& component) { return component.GetProjectionType() == CameraProjectionType::Perspective; }})
+				.data<&CameraComponent::SetSize, &CameraComponent::GetSize>("Size").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<CameraComponent>{[](const CameraComponent& component) { return component.GetProjectionType() == CameraProjectionType::Orthographic; }})
+				.data<&CameraComponent::SetZNear, &CameraComponent::GetZNear>("ZNear").custom<ComponentProperties>(Serializable{}, InspectProperty{})
+				.data<&CameraComponent::SetZFar, &CameraComponent::GetZFar>("ZFar").custom<ComponentProperties>(Serializable{}, InspectProperty{})
+				.data<&CameraComponent::SetCameraIndex, &CameraComponent::GetCameraIndex>("CameraIndex").custom<ComponentProperties>(Serializable{}, InspectProperty{});
+				
 			RunOnAllComponents([&]<typename T>()
 			{
 				s_components.push_back(CreateSerializer<T>());

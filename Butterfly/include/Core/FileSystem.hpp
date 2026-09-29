@@ -15,5 +15,6 @@ namespace Butterfly
 		static std::filesystem::path ReplaceExtention(const std::filesystem::path& path, const std::string& extention);
 		static std::filesystem::path WorkingDirectory();
 		static std::vector<std::filesystem::path> WalkDirectoryRecursive(const std::filesystem::path& rootDir);
+		static bool Delete(const std::filesystem::path& path);
 	};
 }

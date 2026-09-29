@@ -12,4 +12,6 @@ namespace FontAwesome
 	inline const char* AngleLeft = reinterpret_cast<const char*>(u8"\uf104");
 	inline const char* Trash = reinterpret_cast<const char*>(u8"\uf1f8");
 	inline const char* File = reinterpret_cast<const char*>(u8"\uf15b");
+	inline const char* Camera = reinterpret_cast<const char*>(u8"\uf030");
+	inline const char* VideoCamera = reinterpret_cast<const char*>(u8"\uf03d");
 }

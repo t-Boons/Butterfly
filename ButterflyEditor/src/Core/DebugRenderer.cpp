@@ -3,87 +3,79 @@
 
 namespace Butterfly
 {
-	class DebugRendererPipelineStage : public IRenderPipelineStage
+	void DebugRendererPipelineStage::OnRecordPass(const ViewportRenderEvent& event)
 	{
-	public:
-		virtual void OnRecordPass(const ViewportRenderEvent& event) override
+		struct DebugRendererPassData
 		{
-			struct DebugRendererPassData
-			{
-				BFStructuredBuffer* VertexBuffer;
-				uint32_t NumVertices;
-			};
+			BFStructuredBuffer* VertexBuffer;
+			uint32_t NumVertices;
+		};
 
-			BFStructuredBufferDesc desc;
-			desc.HeapType = BFHeapType::Upload;
-			desc.NumElements = NUM_DEBUG_VERTICES;
-			desc.DebugName = "DebugRendererVertexBuffer";
-			desc.Stride = sizeof(DebugRenderer::Vertex);
+		BFStructuredBufferDesc desc;
+		desc.HeapType = BFHeapType::Upload;
+		desc.NumElements = NUM_DEBUG_VERTICES;
+		desc.DebugName = "DebugRendererVertexBuffer";
+		desc.Stride = sizeof(DebugRenderer::Vertex);
 
-			BFStructuredBuffer* vertexBuffer = event.Builder.CreateTransientStructuredBuffer("DebugRendererVertexBuffer", desc);
+		BFStructuredBuffer* vertexBuffer = event.Builder.CreateTransientStructuredBuffer("DebugRendererVertexBuffer", desc);
 
-			const std::vector<DebugRenderer::Vertex>& vertices = EditorApplication::Get().GetDebugRenderer().m_debugVertices;
+		const std::vector<DebugRenderer::Vertex>& vertices = EditorApplication::Get().GetDebugRenderer().m_debugVertices;
 
 
-			uint32_t numBytes = vertices.size() * sizeof(DebugRenderer::Vertex);
-			if (vertices.size() > vertexBuffer->NumElements())
-			{
-				BF_CORE_LOG_WARN("DebugRenderer: Too many vertices to render. Max: %u, Current: %u", vertexBuffer->NumElements(), vertices.size());
-				numBytes = vertexBuffer->NumElements() * sizeof(DebugRenderer::Vertex);
-			}
-
-			vertexBuffer->Write(vertices.data(), numBytes);
-
-			DebugRendererPassData* data = event.Builder.AllocParameters<DebugRendererPassData>();
-			data->VertexBuffer = vertexBuffer;
-			data->NumVertices = static_cast<uint32_t>(vertices.size());
-
-			event.Builder.AddPass<DebugRendererPassData>("DebugRenderer", [&](const DebugRendererPassData& data, D3D12CommandList& list)
-				{
-					BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
-
-					list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-					GraphicsCommands::SetRenderTargets(list, { event.Viewport.RenderTarget.get() }, event.Viewport.DepthStencil.get());
-
-					GraphicsCommands::SetFullscreenViewportAndRect(list, event.Viewport.RenderTarget->Width(), event.Viewport.RenderTarget->Height());
-
-					BFPipelineBuilder psoBuilder;
-					psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE);
-					psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
-					psoBuilder.DepthStencilFormat(DXGI_FORMAT_D24_UNORM_S8_UINT);
-					psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/DebugLines_vert.hlsl", ShaderType::Vertex));
-					psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/DebugLines_frag.hlsl", ShaderType::Pixel));
-					psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
-					psoBuilder.DepthEnable(true);
-					psoBuilder.DepthWriteMask(D3D12_DEPTH_WRITE_MASK_ZERO);
-					psoBuilder.DepthFunc(D3D12_COMPARISON_FUNC_LESS_EQUAL);
-					psoBuilder.EnableBlending();
-
-					list.List()->SetPipelineState(psoBuilder.Create().GetHW());
-
-					ShaderVariables()
-						.Add(event.Viewport.Uniforms->GetView(HASH("CameraData"))->View())
-						.Add(data.VertexBuffer->SRV().View())
-						.Submit(list);
-
-					list.List()->DrawInstanced(data.NumVertices, 1, 0, 0);
-				});
+		uint32_t numBytes = vertices.size() * sizeof(DebugRenderer::Vertex);
+		if (vertices.size() > vertexBuffer->NumElements())
+		{
+			BF_CORE_LOG_WARN("DebugRenderer: Too many vertices to render. Max: %u, Current: %u", vertexBuffer->NumElements(), vertices.size());
+			numBytes = vertexBuffer->NumElements() * sizeof(DebugRenderer::Vertex);
 		}
 
-		virtual void OnPostRender() override
-		{
-			EditorApplication::Get().GetDebugRenderer().OnPostRender();
-		}
-	};
+		vertexBuffer->Write(vertices.data(), numBytes);
+
+		DebugRendererPassData* data = event.Builder.AllocParameters<DebugRendererPassData>();
+		data->VertexBuffer = vertexBuffer;
+		data->NumVertices = static_cast<uint32_t>(vertices.size());
+
+		event.Builder.AddPass<DebugRendererPassData>("DebugRenderer", [&](const DebugRendererPassData& data, D3D12CommandList& list)
+			{
+				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
+
+				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+				GraphicsCommands::SetRenderTargets(list, { &event.Viewport.GetRenderTarget() }, &event.Viewport.GetDepthStencil());
+
+				GraphicsCommands::SetFullscreenViewportAndRect(list, event.Viewport.GetRenderTarget().Width(), event.Viewport.GetRenderTarget().Height());
+
+				BFPipelineBuilder psoBuilder;
+				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE);
+				psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
+				psoBuilder.DepthStencilFormat(DXGI_FORMAT_D24_UNORM_S8_UINT);
+				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/DebugLines_vert.hlsl", ShaderType::Vertex));
+				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/DebugLines_frag.hlsl", ShaderType::Pixel));
+				psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
+				psoBuilder.DepthEnable(true);
+				psoBuilder.DepthWriteMask(D3D12_DEPTH_WRITE_MASK_ZERO);
+				psoBuilder.DepthFunc(D3D12_COMPARISON_FUNC_LESS_EQUAL);
+				psoBuilder.EnableBlending();
+
+				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
+
+				ShaderVariables()
+					.Add(event.Viewport.Uniforms->GetView(HASH("CameraData"))->View())
+					.Add(data.VertexBuffer->SRV().View())
+					.Submit(list);
+
+				list.List()->DrawInstanced(data.NumVertices, 1, 0, 0);
+			});
+	}
+
+	void DebugRendererPipelineStage::OnPostRender()
+	{
+		EditorApplication::Get().GetDebugRenderer().OnPostRender();
+	}
+
 
 	void DebugRenderer::OnPostRender()
 	{
 		m_debugVertices.clear();
-	}
-
-	DebugRenderer::DebugRenderer()
-	{
-		Application::Get().GetRenderer().GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
 	}
 
 	void DebugRenderer::DrawLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color)

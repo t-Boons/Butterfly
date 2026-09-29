@@ -8,6 +8,7 @@
 #include "EditorViewport/EntityProperties.hpp"
 #include "EditorViewport/AssetLibrary.hpp"
 #include "EditorViewport/MenuBar.hpp"
+#include "EditorViewport/GameViewport.hpp"
 
 namespace Butterfly
 {
@@ -20,6 +21,8 @@ namespace Butterfly
 		m_viewportExtentions.push_back(MakeRef<EntityProperties>());
 		m_viewportExtentions.push_back(MakeRef<AssetLibrary>());
 		m_viewportExtentions.push_back(MakeRef<MenuBar>());
+		m_viewportExtentions.push_back(MakeRef<GameViewport>());
+		m_viewportExtentions.push_back(MakeRef<GameViewport>());
 	}
 
 	void EditorViewport::Tick()
@@ -42,26 +45,51 @@ namespace Butterfly
 		}
 	}
 
+	void EditorViewport::RunBeforeImGuiRender(const std::function<void()>& func)
+	{
+		m_runBeforeImGuiRender.push(func);
+	}
+
 	void EditorViewport::OnRenderImGUI()
 	{
 		BF_PROFILE_EVENT()
 
-			for (auto& ext : m_viewportExtentions)
+		while (!m_runBeforeImGuiRender.empty())
+		{
+			m_runBeforeImGuiRender.front()();
+			m_runBeforeImGuiRender.pop();
+		}
+
+		for (auto& ext : m_viewportExtentions)
 			{
-				ext->OnRenderImGUI();
-			}
+			ext->OnRenderImGUI();
+		}
+
 
 		auto view = Application::Get().GetScene().GetEntityRegistry().view<SkyboxComponent>();
-		for (const auto& [entity, sb] : view.each())
+		auto first = view.begin();
+		if (first != view.end())
 		{
-			if (sb.IsDirty())
+			SkyboxComponent& sb = view.get<SkyboxComponent>(*first);
+
+			for (const auto& [handle, viewport] : Application::Get().GetRenderer().GetViewports())
 			{
-				SkyboxRenderPipelineStage* renderPipeline = Application::Get().GetRenderer().GetRenderPipeline().TryGetStage<SkyboxRenderPipelineStage>();
+				SkyboxRenderPipelineStage* renderPipeline = viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>();
 				if (renderPipeline)
 				{
 					renderPipeline->LoadSkybox(sb);
 				}
-				sb.ClearDirty();
+			}
+		}
+		else
+		{
+			for (const auto& [handle, viewport] : Application::Get().GetRenderer().GetViewports())
+			{
+				SkyboxRenderPipelineStage* renderPipeline = viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>();
+				if (renderPipeline && renderPipeline->IsSkyboxLoaded())
+				{
+					renderPipeline->UnloadSkybox();
+				}
 			}
 		}
 	}

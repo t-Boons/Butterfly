@@ -5,6 +5,7 @@
 #include "Core/EditorApplication.hpp"
 #include "EditorViewport/EditorViewport.hpp"
 #include "Core/DebugRenderer.hpp"
+#include "ImGUI/FontAwesomeIcons.hpp"
 
 namespace Butterfly
 {
@@ -13,6 +14,17 @@ namespace Butterfly
 		BFRGTexture* DepthStencil;
 		BFRGTexture* RenderTarget;
 	};
+
+
+	glm::ivec2 WorldToViewport(const glm::vec3& worldPos, const glm::mat4& viewProjection, const glm::ivec2& viewportSize)
+	{
+		glm::vec4 clipSpacePos = viewProjection * glm::vec4(worldPos, 1.0f);
+		glm::vec3 ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;
+		glm::vec2 viewportPos;
+		viewportPos.x = (ndcSpacePos.x * 0.5f + 0.5f) * viewportSize.x;
+		viewportPos.y = (1.0f - (ndcSpacePos.y * 0.5f + 0.5f)) * viewportSize.y;
+		return glm::ivec2(viewportPos);
+	}
 
 	class ObjectPickerRenderPipelineStage : public IRenderPipelineStage
 	{
@@ -32,16 +44,16 @@ namespace Butterfly
 
 			BFTextureDesc desc;
 			desc.Format = DXGI_FORMAT_R32_UINT;
-			desc.Width = viewport.RenderTarget->Width();
-			desc.Height = viewport.RenderTarget->Height();
+			desc.Width = viewport.GetRenderTarget().Width();
+			desc.Height = viewport.GetRenderTarget().Height();
 			desc.Flags = BFTextureDesc::RenderTargettable;
 			desc.DebugName = "R32 Viewport objectpicker";
 			params->RenderTarget = builder.CreateTransientTexture("R32 Viewport objectpicker", desc);
 
 			BFTextureDesc desc2;
 			desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-			desc2.Width = viewport.RenderTarget->Width();
-			desc2.Height = viewport.RenderTarget->Height();
+			desc2.Width = viewport.GetRenderTarget().Width();
+			desc2.Height = viewport.GetRenderTarget().Height();
 			desc2.Flags = BFTextureDesc::DepthStencilable;
 			desc2.DebugName = "DepthStencil Viewport objectpicker";
 			params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport objectpicker", desc2);
@@ -111,10 +123,12 @@ namespace Butterfly
 	{
 		m_viewportHandle = Application::Get().GetRenderer().AddViewport();
 
-		Application::Get().GetRenderer().GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
+		Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugRendererPipelineStage>();
+		Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ObjectPickerRenderPipelineStage>();
 
-		m_viewportResizeReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
-		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewportEvents(m_viewportHandle).OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
+
+		m_viewportResizeReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).Events.OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
+		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).Events.OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
 	}
 	
 	SceneViewport::~SceneViewport()
@@ -133,13 +147,13 @@ namespace Butterfly
 
 		const uint32_t gridLineCount = 64;
 		const glm::vec4 color(0.3f, 0.3f, 0.3f, 0.1f);
-		
-		for(int i = position.x - gridLineCount; i <= position.x + gridLineCount; ++i)
+
+		for (int i = position.x - gridLineCount; i <= position.x + gridLineCount; ++i)
 		{
 			EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(i, 0, position.z - gridLineCount), glm::vec3(i, 0, position.z + gridLineCount), color);
 		}
 
-		for(int i = position.z - gridLineCount; i <= position.z + gridLineCount; ++i)
+		for (int i = position.z - gridLineCount; i <= position.z + gridLineCount; ++i)
 		{
 			EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(position.x - gridLineCount, 0, i), glm::vec3(position.x + gridLineCount, 0, i), color);
 		}
@@ -183,7 +197,7 @@ namespace Butterfly
 		const glm::ivec2 relativePos = mousePos - contentPos;
 		uint32_t readbackID = 0;
 
-		ObjectPickerRenderPipelineStage* objectPickerStage = Application::Get().GetRenderer().GetRenderPipeline().TryGetStage<ObjectPickerRenderPipelineStage>();
+		ObjectPickerRenderPipelineStage* objectPickerStage = Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->TryGetStage<ObjectPickerRenderPipelineStage>();
 
 		if (objectPickerStage &&
 			objectPickerStage->m_objectPickerReadback->ReadPixel(relativePos, readbackID) &&
@@ -244,6 +258,39 @@ namespace Butterfly
 			if (ImGuizmo::IsUsing())
 			{
 				entityTransform.SetWorldMatrix(changableMatrix);
+			}
+		}
+
+
+		// Draw icons.
+		const glm::ivec2 viewportOffset = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
+		float iconSize = 24.0f;
+		ImFont* font = ImGui::GetIO().Fonts->Fonts[2];
+
+		ImGui::PushFont(font, iconSize);
+
+		for (const auto& [entity, camera, transform] : Application::Get().GetScene().GetEntityRegistry().view<CameraComponent, TransformComponent>().each())
+		{
+			glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), Application::Get().GetRenderer().GetViewport(m_viewportHandle).Size());
+			screenPos += viewportOffset;
+
+			const char* icon = FontAwesome::VideoCamera;
+			ImVec2 textSize = ImGui::CalcTextSize(icon);
+
+			const ImVec2 iconPos = ImVec2(screenPos.x - textSize.x * 0.5f, screenPos.y - textSize.y * 0.5f);
+
+			ImGui::GetWindowDrawList()->AddText(iconPos, IM_COL32(255, 255, 255, 180), icon);
+		}
+
+		ImGui::PopFont();
+
+		// Draw selected entity primtives.
+		if (EditorApplication::Get().GetEditorViewport().m_selectedEntity)
+		{
+			if (CameraComponent* camera = EditorApplication::Get().GetEditorViewport().m_selectedEntity.TryGetComponent<CameraComponent>())
+			{
+				TransformComponent& transform = EditorApplication::Get().GetEditorViewport().m_selectedEntity.GetComponent<TransformComponent>();
+				EditorApplication::Get().GetDebugRenderer().DrawFrustum(camera->GetViewprojectionMatrrix(transform.GetPosition(), transform.GetRotation()), glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
 			}
 		}
 

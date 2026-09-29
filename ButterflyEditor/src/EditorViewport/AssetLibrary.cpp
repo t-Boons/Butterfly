@@ -41,6 +41,14 @@ namespace Butterfly
 				system(("explorer.exe /select," + meta.Path.string()).c_str());
 			}
 
+			if (ImGui::MenuItem("Delete"))
+			{
+				EditorApplication::Get().GetEditorViewport().RunBeforeImGuiRender([meta]()
+					{
+						Application::Get().GetAssetManager().GetAssetRegistry().DeleteFileAndMeta(meta.SourceFileID);
+					});
+			}
+
 			ImGui::EndPopup();
 		}
 
@@ -148,19 +156,19 @@ namespace Butterfly
 				}
 
 				bool doubleClicked = false;
+				bool terminateDrawing = false;
 				DrawAssetLibraryCell(icon, std::filesystem::path(meta.Path).filename().string(), meta, doubleClicked);
 
 				if (doubleClicked)
 				{
 					if (ext == ".bfscene")
 					{
-						const std::string& scene = FileSystem::ReadText(meta.Path);
-						Application::Get().GetScene().LoadSceneFromFile(std::filesystem::path(meta.Path));
-						EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
-						ImGui::EndTable();
-						ImGui::EndChild();
-						ImGui::End();
-						return;
+						EditorApplication::Get().GetEditorViewport().RunBeforeImGuiRender([meta]()
+							{
+								const std::string& scene = FileSystem::ReadText(meta.Path);
+								Application::Get().GetScene().LoadSceneFromFile(std::filesystem::path(meta.Path));
+								EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
+							});
 					}
 					else if (ext == ".gltf" || ext == ".glb")
 					{

@@ -6,8 +6,6 @@
 #include "Renderer/Light.hpp"
 #include "Renderer/Material.hpp"
 
-#define NUM_RENDER_BUFFERS 3
-
 namespace Butterfly
 {
 	class D3D12Fence;
@@ -18,11 +16,18 @@ namespace Butterfly
 
 	struct FrameData
 	{
-		RefPtr<BFTexture> CompositeRenderTarget;
-		RefPtr<D3D12CommandList> CmdList;
-		RefPtr<D3D12Fence> Fence;
-		uint32_t FrameIndex;
+		BFTexture& GetCompositeRenderTarget() const { return *CompositeRenderTarget[FrameIndex]; }
+		D3D12CommandList& GetCmdList() const { return *CmdList[FrameIndex]; }
+		D3D12Fence& GetFence() const { return *Fence[FrameIndex]; }
+
 		std::unordered_map<ViewportHandle, Viewport> Viewports;
+	private:
+		friend class Renderer;
+		uint32_t FrameIndex;
+		std::array<RefPtr<BFTexture>, NUM_RENDER_BUFFERS> CompositeRenderTarget;
+		std::array<RefPtr<D3D12CommandList>, NUM_RENDER_BUFFERS> CmdList;
+		std::array<RefPtr<D3D12Fence>, NUM_RENDER_BUFFERS> Fence;
+
 	};
 
 	struct CameraData
@@ -61,19 +66,19 @@ namespace Butterfly
 		// Viewport functions.
 		ViewportHandle AddViewport();
 		void RemoveViewport(const ViewportHandle& handle);
-		ViewportEvents& GetViewportEvents(const ViewportHandle& handle);
 
-		FrameData& GetCurrentFrameData() { return m_frameDatas[m_frameIndex]; }
-		const Viewport& GetViewport(const ViewportHandle& handle);
+		FrameData& GetFrameData() { return m_frameData; }
+		const FrameData& GetFrameData() const { return m_frameData; }
+		const Viewport& GetViewport(const ViewportHandle& handle) const;
+		Viewport& GetViewport(const ViewportHandle& handle);
+
+		const std::unordered_map<ViewportHandle, Viewport>& GetViewports() const { return m_frameData.Viewports; }
 
 		// ImGui Helper functions.
 		EventDispatcher<>& GetImGUIRenderEvent() { return m_ImGuiRenderEvent; }
 		void ImGUIImage(const ViewportHandle& handle);
 
-		RenderPipeline& GetRenderPipeline() { return *m_renderPipeline; }
-
 	private:
-		void InvalidateFrameDatas();
 		void WaitForInflightFrames();
 		void ApplyResize();
 
@@ -81,17 +86,13 @@ namespace Butterfly
 		void OnWindowResize(const WindowResizeEvent& ev);
 		void OnWindowRefresh();
 
-		RefPtr<RenderPipeline> m_renderPipeline;
-
 		uint32_t m_frameIndex = 0;
 		uint32_t m_previousFrame = 0;
-		std::vector<FrameData> m_frameDatas;
+		FrameData m_frameData;
 
 		bool m_resizePending = false;
 		glm::ivec2 m_resizeSize;
 
-		std::vector<ViewportHandle> m_existingViewportHandles;
-		std::unordered_map<ViewportHandle, ViewportEvents> m_viewportEvents;
 		uint32_t m_viewportHandleIndex = 1;
 
 		EventDispatcher<> m_ImGuiRenderEvent;

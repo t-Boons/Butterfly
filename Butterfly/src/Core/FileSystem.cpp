@@ -168,4 +168,22 @@ namespace Butterfly
 
         return results;
     }
+
+	bool FileSystem::Delete(const std::filesystem::path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			BF_CORE_LOG_WARN("File does not exist: %ls", path.c_str());
+			return false;
+		}
+
+		if (!std::filesystem::remove(path))
+		{
+			BF_CORE_LOG_WARN("Failed to delete file: %ls", path.c_str());
+			return false;
+		}
+
+		BF_CORE_LOG_TRACE("Deleted file: %ls", path.c_str());
+		return true;
+	}
 }

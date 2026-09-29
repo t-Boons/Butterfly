@@ -6,6 +6,7 @@ namespace Butterfly
 	class EditorCache;
 	class EditorViewport;
 	class DebugRenderer;
+	class GameViewport;
 
 	class EditorApplication : public Butterfly::IApplicationExtention
 	{
@@ -25,5 +26,6 @@ namespace Butterfly
 		DebugRenderer* m_debugRenderer;
 		EditorCache* m_editorCache;
 		EditorViewport* m_editorViewport;
+		GameViewport* m_gameViewport;
 	};
 }

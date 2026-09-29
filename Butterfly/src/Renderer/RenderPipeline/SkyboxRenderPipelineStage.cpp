@@ -56,9 +56,9 @@ namespace Butterfly
 				// Default Init stuff.
 				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-				GraphicsCommands::SetRenderTargets(list, { viewport.RenderTarget.get() }, viewport.DepthStencil.get());
+				GraphicsCommands::SetRenderTargets(list, { &viewport.GetRenderTarget() }, &viewport.GetDepthStencil());
 
-				GraphicsCommands::SetFullscreenViewportAndRect(list, viewport.RenderTarget->Width(), viewport.RenderTarget->Height());
+				GraphicsCommands::SetFullscreenViewportAndRect(list, viewport.GetRenderTarget().Width(), viewport.GetRenderTarget().Height());
 
 				BFPipelineBuilder psoBuilder;
 				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);

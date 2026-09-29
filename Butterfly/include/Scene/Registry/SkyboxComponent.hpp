@@ -34,6 +34,6 @@ namespace Butterfly
 		friend class ComponentRegistry;
 		std::array<UUID, 6> m_serializeUUIDs;
 		std::array<AssetHandle<TextureAsset>, 6> m_textureHandles;
-		bool m_isDirty = false;
+		bool m_isDirty = true;
 	};
 }

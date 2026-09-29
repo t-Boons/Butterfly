@@ -27,6 +27,7 @@
 #include "Scene/Registry/MeshRendererComponent.hpp"
 #include "Scene/Registry/NameComponent.hpp"
 #include "Scene/Registry/SkyboxComponent.hpp"
+#include "Scene/Registry/CameraComponent.hpp"
 
 #include "Renderer/Renderer.hpp" 
 #include "Renderer/Camera.hpp"

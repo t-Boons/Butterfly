@@ -24,6 +24,16 @@ namespace Butterfly
 		}
 	}
 
+	void AssetRegistry::UnRegister(const AssetFileMetadata& meta)
+	{
+		BF_CORE_LOG_TRACE("Unregistering asset file: %ls", meta.Path.filename().c_str());
+		for (auto& asset : meta.Assets)
+		{
+			m_registeredAssets.erase(asset.first);
+		}
+		m_registeredFiles.erase(meta.SourceFileID);
+	}
+
 	bool AssetRegistry::NewFile(const std::string& name, const std::string& extention, const std::string& contents, AssetFileMetadata& meta)
 	{
 		std::string stem = name;
@@ -48,6 +58,33 @@ namespace Butterfly
 			BF_CORE_LOG_ERROR("Unable to create new file in assets directory: %s", name.c_str());
 			return false;
 		}
+	}
+
+	bool AssetRegistry::DeleteFileAndMeta(const UUID& id)
+	{
+		auto it = m_registeredFiles.find(id);
+		if (it == m_registeredFiles.end())
+		{
+			BF_CORE_LOG_ERROR("Unable to delete file, no file with ID: %s found in registry", id.ToString().c_str());
+			return false;
+		}
+		const std::filesystem::path filePath = it->second.Path;
+		const std::filesystem::path metaPath = filePath.string() + m_metaFileExtention;
+		if (!FileSystem::Delete(filePath))
+		{
+			BF_CORE_LOG_ERROR("Unable to delete file: %s", filePath.string().c_str());
+			return false;
+		}
+		if (!FileSystem::Delete(metaPath))
+		{
+			BF_CORE_LOG_ERROR("Unable to delete meta file: %s", metaPath.string().c_str());
+			return false;
+		}
+
+		UnRegister(it->second);
+
+
+		return true;
 	}
 
 	bool AssetRegistry::ImportFromDisk(const std::filesystem::path& file, AssetFileMetadata& meta)
