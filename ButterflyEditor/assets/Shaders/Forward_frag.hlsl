@@ -91,7 +91,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
         normal = MapNormal(sampledNormal, normal, pixelInput.tangent, pixelInput.tangentW);
     }
     
-    float3 albedo = float3(1.0, 1.0, 1.0);
+    float3 albedo = material.BaseColor.xyz;
     if (material.ColorTexture >= 0)
     {
         Texture2D<float4> albedoTex = ResourceDescriptorHeap[material.ColorTexture];
@@ -103,6 +103,13 @@ float4 main(V2P pixelInput) : SV_TARGET0
     {
         Texture2D<float4> metallicTex = ResourceDescriptorHeap[material.MetallicRoughnessTexture];
         metallicRoughness.xy = metallicTex.Sample(smp, pixelInput.texCoord).xy;
+    }
+    
+    float3 emissive = material.EmissiveColor.xyz;
+    if (material.EmissionTexture >= 0)
+    {
+        Texture2D<float4> emissiveTex = ResourceDescriptorHeap[material.EmissionTexture];
+        emissive = emissiveTex.Sample(smp, pixelInput.texCoord).xyz;
     }
 
     float3 lightDir = normalize(float3(0.5, 1.0, 0.0f));
@@ -140,6 +147,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
             lighting += diffuse;
             continue;
         }
+        
         if(light.Type == 2) // Spot light
         {
             float coneAttenuation = smoothstep(light.OuterConeAngleCos, light.InnerConeAngleCos, dot(-lightDir, normalize(light.Direction)));
@@ -149,5 +157,5 @@ float4 main(V2P pixelInput) : SV_TARGET0
         }
     }
     
-    return float4(lighting.xyz, 1.0f);
+    return float4(lighting.xyz + emissive, 1.0f);
 }

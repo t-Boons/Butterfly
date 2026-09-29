@@ -139,7 +139,6 @@ namespace Butterfly
 				desc.HeapType = BFHeapType::Upload;
 				desc.DebugName = "Materials";
 				m_materialBuffer = MakeRef<BFStructuredBuffer>(desc);
-
 			}
 
 			m_materialBuffer->Write(m_materialData.data(), static_cast<uint32_t>(m_materialData.size() * sizeof(MaterialData)));

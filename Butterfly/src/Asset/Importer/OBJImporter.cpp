@@ -1,6 +1,7 @@
 #include "Asset/Importer/OBJImporter.hpp"
 #include "Asset/AssetTypes.hpp"
 #include "tinyobj/tiny_obj_loader.h"
+#include "Renderer/ModelLoading/MikkTSpaceWrapper.hpp"
 
 namespace Butterfly
 {
@@ -73,6 +74,18 @@ namespace Butterfly
 			}
 			indexOffset += vertexElementCount;
 		
+		}
+
+		// Generate tangents if they are not present in the GLTF file.
+		if (mesh->Tangents.empty())
+		{
+			MikkTSpaceTangent::MikktSpaceMesh m;
+			m.m_indices = &mesh->Indices;
+			m.m_positions = &mesh->Positions;
+			m.m_normals = &mesh->Normals;
+			m.m_texcoords = &mesh->UVs;
+
+			MikkTSpaceTangent::GetTangents(m, mesh->Tangents);
 		}
 
 		mesh->SubMeshes.push_back({ 0, static_cast<uint32_t>(mesh->Indices.size()) });
