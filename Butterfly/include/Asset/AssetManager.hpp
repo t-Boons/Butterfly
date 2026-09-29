@@ -3,9 +3,16 @@
 #include "Asset.hpp"
 #include "AssetRegistry.hpp"
 #include "Asset/Importer/AssetImporter.hpp"
+#include "Core/EventDispatcher.hpp"
 
 namespace Butterfly
 {
+    struct AssetEvent
+    {
+        AssetType Type;
+		UUID ID;
+    };
+
     template<typename T>
     struct AssetHandle;
 
@@ -20,6 +27,9 @@ namespace Butterfly
 
         template<typename T>
         T* Resolve(const AssetHandle<T>& handle) const;
+
+        template<typename T>
+		T* ResolveWeak(const UUID& uuid) const;
 
 
         template<typename T>
@@ -38,6 +48,11 @@ namespace Butterfly
         IAssetImporter* GetImporter(const std::filesystem::path& filePath) const;
 
         IAssetImporter* GetImporterForExtention(const std::string& fileExtention) const;
+
+		void GetAllAssetsOfType(const AssetType& type, std::vector<UUID>& out) const;
+
+		EventDispatcher<AssetEvent>& OnAssetAddedEvent() { return m_onAssetAdded; }
+		EventDispatcher<AssetEvent>& OnAssetRemovedEvent() { return m_onAssetRemoved; }
 
     private:
         bool LoadSourceFile(const AssetMetadata& meta);
@@ -63,7 +78,9 @@ namespace Butterfly
         AssetRegistry m_assetRegistry;
         std::unordered_map<UUID, AssetEntry> m_entries;
 
-        uint32_t  m_tickCounter = 0;
+        uint32_t m_tickCounter = 0;
+		EventDispatcher<AssetEvent> m_onAssetAdded;
+		EventDispatcher<AssetEvent> m_onAssetRemoved;
     };
 
 
@@ -75,6 +92,17 @@ namespace Butterfly
         if (it != m_entries.end())
         {
 			return static_cast<T*>(it->second.Data.get());
+        }
+        return nullptr;
+    }
+
+    template<typename T>
+    inline T* AssetManager::ResolveWeak(const UUID& uuid) const
+    {
+        auto it = m_entries.find(uuid);
+        if (it != m_entries.end())
+        {
+            return static_cast<T*>(it->second.Data.get());
         }
         return nullptr;
     }
@@ -127,6 +155,7 @@ namespace Butterfly
 		auto it = m_entries.find(entry.ID);
         if(it == m_entries.end())
         {
+			m_onAssetAdded.Broadcast({entry.Type, entry.ID});
             BF_CORE_LOG_TRACE("Adding asset entry of type %s with ID: %s", entry.Type.TypeName().data(), entry.ID.ToString().c_str());
             m_entries[entry.ID] = entry;
             return AssetHandle<T>(this, entry.ID);

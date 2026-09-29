@@ -159,6 +159,17 @@ namespace Butterfly
 			return true;
 		}
 
+		if (value.type() == entt::resolve<std::vector<Butterfly::UUID>>())
+		{
+			std::vector<Butterfly::UUID>& vec = value.cast<std::vector<Butterfly::UUID>&>();
+			vec.clear();
+			for (const YAML::Node& uuidNode : node)
+			{
+				vec.push_back(uuidNode.as<Butterfly::UUID>());
+			}
+			return true;
+		}
+
 		return false;
 	}
 }

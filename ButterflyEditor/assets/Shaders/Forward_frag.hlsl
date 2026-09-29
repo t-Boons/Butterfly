@@ -1,3 +1,40 @@
+
+
+// Functions
+
+float3 MapNormal(float3 sampledNormal, float3 vertexNormal, float3 vertexTangent, float tangentSign)
+{
+    float3 N = normalize(vertexNormal);
+
+    float3 T = normalize(vertexTangent);
+    T = normalize(T - N * dot(N, T));
+
+    float3 B = cross(N, T) * tangentSign;
+
+    float3 tangentNormal = sampledNormal * 2.0 - 1.0;
+
+    return normalize(
+        T * tangentNormal.x +
+        B * tangentNormal.y +
+        N * tangentNormal.z
+    );
+}
+
+
+struct MaterialData
+{
+    float4 BaseColor;
+    float4 EmissiveColor;
+    float Metallic;
+    float Roughness;
+    float NormalScale;
+    int ColorTexture;
+    int NormalTexture;
+    int MetallicRoughnessTexture;
+    int EmissionTexture;
+    int AmbientOcclusionTexture;
+};
+
 struct Light
 {
     uint Type;
@@ -13,24 +50,27 @@ struct BufferIndices
 {
     int positionBuffer;
     int normalBuffer;
+    int tangentBuffer;
     int texcoordBuffer;
     int uniformIndex;
     int samplerIndex;
-    int textureIndex;
     int modelIndex;
     int entityIndex;
     int lightBuffer;
     int numLights;
+    int materialBuffer;
+    int materialIndex;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
-
 
 struct V2P
 {
     float4 position : SV_Position;
     float3 fragPos : WORLDPOS;
     float3 normal : NORMAL;
+    float3 tangent : TANGENT;
+    nointerpolation float tangentW : TANGENTW;
     float2 texCoord : TEXCOORD0;
 };
 
@@ -38,12 +78,32 @@ struct V2P
 float4 main(V2P pixelInput) : SV_TARGET0
 {
     SamplerState smp = SamplerDescriptorHeap[resources.samplerIndex];
-    Texture2D<float4> tex = ResourceDescriptorHeap[resources.textureIndex];
     StructuredBuffer<Light> lights = ResourceDescriptorHeap[resources.lightBuffer];
+    StructuredBuffer<MaterialData> materials = ResourceDescriptorHeap[resources.materialBuffer];
     
-    float3 normal = pixelInput.normal;
-    float3 albedo = tex.Sample(smp, pixelInput.texCoord).xyz;
+    MaterialData material = materials[resources.materialIndex];
     
+    float3 normal = normalize(pixelInput.normal);
+    if (material.NormalTexture >= 0)
+    {
+        Texture2D<float4> normalTex = ResourceDescriptorHeap[material.NormalTexture];
+        float3 sampledNormal = normalTex.Sample(smp, pixelInput.texCoord).xyz;
+        normal = MapNormal(sampledNormal, normal, pixelInput.tangent, pixelInput.tangentW);
+    }
+    
+    float3 albedo = float3(1.0, 1.0, 1.0);
+    if (material.ColorTexture >= 0)
+    {
+        Texture2D<float4> albedoTex = ResourceDescriptorHeap[material.ColorTexture];
+        albedo = albedoTex.Sample(smp, pixelInput.texCoord).xyz;
+    }
+    
+    float2 metallicRoughness = float2(0.0, 1.0);
+    if (material.MetallicRoughnessTexture >= 0)
+    {
+        Texture2D<float4> metallicTex = ResourceDescriptorHeap[material.MetallicRoughnessTexture];
+        metallicRoughness.xy = metallicTex.Sample(smp, pixelInput.texCoord).xy;
+    }
 
     float3 lightDir = normalize(float3(0.5, 1.0, 0.0f));
     float3 ambient = 0.1 * albedo;
@@ -89,5 +149,5 @@ float4 main(V2P pixelInput) : SV_TARGET0
         }
     }
     
-    return float4(lighting, 1.0f);
+    return float4(lighting.xyz, 1.0f);
 }

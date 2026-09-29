@@ -18,11 +18,11 @@ namespace Butterfly
 		std::vector<glm::vec3> Normals;
 		std::vector<glm::vec2> UVs;
 		std::vector<glm::vec4> Tangents;
-		std::vector<glm::vec3> Bitangents;
 		std::vector<uint32_t> Indices;
 
 		RefPtr<BFStructuredBuffer> GPUPositions;
 		RefPtr<BFStructuredBuffer> GPUNormals;
+		RefPtr<BFStructuredBuffer> GPUTangents;
 		RefPtr<BFStructuredBuffer> GPUUVs;
 		RefPtr<BFIndexBuffer> GPUIndices;
 
@@ -67,6 +67,13 @@ namespace Butterfly
 				desc.Stride = sizeof(glm::vec3);
 				desc.DebugName = "Normals";
 				GPUNormals = MakeRef<BFStructuredBuffer>(desc);
+			}
+			{
+				desc.Data = Tangents.data();
+				desc.NumElements = static_cast<uint32_t>(Tangents.size());
+				desc.Stride = sizeof(glm::vec4);
+				desc.DebugName = "Tangents";
+				GPUTangents = MakeRef<BFStructuredBuffer>(desc);
 			}
 			{
 				desc.Data = UVs.data();

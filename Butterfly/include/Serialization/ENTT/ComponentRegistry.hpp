@@ -275,7 +275,7 @@ namespace Butterfly
 				}
 				else
 				{
-					BF_CORE_LOG_CRITICAL("Failed to deserialize value: %s", data.name().data());
+					BF_CORE_LOG_CRITICAL("Failed to deserialize value: %s on component %s", data.name().data(), type.name().data());
 				}
 			}
 

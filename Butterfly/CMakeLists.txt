@@ -55,6 +55,7 @@ add_library(Butterfly STATIC
     src/Renderer/D3D12/D3D12ShaderVariables.cpp
     src/Renderer/D3D12/D3D12View.cpp
     src/Renderer/Camera.cpp
+    src/Renderer/Material.cpp
 
     src/Renderer/RenderPipeline/RenderPipeline.cpp
     src/Renderer/RenderPipeline/PBRRenderPipelineStage.cpp

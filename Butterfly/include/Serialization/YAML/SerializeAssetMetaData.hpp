@@ -20,17 +20,25 @@ namespace YAML
 
 		static bool decode(const Node& node, Butterfly::AssetMetadata& meta)
 		{
-			if (!node.IsMap())
+			try
 			{
+				if (!node.IsMap())
+				{
+					return false;
+				}
+
+				meta.SourceFileID = Butterfly::UUID::FromString(node["SourceFileID"].as<std::string>());
+				meta.Name = node["Name"].as<std::string>();
+				meta.Type = Butterfly::AssetType(node["Type"].as<std::string>());
+				meta.AssetID = Butterfly::UUID::FromString(node["AssetID"].as<std::string>());
+
+				return true;
+			}
+			catch (const YAML::Exception& e)
+			{
+				BF_CORE_LOG_ERROR("Failed to decode AssetMetadata: %s", e.what());
 				return false;
 			}
-
-			meta.SourceFileID = Butterfly::UUID::FromString(node["SourceFileID"].as<std::string>());
-			meta.Name = node["Name"].as<std::string>();
-			meta.Type = Butterfly::AssetType(node["Type"].as<std::string>());
-			meta.AssetID = Butterfly::UUID::FromString(node["AssetID"].as<std::string>());
-
-			return true;
 		}
 	};
 
@@ -55,28 +63,36 @@ namespace YAML
 
 		static bool decode(const Node& node, Butterfly::AssetFileMetadata& meta)
 		{
-			if (!node.IsMap())
+			try
 			{
-				return false;
-			}
-
-			meta.Path = std::filesystem::path(node["Path"].as<std::string>());
-			meta.SourceFileID = Butterfly::UUID::FromString(node["SourceFileID"].as<std::string>());
-			meta.RootAssetID = Butterfly::UUID::FromString(node["RootAssetID"].as<std::string>());
-
-			for (auto& subAssetNode : node["Assets"])
-			{
-				if (subAssetNode.IsMap())
+				if (!node.IsMap())
 				{
-					Butterfly::AssetMetadata subAsset;
-					if (YAML::convert<Butterfly::AssetMetadata>::decode(subAssetNode, subAsset))
+					return false;
+				}
+
+				meta.Path = std::filesystem::path(node["Path"].as<std::string>());
+				meta.SourceFileID = Butterfly::UUID::FromString(node["SourceFileID"].as<std::string>());
+				meta.RootAssetID = Butterfly::UUID::FromString(node["RootAssetID"].as<std::string>());
+
+				for (auto& subAssetNode : node["Assets"])
+				{
+					if (subAssetNode.IsMap())
 					{
-						meta.Assets.insert({ subAsset.AssetID, subAsset });
+						Butterfly::AssetMetadata subAsset;
+						if (YAML::convert<Butterfly::AssetMetadata>::decode(subAssetNode, subAsset))
+						{
+							meta.Assets.insert({ subAsset.AssetID, subAsset });
+						}
 					}
 				}
-			}
 
-			return true;
+				return true;
+			}
+			catch (const YAML::Exception& e)
+			{
+				BF_CORE_LOG_ERROR("Failed to decode AssetFileMetadata: %s", e.what());
+				return false;
+			}
 		}
 	};
 }

@@ -1,7 +1,6 @@
 struct CameraData
 {
     float4x4 ViewProjection;
-    float3x3 NormalMatrix;
     float3 CameraPosition;
 };
 

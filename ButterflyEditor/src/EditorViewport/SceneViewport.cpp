@@ -156,7 +156,6 @@ namespace Butterfly
 	{
 		CameraData cameraData;
 		cameraData.ViewProjection = m_spectatorCam.GetCamera()->ViewProjectionMatrix();
-		cameraData.NormalMatrix = glm::mat3(glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ViewMatrix())));
 		cameraData.CameraPosition = m_spectatorCam.GetCamera()->Position();
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));

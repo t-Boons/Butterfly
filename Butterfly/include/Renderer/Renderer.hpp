@@ -4,6 +4,7 @@
 #include "Renderer/Viewport.hpp"
 #include "Core/Window.hpp"
 #include "Renderer/Light.hpp"
+#include "Renderer/Material.hpp"
 
 #define NUM_RENDER_BUFFERS 3
 
@@ -27,7 +28,6 @@ namespace Butterfly
 	struct CameraData
 	{
 		glm::mat4 ViewProjection;
-		glm::mat3 NormalMatrix;
 		glm::vec3 CameraPosition;
 	};
 
@@ -35,6 +35,12 @@ namespace Butterfly
 	{
 		glm::mat4 InverseView;
 		glm::mat4 InverseProjection;
+	};
+
+	struct ModelMatrixData
+	{
+		glm::mat4 ModelMatrix;
+		glm::mat3 NormalMatrix;
 	};
 
 	class BFRGTexture;
@@ -79,13 +85,10 @@ namespace Butterfly
 
 		uint32_t m_frameIndex = 0;
 		uint32_t m_previousFrame = 0;
-
 		std::vector<FrameData> m_frameDatas;
-
 
 		bool m_resizePending = false;
 		glm::ivec2 m_resizeSize;
-
 
 		std::vector<ViewportHandle> m_existingViewportHandles;
 		std::unordered_map<ViewportHandle, ViewportEvents> m_viewportEvents;

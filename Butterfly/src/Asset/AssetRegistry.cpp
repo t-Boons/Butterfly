@@ -160,8 +160,16 @@ namespace Butterfly
 	{
 		const std::filesystem::path metaPath = file.string() + m_metaFileExtention;
 
-		YAML::Node node;
-		node = YAML::LoadFile(metaPath.string());
-		return node["Meta"].as<AssetFileMetadata>();
+		try
+		{
+			YAML::Node node;
+			node = YAML::LoadFile(metaPath.string());
+			return node["Meta"].as<AssetFileMetadata>();
+		}
+		catch (const YAML::Exception& e)
+		{
+			BF_CORE_LOG_ERROR("Failed to read meta file: %s, Error: %s", metaPath.string().c_str(), e.what());
+			return {};
+		}
 	}
 }

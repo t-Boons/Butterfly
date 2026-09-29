@@ -303,15 +303,18 @@ namespace Butterfly
 				viewport.GraphResources = MakeRef<GraphTransientResourceCache>();
 				viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(handle.m_index) + " Uniforms");
 
-				BFStructuredBufferDesc desc;
-				desc.Data = nullptr;
-				desc.HeapType = BFHeapType::Upload;
-				desc.NumElements = 64;
-				desc.Stride = sizeof(glm::mat4);
-				desc.DebugName = "ModelMatrices";
+				{
+					BFStructuredBufferDesc desc;
+					desc.Data = nullptr;
+					desc.HeapType = BFHeapType::Upload;
+					desc.NumElements = 128;
+					desc.Stride = sizeof(ModelMatrixData);
+					desc.DebugName = "Materials";
 
-				viewport.ModelMatrices = MakeRef<BFStructuredBuffer>(desc);
+					viewport.ModelMatrices = MakeRef<BFStructuredBuffer>(desc);
+				}
 
+				viewport.Materials = MakeRef<MaterialLibrary>();
 				viewport.Lights = MakeRef<LightBuffer>();
 			}
 		}

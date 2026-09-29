@@ -154,23 +154,6 @@ namespace Butterfly
 		}
 	}
 
-	std::vector<glm::vec3> CalculateBITangents(const std::vector<glm::vec4>& tangents, const std::vector<glm::vec3>& normals)
-	{
-		const size_t arraySize = tangents.size();
-		if (arraySize != normals.size()) return std::vector<glm::vec3>();
-
-		std::vector<glm::vec3> bitangents;
-		bitangents.resize(arraySize);
-
-		for (size_t i = 0; i < arraySize; ++i)
-		{
-			const glm::vec3 tangentxyz = { tangents[i].x, tangents[i].y, tangents[i].z };
-			bitangents[i] = glm::cross(normals[i], tangentxyz) * tangents[i].w;
-		}
-
-		return bitangents;
-	}
-
 	AssetHandle<TextureAsset> LoadTextureFromMaterial(const tinygltf::Model& model, const tinygltf::Material& material, const std::string& attribName, AssetManager& manager, const AssetFileMetadata& meta)
 	{
 		const bool foundValue = material.values.find(attribName) != material.values.end();
@@ -375,8 +358,6 @@ namespace Butterfly
 
 				MikkTSpaceTangent::GetTangents(m, outMesh->Tangents);
 			}
-
-			outMesh->Bitangents = CalculateBITangents(outMesh->Tangents, outMesh->Normals);
 
 			// Create submeshes.
 			for (size_t i = 0; i < mesh.primitives.size(); i++)

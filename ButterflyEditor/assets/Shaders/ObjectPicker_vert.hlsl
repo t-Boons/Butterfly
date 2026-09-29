@@ -1,13 +1,13 @@
 struct CameraData
 {
     float4x4 ViewProjection;
-    float3x3 NormalMatrix;
     float3 CameraPosition;
 };
 
 struct ModelMatrix
 {
-    float4x4 modelMatrix;
+    float4x4 ModelMatrix;
+    float3x3 NormalMatrix;
 };
 
 struct BufferIndices
@@ -33,7 +33,7 @@ V2P main(uint vertexID : SV_VertexID)
     ConstantBuffer<CameraData> uniforms = ResourceDescriptorHeap[resources.uniformIndex];
     StructuredBuffer<ModelMatrix> modelMatrices = ResourceDescriptorHeap[resources.modelIndex];
     
-    float4x4 MVP = mul(uniforms.ViewProjection, modelMatrices[resources.entityRenderIndex].modelMatrix);
+    float4x4 MVP = mul(uniforms.ViewProjection, modelMatrices[resources.entityRenderIndex].ModelMatrix);
     
     V2P output;
     output.color = resources.entitySceneIndex + 1;

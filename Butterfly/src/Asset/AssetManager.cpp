@@ -24,6 +24,7 @@ namespace Butterfly
 			if (it->second.RefCount == 0 && !it->second.Persistant)
 			{
 				BF_CORE_LOG_TRACE("Garbage collecting asset: %s", it->first.ToString().c_str());
+				m_onAssetRemoved.Broadcast({it->second.Type, it->first});
 				it = m_entries.erase(it);
 			}
 			else
@@ -91,5 +92,16 @@ namespace Butterfly
 		}
 
 		return true;
+	}
+
+	void AssetManager::GetAllAssetsOfType(const AssetType& type, std::vector<UUID>& out) const
+	{
+		for (const auto& [id, entry] : m_entries)
+		{
+			if (entry.Type == type)
+			{
+				out.push_back(id);
+			}
+		}
 	}
 }

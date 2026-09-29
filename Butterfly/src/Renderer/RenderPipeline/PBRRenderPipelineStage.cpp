@@ -6,7 +6,7 @@
 #include "Scene/Registry/TransformComponent.hpp"
 #include "Asset/AssetManager.hpp"
 #include "Renderer/Camera.hpp"
-
+#include "Renderer/Material.hpp"
 #include "Renderer/Light.hpp"
 
 namespace Butterfly
@@ -35,6 +35,7 @@ namespace Butterfly
 		params->Comp = viewport.RenderTarget.get();
 
 		ev.Viewport.Lights->Update();
+		ev.Viewport.Materials->Validate();
 
 		uint32_t entityIndex = 0;
 		auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
@@ -46,7 +47,11 @@ namespace Butterfly
 			}
 
 			const glm::mat4 model = transform.GetWorldMatrix();
-			viewport.ModelMatrices->Write(&model, sizeof(glm::mat4), entityIndex * sizeof(glm::mat4));
+			ModelMatrixData modelData;
+			modelData.ModelMatrix = model;
+			modelData.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+			viewport.ModelMatrices->Write(&modelData, sizeof(ModelMatrixData), entityIndex * sizeof(ModelMatrixData));
+
 			entityIndex++;
 		}
 
@@ -92,24 +97,19 @@ namespace Butterfly
 
 					for (auto& subMesh : mesh->SubMeshes)
 					{
-						BFTexture* albedo = m_whiteTexture.get();
-						if (subMesh.Material.Valid())
-						{
-							MaterialAsset* material = as.Resolve<MaterialAsset>(subMesh.Material);
-							albedo = as.Resolve<TextureAsset>(material->ColorTexture)->Texture.get();
-						}
-
 						ShaderVariables()
 							.Add(mesh->GPUPositions->SRV().View())
 							.Add(mesh->GPUNormals->SRV().View())
+							.Add(mesh->GPUTangents->SRV().View())
 							.Add(mesh->GPUUVs->SRV().View())
 							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
 							.Add(m_defaultSampler->View())
-							.Add(albedo->SRV().View())
 							.Add(viewport.ModelMatrices->SRV().View())
 							.Add(entityIndex)
 							.Add(viewport.Lights->SRV().View())
 							.Add(viewport.Lights->GetNumLights())
+							.Add(viewport.Materials->GetMaterialBuffer().SRV().View())
+							.Add(viewport.Materials->GetMaterialIndex(subMesh.Material.GetID()))
 							.Submit(list);
 
 						list.List()->DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);
