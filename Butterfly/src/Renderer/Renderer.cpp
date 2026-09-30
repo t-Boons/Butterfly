@@ -256,44 +256,11 @@ namespace Butterfly
 
 					m_frameData.GetCmdList().List()->DrawInstanced(6, 1, 0, 0);
 					m_frameData.GetCmdList().EndGPUMarker();
-				
-				// Record copy.
-				
-					compCopy.Resource()->Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_COPY_SOURCE);
-					viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_COPY_DEST);
 
-					D3D12_BOX srcBox = {};
-					srcBox.left = 0;
-					srcBox.top = 0;
-					srcBox.front = 0;
-					srcBox.right = compCopy.Resource()->Width();
-					srcBox.bottom = compCopy.Resource()->Height();
-					srcBox.back = 1;
-
-					D3D12_TEXTURE_COPY_LOCATION destLocation = {};
-					destLocation.pResource = viewport.GetRenderTarget().Resource()->HwResource;
-					destLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-					destLocation.SubresourceIndex = 0;
-
-					D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-					srcLocation.pResource = compCopy.Resource()->Resource()->HwResource;
-					srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-					srcLocation.SubresourceIndex = 0;
-
-
-					m_frameData.GetCmdList().List()->CopyTextureRegion(
-						&destLocation,
-						0, 0, 0,
-						&srcLocation,
-						&srcBox
-					);
+					GraphicsCommands::Blit(m_frameData.GetCmdList(), *compCopy.Resource(), viewport.GetRenderTarget());
 
 					viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				}
-
-
-
-
 
 				m_frameData.GetCmdList().EndGPUMarker();
 			}

@@ -6,9 +6,46 @@
 #include "Renderer/D3D12/D3D12CommandList.hpp"
 #include "Renderer/D3D12Texture.hpp"
 #include "Renderer/D3D12Buffer.hpp"
+#include "Renderer/D3D12/D3D12Pipeline.hpp"
+#include "Renderer/D3D12/D3D12Shader.hpp"
+#include "Renderer/D3D12/D3D12ShaderVariables.hpp"
 
 namespace Butterfly
 {
+	void GraphicsCommands::Blit(D3D12CommandList& list, BFTexture& src, BFTexture& dst)
+	{
+		BF_PROFILE_EVENT()
+
+		BF_CORE_ASSERT(src.Desc().Width == dst.Desc().Width && src.Desc().Height == dst.Desc().Height, "Source and destination textures must have the same dimensions for blitting: %s -> %s", src.Desc().DebugName.c_str(), dst.Desc().DebugName.c_str());
+		BF_CORE_ASSERT(src.Desc().Flags & BFTextureDesc::Flag::ShaderResource, "Source texture must have the ShaderResource flag set: %s", src.Desc().DebugName.c_str());
+		BF_CORE_ASSERT(dst.Desc().Flags & BFTextureDesc::Flag::RenderTargettable, "Destination texture must have the RenderTargettable flag set: %s", dst.Desc().DebugName.c_str());
+		
+		list.BeginGPUMarker("Blit: " + src.Desc().DebugName + " -> " + dst.Desc().DebugName);
+		list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		GraphicsCommands::SetRenderTargets(list, { &dst }, nullptr);
+		GraphicsCommands::SetFullscreenViewportAndRect(list, dst.Desc().Width, dst.Desc().Height);
+
+		BFPipelineBuilder psoBuilder;
+		psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+		psoBuilder.RenderTargetFormats({ dst.Desc().Format });
+		psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex));
+		psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Blit_frag.hlsl", ShaderType::Pixel));
+		psoBuilder.DepthEnable(false);
+		psoBuilder.CullingMode(D3D12_CULL_MODE_NONE);
+
+		list.List()->SetPipelineState(psoBuilder.Create().GetHW());
+
+		src.Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+		ShaderVariables()
+			.Add(src.SRV().View())
+			.Submit(list);
+
+
+		list.List()->DrawInstanced(6, 1, 0, 0);
+		list.EndGPUMarker();
+	}
+
 	void GraphicsCommands::SetRenderTargets(D3D12CommandList& list, const std::vector<BFTexture*>& rts, BFTexture* dsv)
 	{
 		BF_PROFILE_EVENT();

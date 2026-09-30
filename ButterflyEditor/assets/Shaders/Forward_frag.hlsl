@@ -150,10 +150,8 @@ float4 main(V2P pixelInput) : SV_TARGET0
         emissive = emissiveTex.Sample(smp, pixelInput.texCoord).xyz;
     }
 
-        float3 lightDir = normalize(float3(0.5, 1.0, 0.0f));
-    float3 ambient = 0.1 * albedo;
-    
-    float3 lighting = ambient;
+    float3 lightDir = normalize(float3(0.5, 1.0, 0.0f));
+    float3 lighting = float3(0.0, 0.0, 0.0);
     
     float3 N = normal;
     float3 V = normalize(pixelInput.eye - pixelInput.fragPos);

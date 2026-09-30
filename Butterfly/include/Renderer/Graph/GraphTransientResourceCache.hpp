@@ -114,7 +114,7 @@ namespace Butterfly
 	template<typename Type, typename Args>
 	inline Type& GraphTransientResourceCache::GetOrCreate(const std::string& key, Args&& args)
 	{
-		BF_PROFILE_EVENT();
+		BF_PROFILE_EVENT()
 
 		auto it = m_resources.find(key);
 		if (it == m_resources.end())

@@ -9,6 +9,8 @@ namespace Butterfly
 	class GraphicsCommands
 	{
 	public:
+		static void Blit(D3D12CommandList& list, BFTexture& src, BFTexture& dst);
+
 		static void SetRenderTargets(D3D12CommandList& list, const std::vector<BFTexture*>& rts, BFTexture* dsv);
 
 		static void ClearRenderTarget(D3D12CommandList& list, BFTexture& rt);
