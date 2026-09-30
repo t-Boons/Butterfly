@@ -15,6 +15,8 @@ namespace Butterfly
 
 	void DrawAssetLibraryCell(const LibraryIcon& iconType, const std::string& name, const AssetFileMetadata& meta, bool& doubleClicked)
 	{
+		BF_PROFILE_EVENT()
+
 		const float cellSize = 96.0f;
 		const float cellPadding = 8.0f;
 		const float margin = 7.0f;
@@ -106,6 +108,8 @@ namespace Butterfly
 
 	void AssetLibrary::OnRenderImGUI()
 	{
+		BF_PROFILE_EVENT()
+
 		ImGui::Begin("Asset View");
 
 		ImGui::TextDisabled("%d assets", (int)Application::Get().GetAssetManager().GetAssetRegistry().GetAll().size());

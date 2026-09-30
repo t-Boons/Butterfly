@@ -18,7 +18,7 @@ namespace Butterfly
 
 	void EditorApplication::OnTick()
 	{
-		BF_PROFILE_FRAME();
+		BF_PROFILE_EVENT()
 
 		m_editorViewport->Tick();
 	}

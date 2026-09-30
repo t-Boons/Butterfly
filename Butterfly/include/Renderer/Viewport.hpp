@@ -70,7 +70,7 @@ namespace Butterfly
 	struct Viewport
 	{
 	public:
-		glm::ivec2 Size() const { return { RenderTarget[0]->Width(), RenderTarget[0]->Height()}; }
+		glm::ivec2 Size() const { return { GetRenderTarget().Width(), GetRenderTarget().Height()}; }
 
 		bool HasRenderTarget() const { return RenderTarget[FrameIndex] != nullptr; }
 		BFTexture& GetRenderTarget() const { return *RenderTarget[FrameIndex]; }

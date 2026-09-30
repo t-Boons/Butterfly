@@ -64,7 +64,7 @@ namespace Butterfly
 				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 				psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
 				psoBuilder.DepthStencilFormat({ DXGI_FORMAT_D24_UNORM_S8_UINT });
-				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Skybox_vert.hlsl", ShaderType::Vertex));
+				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex));
 				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Skybox_frag.hlsl", ShaderType::Pixel));
 				psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
 				psoBuilder.DepthEnable(true);

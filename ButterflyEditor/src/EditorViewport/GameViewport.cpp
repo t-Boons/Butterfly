@@ -23,6 +23,8 @@ namespace Butterfly
 
 	void GameViewport::OnPrerender(const ViewportPrerenderEvent& event)
 	{
+		BF_PROFILE_EVENT()
+
 		glm::mat4 viewProjection = glm::mat4(0.0f);
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
@@ -61,6 +63,8 @@ namespace Butterfly
 
 	void GameViewport::OnRenderImGUI()
 	{
+		BF_PROFILE_EVENT()
+
 		const std::string windowName = "Game Viewport##" + std::to_string(m_viewportHandle.Index());
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);

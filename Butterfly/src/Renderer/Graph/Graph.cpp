@@ -33,7 +33,6 @@ namespace Butterfly
 		for (uint32_t i = 0; i < numPasses; ++i)
 		{
 			cmdList.BeginGPUMarker("RenderPass -> " + Passes[i]->Name());
-			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(cmdList);
 			Passes[i]->Execute(cmdList);
 			cmdList.EndGPUMarker();
 		}

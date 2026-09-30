@@ -154,7 +154,7 @@ namespace Butterfly
 		}
 	}
 
-	AssetHandle<TextureAsset> LoadTextureFromMaterial(const tinygltf::Model& model, const tinygltf::Material& material, const std::string& attribName, AssetManager& manager, const AssetFileMetadata& meta)
+	AssetHandle<TextureAsset> LoadTextureFromMaterial(const tinygltf::Model& model, const tinygltf::Material& material, bool isSRGB, const std::string& attribName, AssetManager& manager, const AssetFileMetadata& meta)
 	{
 		const bool foundValue = material.values.find(attribName) != material.values.end();
 		const bool foundAdditionalValue = material.additionalValues.find(attribName) != material.additionalValues.end();
@@ -183,15 +183,18 @@ namespace Butterfly
 		desc.Flags = BFTextureDesc::ShaderResource;
 		desc.DebugName = img.name;
 		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-		RefPtr<TextureAsset> outAsset = MakeRef<TextureAsset>();
-		outAsset->Texture = BFTexture::CreateTextureFromCPUBuffer(desc);
+		desc.SRGB = isSRGB;
 
 		std::string name = (tex.name + "_" + attribName);
 		if (tex.name.empty())
 		{
 			name = "Texture_" + std::to_string(index) + "_" + attribName;
 		}
+
+		desc.DebugName = name;
+		RefPtr<TextureAsset> outAsset = MakeRef<TextureAsset>();
+		outAsset->Texture = BFTexture::CreateTextureFromCPUBuffer(desc);
+
 		const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)
 			{
 				return subMeta.second.Name == name && subMeta.second.Type.TypeName() == "Texture";
@@ -251,11 +254,11 @@ namespace Butterfly
 		{
 			const tinygltf::Material& material = model.materials[i];
 			RefPtr<MaterialAsset> outMaterial = MakeRef<MaterialAsset>();
-			outMaterial->ColorTexture = LoadTextureFromMaterial(model, material, "baseColorTexture", manager, meta);
-			outMaterial->MetallicRoughnessTexture = LoadTextureFromMaterial(model, material, "metallicRoughnessTexture", manager, meta);
-			outMaterial->NormalTexture = LoadTextureFromMaterial(model, material, "normalTexture", manager, meta);
-			outMaterial->EmissionTexture = LoadTextureFromMaterial(model, material, "emissiveTexture", manager, meta);
-			outMaterial->AmbientOcclusionTexture = LoadTextureFromMaterial(model, material, "occlusionTexture", manager, meta);
+			outMaterial->ColorTexture = LoadTextureFromMaterial(model, material, true, "baseColorTexture", manager, meta);
+			outMaterial->MetallicRoughnessTexture = LoadTextureFromMaterial(model, material, false, "metallicRoughnessTexture", manager, meta);
+			outMaterial->NormalTexture = LoadTextureFromMaterial(model, material, false, "normalTexture", manager, meta);
+			outMaterial->EmissionTexture = LoadTextureFromMaterial(model, material, true, "emissiveTexture", manager, meta);
+			outMaterial->AmbientOcclusionTexture = LoadTextureFromMaterial(model, material, false, "occlusionTexture", manager, meta);
 			outMaterial->Name = material.name;
 
 			const uint32_t numCV = static_cast<uint32_t>(material.pbrMetallicRoughness.baseColorFactor.size());

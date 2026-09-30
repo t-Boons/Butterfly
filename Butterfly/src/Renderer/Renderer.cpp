@@ -101,6 +101,8 @@ namespace Butterfly
 
 	void Renderer::ImGUIImage(const ViewportHandle& handle)
 	{
+		BF_PROFILE_EVENT()
+
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		if (size.x < 1.0f) size.x = 1.0f;
 		if (size.y < 1.0f) size.y = 1.0f;
@@ -119,6 +121,7 @@ namespace Butterfly
 		if (!it->second.HasRenderTarget() || it->second.GetRenderTarget().Width() != size.x || it->second.GetRenderTarget().Height() != size.y)
 		{
 			WaitForInflightFrames();
+
 			it->second.RenderTarget[it->second.FrameIndex].reset();
 			it->second.GetGraphResources().Flush();
 
@@ -170,41 +173,134 @@ namespace Butterfly
 
 		m_frameData.GetFence().Wait();
 		m_frameData.GetCmdList().Reset();
+
 		m_frameData.GetCmdList().BeginGPUMarker("Render");
+		GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(m_frameData.GetCmdList());
 
 		// Clear composite render target.
 		GraphicsCommands::ClearRenderTarget(m_frameData.GetCmdList(), m_frameData.GetCompositeRenderTarget(), { 0.05f, 0.05f, 0.05f, 1.0f });
 
-		// New ImGUI Frame.
-		ImGui_ImplDX12_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-		ImGuizmo::BeginFrame();
-
-		m_ImGuiRenderEvent.Broadcast();
-
-
-		// Record all commands to render all viewports.
-		for (auto& it : m_frameData.Viewports)
 		{
-			Viewport& viewport = it.second;
+			BF_PROFILE_EVENT("Renderer::Render: ImGUI");
 
-			GraphBuilder builder(viewport.GetGraphResources());
+			// New ImGUI Frame.
+			ImGui_ImplDX12_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+			ImGuizmo::BeginFrame();
 
-			m_frameData.GetCmdList().BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.m_index));
-			viewport.Events.OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
-			viewport.RenderPipeline->RecordPasses(ViewportRenderEvent{ builder, viewport });
-			viewport.Events.OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
-			viewport.Events.OnPostRender.Broadcast(ViewportPostRenderEvent{ builder, viewport });
-			auto graph = builder.Create();
-			graph->Execute(m_frameData.GetCmdList());
-			delete graph;
-
-			viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_GENERIC_READ);
-			m_frameData.GetCmdList().EndGPUMarker();
+			m_ImGuiRenderEvent.Broadcast();
 		}
 
 		{
+			BF_PROFILE_EVENT("Renderer::Render: Viewports");
+
+			// Record all commands to render all viewports.
+			for (auto& it : m_frameData.Viewports)
+			{
+				Viewport& viewport = it.second;
+
+				GraphBuilder builder(viewport.GetGraphResources());
+
+				m_frameData.GetCmdList().BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.m_index));
+				viewport.Events.OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
+				viewport.RenderPipeline->RecordPasses(ViewportRenderEvent{ builder, viewport });
+				viewport.Events.OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
+				viewport.Events.OnPostRender.Broadcast(ViewportPostRenderEvent{ builder, viewport });
+				auto graph = builder.Create();
+				graph->Execute(m_frameData.GetCmdList());
+				delete graph;
+
+				viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_GENERIC_READ);
+
+
+
+				// Record copy.
+				{
+					BFTextureDesc desc;
+					desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+					desc.Width = viewport.Size().x;
+					desc.Height = viewport.Size().y;
+					desc.Flags = BFTextureDesc::ShaderResource | BFTextureDesc::RenderTargettable;
+					desc.DebugName = "Composite " + std::to_string(m_frameData.FrameIndex) + " RenderTarget";
+
+
+					BFRGTexture& compCopy = viewport.GetGraphResources().GetOrCreate<BFRGTexture>("CompositeRenderTarget", desc);
+
+					m_frameData.GetCmdList().BeginGPUMarker("Copy to backbuffer index: " + std::to_string(m_frameData.FrameIndex));
+
+					GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(m_frameData.GetCmdList());
+
+	
+					m_frameData.GetCmdList().List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+					GraphicsCommands::SetRenderTargets(m_frameData.GetCmdList(), { compCopy.Resource().get()}, nullptr);
+
+					GraphicsCommands::SetFullscreenViewportAndRect(m_frameData.GetCmdList(), viewport.Size().x, viewport.Size().y);
+
+					BFPipelineBuilder psoBuilder;
+					psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+					psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
+					psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex));
+					psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/CopyToSRGB_frag.hlsl", ShaderType::Pixel));
+					psoBuilder.DepthEnable(false);
+					psoBuilder.CullingMode(D3D12_CULL_MODE_NONE);
+
+					m_frameData.GetCmdList().List()->SetPipelineState(psoBuilder.Create().GetHW());
+
+					viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					ShaderVariables()
+						.Add(viewport.GetRenderTarget().SRV().View())
+						.Submit(m_frameData.GetCmdList());
+
+
+					m_frameData.GetCmdList().List()->DrawInstanced(6, 1, 0, 0);
+					m_frameData.GetCmdList().EndGPUMarker();
+				
+				// Record copy.
+				
+					compCopy.Resource()->Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+					viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_COPY_DEST);
+
+					D3D12_BOX srcBox = {};
+					srcBox.left = 0;
+					srcBox.top = 0;
+					srcBox.front = 0;
+					srcBox.right = compCopy.Resource()->Width();
+					srcBox.bottom = compCopy.Resource()->Height();
+					srcBox.back = 1;
+
+					D3D12_TEXTURE_COPY_LOCATION destLocation = {};
+					destLocation.pResource = viewport.GetRenderTarget().Resource()->HwResource;
+					destLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+					destLocation.SubresourceIndex = 0;
+
+					D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+					srcLocation.pResource = compCopy.Resource()->Resource()->HwResource;
+					srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+					srcLocation.SubresourceIndex = 0;
+
+
+					m_frameData.GetCmdList().List()->CopyTextureRegion(
+						&destLocation,
+						0, 0, 0,
+						&srcLocation,
+						&srcBox
+					);
+
+					viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				}
+
+
+
+
+
+				m_frameData.GetCmdList().EndGPUMarker();
+			}
+		}
+
+		{
+			BF_PROFILE_EVENT("Renderer::Render: Render Submit");
 			m_frameData.GetCmdList().BeginGPUMarker("ImGUI");
 			ImGui::Render();
 			GraphicsCommands::SetRenderTargets(m_frameData.GetCmdList(), { &m_frameData.GetCompositeRenderTarget() }, nullptr);
@@ -212,12 +308,13 @@ namespace Butterfly
 
 			Application::Get().GetWindow().Context().RecordCopyToBackBuffer(*m_frameData.GetCompositeRenderTarget().Resource(), m_frameData.GetCmdList());
 			m_frameData.GetCmdList().EndGPUMarker();
-		}
 
-		m_frameData.GetCmdList().EndGPUMarker();
-		m_frameData.GetCmdList().Close();
-		D3D12API()->Queue(QueueType::Direct)->Execute(m_frameData.GetCmdList());
-		m_frameData.GetFence().Signal(*D3D12API()->Queue(QueueType::Direct));
+
+			m_frameData.GetCmdList().EndGPUMarker();
+			m_frameData.GetCmdList().Close();
+			D3D12API()->Queue(QueueType::Direct)->Execute(m_frameData.GetCmdList());
+			m_frameData.GetFence().Signal(*D3D12API()->Queue(QueueType::Direct));
+		}
 
 		for (auto& it : m_frameData.Viewports)
 		{
@@ -298,6 +395,8 @@ namespace Butterfly
 
 	void Renderer::WaitForInflightFrames()
 	{
+		BF_PROFILE_EVENT()
+
 		for (auto& fence : m_frameData.Fence)
 		{
 			fence->SignalAndWait(*D3D12API()->Queue(QueueType::Direct));
@@ -330,7 +429,7 @@ namespace Butterfly
 				.Width = static_cast<uint32_t>(m_resizeSize.x),
 				.Height = static_cast<uint32_t>(m_resizeSize.y),
 				.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource,
-				.DebugName = "Composite Render Target:" + std::to_string(j)
+				.DebugName = "Composite Render Target:" + std::to_string(j),
 				});
 		}
 	}

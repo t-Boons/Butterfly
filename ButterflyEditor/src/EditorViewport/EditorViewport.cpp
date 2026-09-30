@@ -72,14 +72,20 @@ namespace Butterfly
 		{
 			SkyboxComponent& sb = view.get<SkyboxComponent>(*first);
 
-			for (const auto& [handle, viewport] : Application::Get().GetRenderer().GetViewports())
+			if (sb.IsDirty())
 			{
-				SkyboxRenderPipelineStage* renderPipeline = viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>();
-				if (renderPipeline)
+				sb.ClearDirty();
+
+				for (const auto& [handle, viewport] : Application::Get().GetRenderer().GetViewports())
 				{
-					renderPipeline->LoadSkybox(sb);
+					SkyboxRenderPipelineStage* renderPipeline = viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>();
+					if (renderPipeline)
+					{
+						renderPipeline->LoadSkybox(sb);
+					}
 				}
 			}
+
 		}
 		else
 		{

@@ -29,6 +29,7 @@ namespace Butterfly
 	class ObjectPickerRenderPipelineStage : public IRenderPipelineStage
 	{
 	public:
+
 		ObjectPickerRenderPipelineStage()
 		{
 			m_objectPickerReadback = MakeRef<BFTextureReadback>();
@@ -37,6 +38,8 @@ namespace Butterfly
 		virtual void OnPostRender() override {}
 		virtual void OnRecordPass(const ViewportRenderEvent& event) override
 		{
+			BF_PROFILE_EVENT()
+
 			GraphBuilder& builder = event.Builder;
 			Viewport& viewport = event.Viewport;
 
@@ -138,6 +141,8 @@ namespace Butterfly
 		
 	void SceneViewport::OnTick()
 	{
+		BF_PROFILE_EVENT()
+
 		m_spectatorCam.Tick(Application::Get().GetInput(), Application::Get().GetTime().DeltaTime());
 
 		glm::vec3 position = m_spectatorCam.GetCamera()->Position();
@@ -168,6 +173,8 @@ namespace Butterfly
 
 	void SceneViewport::OnPrerender(const ViewportPrerenderEvent& event)
 	{
+		BF_PROFILE_EVENT()
+
 		CameraData cameraData;
 		cameraData.ViewProjection = m_spectatorCam.GetCamera()->ViewProjectionMatrix();
 		cameraData.CameraPosition = m_spectatorCam.GetCamera()->Position();
@@ -184,6 +191,8 @@ namespace Butterfly
 
 	void SceneViewport::OnRenderImGUI()
 	{
+		BF_PROFILE_EVENT()
+
 		ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_NoWindowMenuButton;
 		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspaceFlags);
 

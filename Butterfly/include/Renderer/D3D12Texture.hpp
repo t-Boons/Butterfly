@@ -26,6 +26,7 @@ namespace Butterfly
 		uint32_t Flags = None;
 		std::string DebugName = "Texture";
 		const void* Data = nullptr;
+		bool SRGB = false;
 
 		enum Flag : uint32_t
 		{
@@ -41,7 +42,6 @@ namespace Butterfly
 	public:
 		static RefPtr<BFTexture> CreateTextureFromCPUBuffer(const BFTextureDesc& desc);
 		static RefPtr<BFTexture> CreateTextureForGPU(const BFTextureDesc& desc);
-
 		static RefPtr<BFTexture> CreateCubemap(const std::array<RefPtr<BFTexture>, 6>& textures);
 
 		~BFTexture();

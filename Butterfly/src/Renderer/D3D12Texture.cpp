@@ -9,12 +9,38 @@ namespace Butterfly
 {
 	namespace Utils
 	{
+		inline DXGI_FORMAT GetSRGBFormat(DXGI_FORMAT format)
+		{
+			switch (format)
+			{
+			case DXGI_FORMAT_R8G8B8A8_UNORM:
+				return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+			case DXGI_FORMAT_BC1_UNORM:
+				return DXGI_FORMAT_BC1_UNORM_SRGB;
+			case DXGI_FORMAT_BC2_UNORM:
+				return DXGI_FORMAT_BC2_UNORM_SRGB;
+			case DXGI_FORMAT_BC3_UNORM:
+				return DXGI_FORMAT_BC3_UNORM_SRGB;
+			case DXGI_FORMAT_BC7_UNORM:
+				return DXGI_FORMAT_BC7_UNORM_SRGB;
+			default:
+				return format; // Return the original format if no sRGB equivalent exists
+			}
+		}
+
 		inline const D3D12_RENDER_TARGET_VIEW_DESC CreateRTVDescFromHWTextureDesc(const BFTextureDesc& desc)
 		{
 			BF_PROFILE_EVENT();
 
 			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 			rtvDesc.Format = desc.Format;
+
+			if (desc.SRGB)
+			{
+				rtvDesc.Format = GetSRGBFormat(rtvDesc.Format);
+			}
+
+
 			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 			return rtvDesc;
 		}
@@ -24,7 +50,13 @@ namespace Butterfly
 			BF_PROFILE_EVENT();
 
 			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+
 			dsvDesc.Format = desc.Format;
+			if (desc.SRGB)
+			{
+				dsvDesc.Format = GetSRGBFormat(dsvDesc.Format);
+			}
+
 			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 			return dsvDesc;
 		}
@@ -35,6 +67,11 @@ namespace Butterfly
 
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 			srvDesc.Format = desc.Format;
+			if (desc.SRGB)
+			{
+				srvDesc.Format = GetSRGBFormat(srvDesc.Format);
+			}
+
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.Texture2D.MostDetailedMip = 0;

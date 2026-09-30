@@ -1,4 +1,7 @@
 #pragma once
+#ifdef BUTTERFLY_DEBUG
+#define ENABLE_PROFILING
+#endif
 
 #ifdef REL_WITH_PROFILING
 #define ENABLE_PROFILING
