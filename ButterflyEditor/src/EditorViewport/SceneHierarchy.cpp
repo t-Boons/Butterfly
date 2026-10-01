@@ -70,6 +70,7 @@ namespace Butterfly
 
 		ImGui::Begin("Scene Hierarchy");
 
+		// Delete selected entity.
 		if (ImGui::IsKeyPressed(ImGuiKey_Delete) && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))
 		{
 			if (EditorApplication::Get().GetEditorViewport().m_selectedEntity)

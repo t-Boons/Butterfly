@@ -2,12 +2,20 @@
 #include "Butterfly.hpp"
 #include "EditorViewport/SpectatorCamera.hpp"
 #include "EditorViewport/EditorViewportExtention.hpp"
+#include "ImGuizmo/ImGuizmo.h"
 
 namespace Butterfly
 {
+
 	class SceneViewport : public IEditorViewportExtention
 	{
 	public:
+		enum class ObjectMovementSpace
+		{
+			World,
+			Local
+		};
+
 		SceneViewport();
 		~SceneViewport();
 
@@ -24,5 +32,7 @@ namespace Butterfly
 
 		EventReceiver<ViewportResizeEvent> m_viewportResizeReceiver;
 		EventReceiver<ViewportPrerenderEvent> m_viewportPrerenderReceiver;
+		ObjectMovementSpace m_objectMovementSpace = ObjectMovementSpace::World;
+		ImGuizmo::OPERATION m_currentOperation = ImGuizmo::OPERATION::TRANSLATE;
 	};
 }

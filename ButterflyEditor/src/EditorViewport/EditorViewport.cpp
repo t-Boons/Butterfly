@@ -22,7 +22,6 @@ namespace Butterfly
 		m_viewportExtentions.push_back(MakeRef<AssetLibrary>());
 		m_viewportExtentions.push_back(MakeRef<MenuBar>());
 		m_viewportExtentions.push_back(MakeRef<GameViewport>());
-		m_viewportExtentions.push_back(MakeRef<GameViewport>());
 	}
 
 	void EditorViewport::Tick()

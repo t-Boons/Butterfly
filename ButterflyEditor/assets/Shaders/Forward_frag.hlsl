@@ -3,36 +3,30 @@
 
 float3 F_Schlick(float3 F0, float VoH)
 {
-    float f = pow(1.0 - VoH, 5.0);
-    return F0 + (1.0 - F0) * f;
+    return F0 + (1.0 - F0) * pow(1.0 - VoH, 5.0);
 }
 
-float D_GGX(float roughness, float NoH)
+float D_GGX(float alphaRoughness, float NoH)
 {
-    float a = roughness * roughness;
-    float a2 = a * a;
-    float d = (NoH * a2 - NoH) * NoH + 1;
-    return a2 / (PI * d * d + EPSILON);
+    float alphaRoughnessSq = alphaRoughness * alphaRoughness;
+    float f = NoH * NoH * (alphaRoughnessSq - 1.0) + 1.0;
+    return alphaRoughnessSq / (PI * f * f);
 }
 
-float G1_SmithGGX(float roughness, float NoX)
+float V_GGX(float alphaRoughness, float NoV, float NoL)
 {
-    float a = roughness * roughness;
-    float a2 = a * a;
+    float alphaRoughnessSq = alphaRoughness * alphaRoughness;
 
-    float NoX2 = NoX * NoX;
+    float GGXV = NoL * sqrt(NoV * NoV * (1.0 - alphaRoughnessSq) + alphaRoughnessSq);
+    float GGXL = NoV * sqrt(NoL * NoL * (1.0 - alphaRoughnessSq) + alphaRoughnessSq);
 
-    return (2.0 * NoX) / (NoX + sqrt(NoX2 + a2 * (1.0 - NoX2)));
+    float GGX = GGXV + GGXL;
+    if (GGX > 0.0)
+    {
+        return 0.5 / GGX;
+    }
+    return 0.0;
 }
-
-float G_SmithGGX(float roughness, float NoV, float NoL)
-{
-    float Gv = G1_SmithGGX(roughness, NoV);
-    float Gl = G1_SmithGGX(roughness, NoL);
-
-    return Gv * Gl;
-}
-
 
 float3 MapNormal(float3 sampledNormal, float3 vertexNormal, float3 vertexTangent, float tangentSign)
 {
@@ -132,16 +126,17 @@ float4 main(V2P pixelInput) : SV_TARGET0
     }
     
     float metallic = material.Metallic;
-    float roughness = material.Roughness;
+    float perceptualRoughness = material.Roughness;
     if (material.MetallicRoughnessTexture >= 0)
     {
         Texture2D<float4> metallicRoughnessTexture = ResourceDescriptorHeap[material.MetallicRoughnessTexture];
         float4 metallicRoughnessSample = metallicRoughnessTexture.Sample(smp, pixelInput.texCoord);
         metallic = metallicRoughnessSample.z;
-        roughness = metallicRoughnessSample.y;
+        perceptualRoughness = metallicRoughnessSample.y;
     }
     metallic = saturate(metallic);
-    roughness = max(roughness, 0.045);
+    perceptualRoughness = max(perceptualRoughness, 0.045);
+    float alphaRoughness = perceptualRoughness * perceptualRoughness;
     
     float3 emissive = material.EmissiveColor.xyz;
     if (material.EmissionTexture >= 0)
@@ -150,6 +145,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
         emissive = emissiveTex.Sample(smp, pixelInput.texCoord).xyz;
     }
 
+    float3 diffuseColor = albedo * (1.0 - metallic);
     float3 lightDir = normalize(float3(0.5, 1.0, 0.0f));
     float3 lighting = float3(0.0, 0.0, 0.0);
     
@@ -171,12 +167,13 @@ float4 main(V2P pixelInput) : SV_TARGET0
             
             float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
             float3 F = F_Schlick(F0, VoH);
-            float3 D = D_GGX(roughness, NoH);
-            float3 G = G_SmithGGX(roughness, NoV, NoL);
-            float3 specular = D * F * G / (4.0 * NoV * NoL + EPSILON);
-            float3 kD = (1.0 - F) * (1.0 - metallic);
-            float3 diffuse = kD * albedo / PI;
-            lighting += (diffuse + specular) * light.Color * NoL;
+            float D = D_GGX(alphaRoughness, NoH);
+            float Vis = V_GGX(alphaRoughness, NoV, NoL);
+
+            float3 specularBRDF = F * Vis * D;
+            float3 diffuseBRDF = diffuseColor / PI;
+
+            lighting += (diffuseBRDF + specularBRDF) * NoL * light.Color;
             
             continue;
         }
@@ -197,18 +194,21 @@ float4 main(V2P pixelInput) : SV_TARGET0
         float NoL = saturate(dot(N, L));
         float NoH = saturate(dot(N, H));
         float VoH = saturate(dot(V, H));
+
         float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
         float3 F = F_Schlick(F0, VoH);
-        float3 D = D_GGX(roughness, NoH);
-        float3 G = G_SmithGGX(roughness, NoV, NoL);
-        float3 specular = D * F * G / (4.0 * NoV * NoL + EPSILON);
-        float3 kD = (1.0 - F) * (1.0 - metallic);
-        float3 diffuse = kD * albedo / PI;
+        float D = D_GGX(alphaRoughness, NoH);
+        float Vis = V_GGX(alphaRoughness, NoV, NoL);
+
+        float3 specularBRDF = F * Vis * D;
+        float3 diffuseBRDF = diffuseColor / PI;
+
+
         
         if (light.Type == 1) // Point Light
         {
             float attenuation = inverseSquare * rangeFade;
-            lighting += (diffuse + specular) * light.Color * NoL * attenuation;
+            lighting += (diffuseBRDF + specularBRDF) * NoL * attenuation * light.Color;
             
             continue;
         }
@@ -217,7 +217,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
         {
             float cone = smoothstep(light.OuterConeAngleCos, light.InnerConeAngleCos, dot(-L, normalize(light.Direction)));
             float attenuation = inverseSquare * rangeFade * cone;
-            lighting += (diffuse + specular) * light.Color * NoL * attenuation;
+            lighting += (diffuseBRDF + specularBRDF) * NoL * attenuation * light.Color;
             continue;
         }
     }

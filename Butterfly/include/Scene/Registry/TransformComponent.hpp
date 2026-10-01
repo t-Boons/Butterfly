@@ -23,6 +23,9 @@ namespace Butterfly
 		Entity GetChild(uint32_t index) const { return m_children[index]; }
 		const glm::mat4& GetLocalMatrix() const { return m_localMatrix; }
 		const glm::mat4& GetWorldMatrix();
+		glm::vec3 GetForward() const { return glm::normalize(m_rotation * glm::vec3(0.0f, 0.0f, -1.0f)); }
+		glm::vec3 GetUp() const { return glm::normalize(m_rotation * glm::vec3(0.0f, 1.0f, 0.0f)); }
+		glm::vec3 GetRight() const { return glm::normalize(m_rotation * glm::vec3(1.0f, 0.0f, 0.0f)); }
 
 		bool IsChildOf(const TransformComponent& other) const;
 

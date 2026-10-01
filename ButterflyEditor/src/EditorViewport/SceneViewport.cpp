@@ -1,7 +1,6 @@
 #include "EditorViewport/SceneViewport.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
-#include "ImGuizmo/ImGuizmo.h"
 #include "Core/EditorApplication.hpp"
 #include "EditorViewport/EditorViewport.hpp"
 #include "Core/DebugRenderer.hpp"
@@ -199,35 +198,17 @@ namespace Butterfly
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
+		const ImVec2 startCursorPos = ImGui::GetCursorPos();
 
-		// Object selection.
-		const glm::ivec2 mousePos = glm::ivec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
-		const glm::ivec2 contentPos = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
-		const glm::ivec2 relativePos = mousePos - contentPos;
-		uint32_t readbackID = 0;
-
-		ObjectPickerRenderPipelineStage* objectPickerStage = Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->TryGetStage<ObjectPickerRenderPipelineStage>();
-
-		if (objectPickerStage &&
-			objectPickerStage->m_objectPickerReadback->ReadPixel(relativePos, readbackID) &&
-			ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
-			!ImGuizmo::IsOver())
+		// Delete selected entity.
+		if (ImGui::IsKeyPressed(ImGuiKey_Delete) && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))
 		{
-			if (readbackID > 0)
+			if (EditorApplication::Get().GetEditorViewport().m_selectedEntity)
 			{
-				// We do -1 because the rendred readbackID increments the entity count for entity 0.
-				// Thus entity 0 is entity 1
-				const uint32_t sceneEntityID = readbackID - 1; 
-
-				EditorApplication::Get().GetEditorViewport().m_selectedEntity = static_cast<entt::entity>(sceneEntityID);
-				BF_LOG_INFO("Selected entity: %u", sceneEntityID);
+				EditorApplication::Get().GetEditorViewport().m_selectedEntity.Destroy();
 			}
-			else
-			{
-				EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
-			}
+			EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
 		}
-
 
 		// Viewport rendering.
 		if (m_viewportHandle.Valid())
@@ -235,14 +216,19 @@ namespace Butterfly
 			Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);
 		}
 
-		static ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
-
 		if (ImGui::IsKeyPressed(ImGuiKey_W) && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
-			currentGizmoOperation = ImGuizmo::TRANSLATE;
+		{
+			m_currentOperation = ImGuizmo::TRANSLATE;
+		}
 		if (ImGui::IsKeyPressed(ImGuiKey_E) && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
-			currentGizmoOperation = ImGuizmo::ROTATE;
+		{
+			m_currentOperation = ImGuizmo::ROTATE;
+		}
 		if (ImGui::IsKeyPressed(ImGuiKey_R) && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
-			currentGizmoOperation = ImGuizmo::SCALE;
+		{
+			m_currentOperation = ImGuizmo::SCALE;
+		}
+
 
 		if (EditorApplication().Get().GetEditorViewport().m_selectedEntity)
 		{
@@ -259,8 +245,8 @@ namespace Butterfly
 			ImGuizmo::Manipulate(
 				&m_spectatorCam.GetCamera()->ViewMatrix()[0][0],
 				&m_spectatorCam.GetCamera()->ProjectionMatrix()[0][0],
-				currentGizmoOperation,
-				ImGuizmo::WORLD,
+				m_currentOperation,
+				m_objectMovementSpace == ObjectMovementSpace::World ? ImGuizmo::WORLD : ImGuizmo::LOCAL,
 				&changableMatrix[0][0]
 			);
 
@@ -270,6 +256,69 @@ namespace Butterfly
 			}
 		}
 
+
+		// Toolbar.
+		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4, 0.4, 0.5, 1));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5, 0.5, 0.6, 1));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2, 0.2, 0.4, 1));
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+
+		ImGui::SetCursorPos({startCursorPos.x + 5, startCursorPos.y + 5});
+		const ImVec2 toolbarMin = {ImGui::GetCursorScreenPos().x - 3, ImGui::GetCursorScreenPos().y - 3};
+		const ImVec2 toolbarMax = { toolbarMin.x + 20 + 10 + 20 + 1 + 20 + 1 + 20 + 6, toolbarMin.y + 20 + 6 };
+		const bool hoveringToolbar = ImGui::IsMouseHoveringRect(toolbarMin, toolbarMax);
+		ImGui::GetWindowDrawList()->AddRectFilled(toolbarMin, toolbarMax, IM_COL32(0, 0, 0, hoveringToolbar ? 100 : 50), 4.0f);
+
+		{
+			const ImVec2 buttonSize = ImVec2(20, 20);
+			const std::string buttonText = m_objectMovementSpace == ObjectMovementSpace::World ? FontAwesome::Globe : FontAwesome::Cube;
+			// Tool overlay.
+			if (ImGui::Button(buttonText.c_str(), buttonSize))
+			{
+				if (m_objectMovementSpace == ObjectMovementSpace::Local)
+					m_objectMovementSpace = ObjectMovementSpace::World;
+				else
+					m_objectMovementSpace = ObjectMovementSpace::Local;
+			}
+		}
+		ImGui::SameLine(0.0f, 10);
+		{
+			const ImVec2 buttonSize = ImVec2(20, 20);
+
+			
+			const auto pressedColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
+			const auto normalColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
+
+			ImGui::PushStyleColor(ImGuiCol_Button, m_currentOperation == ImGuizmo::TRANSLATE ? pressedColor : normalColor);
+
+			if (ImGui::Button(FontAwesome::LeftRight, buttonSize))
+			{
+				m_currentOperation = ImGuizmo::TRANSLATE;
+			}
+			ImGui::PopStyleColor();
+
+			ImGui::SameLine(0.0f, 1.0f);
+
+			ImGui::PushStyleColor(ImGuiCol_Button, m_currentOperation == ImGuizmo::ROTATE ? pressedColor : normalColor);
+			if (ImGui::Button(FontAwesome::Rotate, buttonSize))
+			{
+				m_currentOperation = ImGuizmo::ROTATE;
+			}
+			ImGui::PopStyleColor();
+
+			ImGui::SameLine(0.0f, 1.0f);
+
+			ImGui::PushStyleColor(ImGuiCol_Button, m_currentOperation == ImGuizmo::SCALE ? pressedColor : normalColor);
+			if (ImGui::Button(FontAwesome::Expand, buttonSize))
+			{
+				m_currentOperation = ImGuizmo::SCALE;
+			}
+			ImGui::PopStyleColor();
+		}
+		ImGui::PopFont();
+		ImGui::PopStyleColor(3);
+		ImGui::PopStyleVar();
 
 		// Draw icons.
 		const glm::ivec2 viewportOffset = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
@@ -291,6 +340,21 @@ namespace Butterfly
 			ImGui::GetWindowDrawList()->AddText(iconPos, IM_COL32(255, 255, 255, 180), icon);
 		}
 
+		for (const auto& [entity, light, transform] : Application::Get().GetScene().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
+		{
+			glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), Application::Get().GetRenderer().GetViewport(m_viewportHandle).Size());
+			screenPos += viewportOffset;
+
+			const char* icon = FontAwesome::Lightbulb;
+			ImVec2 textSize = ImGui::CalcTextSize(icon);
+
+			const ImVec2 iconPos = ImVec2(screenPos.x - textSize.x * 0.5f, screenPos.y - textSize.y * 0.5f);
+
+			ImGui::GetWindowDrawList()->AddText(iconPos, IM_COL32(255, 255, 255, 180), icon);
+
+			EditorApplication::Get().GetDebugRenderer().DrawLine(transform.GetPosition(), transform.GetPosition() + transform.GetForward() * 2.0f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));	
+		}
+
 		ImGui::PopFont();
 
 		// Draw selected entity primtives.
@@ -300,6 +364,36 @@ namespace Butterfly
 			{
 				TransformComponent& transform = EditorApplication::Get().GetEditorViewport().m_selectedEntity.GetComponent<TransformComponent>();
 				EditorApplication::Get().GetDebugRenderer().DrawFrustum(camera->GetViewprojectionMatrrix(transform.GetPosition(), transform.GetRotation()), glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+			}
+		}
+
+
+		// Object selection.
+		const glm::ivec2 mousePos = glm::ivec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
+		const glm::ivec2 contentPos = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
+		const glm::ivec2 relativePos = mousePos - contentPos;
+		uint32_t readbackID = 0;
+
+		ObjectPickerRenderPipelineStage* objectPickerStage = Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->TryGetStage<ObjectPickerRenderPipelineStage>();
+
+		if (objectPickerStage &&
+			objectPickerStage->m_objectPickerReadback->ReadPixel(relativePos, readbackID) &&
+			ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
+			!ImGuizmo::IsOver() &&
+			!hoveringToolbar)
+		{
+			if (readbackID > 0)
+			{
+				// We do -1 because the rendred readbackID increments the entity count for entity 0.
+				// Thus entity 0 is entity 1
+				const uint32_t sceneEntityID = readbackID - 1;
+
+				EditorApplication::Get().GetEditorViewport().m_selectedEntity = static_cast<entt::entity>(sceneEntityID);
+				BF_LOG_INFO("Selected entity: %u", sceneEntityID);
+			}
+			else
+			{
+				EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
 			}
 		}
 
