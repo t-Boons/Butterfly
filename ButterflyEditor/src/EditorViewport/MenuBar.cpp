@@ -46,10 +46,44 @@ namespace Butterfly
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::BeginMenu("Tools"))
+			if (ImGui::BeginMenu("Project Settings"))
 			{
-				if (ImGui::MenuItem("Settings"))
+				if (ImGui::BeginMenu("ColorSpace"))
 				{
+					if (ImGui::MenuItem("SRGB"))
+					{
+						for (auto& viewport : Application::Get().GetRenderer().GetViewports())
+						{
+							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.RenderPipeline->TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
+							{
+								stage->SetColorSpace(ColorspaceCorrectionRenderPipelineStage::ColorSpace::SRGB);
+							}
+						}
+					}
+
+					if (ImGui::MenuItem("GammaApproximation"))
+					{
+						for (auto& viewport : Application::Get().GetRenderer().GetViewports())
+						{
+							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.RenderPipeline->TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
+							{
+								stage->SetColorSpace(ColorspaceCorrectionRenderPipelineStage::ColorSpace::GammaApprox);
+							}
+						}
+					}
+
+					if (ImGui::MenuItem("Linear"))
+					{
+						for (auto& viewport : Application::Get().GetRenderer().GetViewports())
+						{
+							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.RenderPipeline->TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
+							{
+								stage->SetColorSpace(ColorspaceCorrectionRenderPipelineStage::ColorSpace::Linear);
+							}
+						}
+					}
+
+					ImGui::EndMenu();
 				}
 
 				ImGui::EndMenu();

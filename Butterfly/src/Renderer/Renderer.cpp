@@ -213,55 +213,6 @@ namespace Butterfly
 
 				viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_GENERIC_READ);
 
-
-
-				// Record copy.
-				{
-					BFTextureDesc desc;
-					desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-					desc.Width = viewport.Size().x;
-					desc.Height = viewport.Size().y;
-					desc.Flags = BFTextureDesc::ShaderResource | BFTextureDesc::RenderTargettable;
-					desc.DebugName = "Composite " + std::to_string(m_frameData.FrameIndex) + " RenderTarget";
-
-
-					BFRGTexture& compCopy = viewport.GetGraphResources().GetOrCreate<BFRGTexture>("CompositeRenderTarget", desc);
-
-					m_frameData.GetCmdList().BeginGPUMarker("Copy to backbuffer index: " + std::to_string(m_frameData.FrameIndex));
-
-					GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(m_frameData.GetCmdList());
-
-	
-					m_frameData.GetCmdList().List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-					GraphicsCommands::SetRenderTargets(m_frameData.GetCmdList(), { compCopy.Resource().get()}, nullptr);
-
-					GraphicsCommands::SetFullscreenViewportAndRect(m_frameData.GetCmdList(), viewport.Size().x, viewport.Size().y);
-
-					BFPipelineBuilder psoBuilder;
-					psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-					psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
-					psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex));
-					psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/CopyToSRGB_frag.hlsl", ShaderType::Pixel));
-					psoBuilder.DepthEnable(false);
-					psoBuilder.CullingMode(D3D12_CULL_MODE_NONE);
-
-					m_frameData.GetCmdList().List()->SetPipelineState(psoBuilder.Create().GetHW());
-
-					viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-					ShaderVariables()
-						.Add(viewport.GetRenderTarget().SRV().View())
-						.Submit(m_frameData.GetCmdList());
-
-
-					m_frameData.GetCmdList().List()->DrawInstanced(6, 1, 0, 0);
-					m_frameData.GetCmdList().EndGPUMarker();
-
-					GraphicsCommands::Blit(m_frameData.GetCmdList(), *compCopy.Resource(), viewport.GetRenderTarget());
-
-					viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				}
-
 				m_frameData.GetCmdList().EndGPUMarker();
 			}
 		}

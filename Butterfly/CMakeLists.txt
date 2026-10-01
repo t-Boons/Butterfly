@@ -60,6 +60,7 @@ add_library(Butterfly STATIC
     src/Renderer/RenderPipeline/RenderPipeline.cpp
     src/Renderer/RenderPipeline/PBRRenderPipelineStage.cpp
     src/Renderer/RenderPipeline/SkyboxRenderPipelineStage.cpp
+    src/Renderer/RenderPipeline/ColorspaceCorrectionRenderPipelineStage.cpp
 
     src/Renderer/Graph/Graph.cpp
     src/Renderer/Graph/GraphTypes.cpp

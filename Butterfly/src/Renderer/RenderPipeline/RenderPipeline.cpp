@@ -1,7 +1,7 @@
 #include "Renderer/RenderPipeline/RenderPipeline.hpp"
 #include "Renderer/RenderPipeline/PBRRenderPipelineStage.hpp"
 #include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"
-
+#include "Renderer/RenderPipeline/ColorspaceCorrectionRenderPipelineStage.hpp"
 namespace Butterfly
 {
 	RenderPipeline::RenderPipeline(Renderer& renderer)
@@ -9,6 +9,7 @@ namespace Butterfly
 	{
 		RegisterStage<PBRRenderPipelineStage>();
 		RegisterStage<SkyboxRenderPipelineStage>();
+		RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
 	}
 
 	void RenderPipeline::RecordPasses(const ViewportRenderEvent& ev)
