@@ -49,7 +49,8 @@ namespace Butterfly
 		DX12ResourceBuilder& RenderTarget(DXGI_FORMAT format, uint32_t width, uint32_t height);
 		DX12ResourceBuilder& DepthStencil(DXGI_FORMAT format, uint32_t width, uint32_t height);
 		DX12ResourceBuilder& InitialState(const D3D12_RESOURCE_STATES& state);
-
+		DX12ResourceBuilder& Flags(const D3D12_RESOURCE_FLAGS& flag);
+		
 	private:
 		bool m_hasBeenCreated;
 		D3D12Resource* m_resource;

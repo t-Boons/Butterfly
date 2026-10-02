@@ -112,7 +112,7 @@ namespace Butterfly
 							.Add(viewport.Materials->GetMaterialIndex(subMesh.Material.GetID()))
 							.Submit(list);
 
-						list.List()->DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);
+						list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);
 					}
 
 					entityIndex++;

@@ -93,13 +93,23 @@ namespace Butterfly
 
 		const uint32_t nextFreeValue = Allocate();
 
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = CpuHandleFromSrvHandle(nextFreeValue);
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = CpuHandleFromHandle(nextFreeValue);
 
 		D3D12API()->Device()->CreateShaderResourceView(resource.HwResource, description, cpuHandle);
 		return nextFreeValue;
 	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorAllocatorCbvSrvUav::CpuHandleFromSrvHandle(uint32_t handle) const
+	uint32_t DX12DescriptorAllocatorCbvSrvUav::CreateUav(const D3D12Resource& resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* description)
+	{
+		BF_PROFILE_EVENT();
+		BF_CORE_ASSERT(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap has overflown.");
+		const uint32_t nextFreeValue = Allocate();
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = CpuHandleFromHandle(nextFreeValue);
+		D3D12API()->Device()->CreateUnorderedAccessView(resource.HwResource, nullptr, description, cpuHandle);
+		return nextFreeValue;
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorAllocatorCbvSrvUav::CpuHandleFromHandle(uint32_t handle) const
 	{
 		BF_PROFILE_EVENT();
 
@@ -108,7 +118,7 @@ namespace Butterfly
 		return cpuHandle;
 	}
 
-	D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorAllocatorCbvSrvUav::GpuHandleFromSrvHandle(uint32_t handle) const
+	D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorAllocatorCbvSrvUav::GpuHandleFromHandle(uint32_t handle) const
 	{
 		BF_PROFILE_EVENT();
 

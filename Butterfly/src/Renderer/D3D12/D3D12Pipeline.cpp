@@ -14,6 +14,14 @@ namespace Butterfly
 		ThrowIfFailed(D3D12API()->Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_pso)));
 	}
 
+	DX12Pipeline::DX12Pipeline(const ComputePipelineStateStream& pss)
+		: m_cpss(pss)
+	{
+		BF_PROFILE_EVENT();
+		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = { sizeof(ComputePipelineStateStream), &m_cpss };
+		ThrowIfFailed(D3D12API()->Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_pso)));
+	}
+
 	DX12Pipeline::~DX12Pipeline()
 	{
 		COM_FREE(m_pso);
@@ -169,5 +177,26 @@ namespace Butterfly
 		m_pss.DepthStencilState = depthStencilDesc;
 		Utils::SumHash(m_hash, static_cast<uint64_t>(func));
 		return *this;
+	}
+
+	const DX12Pipeline& BFPipelineStateCache::GetOrCreatePipeline(const BFComputePipelineState& state)
+	{
+		BF_PROFILE_EVENT();
+		BF_CORE_ASSERT(state.ComputeShader, "Compute shader is null.");
+		BF_CORE_ASSERT(state.ComputeShader->Type() == ShaderType::Compute, "PipelineBuilder shader is not a Compute shader.");
+
+		ComputePipelineStateStream pss = {};
+		pss.CS = { state.ComputeShader->Blob()->GetBufferPointer(), state.ComputeShader->Blob()->GetBufferSize() };
+		pss.RootSignature = D3D12API()->BindlessRootSignature();
+
+		std::hash<BFComputePipelineState> hasher;
+		const uint64_t hash = hasher(state);
+		auto pso = s_pipelines.find(hash);
+		if (pso == s_pipelines.end())
+		{
+			BF_CORE_LOG_INFO("Created New PSO with hash: %llu", hash);
+			s_pipelines[hash] = new DX12Pipeline(pss);
+		}
+		return *s_pipelines[hash];
 	}
 }

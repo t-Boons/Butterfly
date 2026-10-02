@@ -107,7 +107,7 @@ namespace Butterfly
 						entityRenderIndex++;
 
 						list.List()->IASetIndexBuffer(&mesh->GPUIndices->IBV());
-						list.List()->DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);
+						list.DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);
 					}
 
 					m_objectPickerReadback->ReadbackCopy(list, data.RenderTarget->Resource());

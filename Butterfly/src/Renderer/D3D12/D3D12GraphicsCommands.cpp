@@ -42,7 +42,7 @@ namespace Butterfly
 			.Submit(list);
 
 
-		list.List()->DrawInstanced(6, 1, 0, 0);
+		list.DrawInstanced(6, 1, 0, 0);
 		list.EndGPUMarker();
 	}
 
@@ -113,8 +113,9 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		ID3D12DescriptorHeap* heaps[] = { D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get(), D3D12API()->DescriptorAllocatorSampler()->Heap().Get()};
+		ID3D12DescriptorHeap* heaps[] = { D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get(), D3D12API()->DescriptorAllocatorSampler()->Heap().Get() };
 		list.List()->SetDescriptorHeaps(_countof(heaps), heaps);
 		list.List()->SetGraphicsRootSignature(D3D12API()->BindlessRootSignature());
+		list.List()->SetComputeRootSignature(D3D12API()->BindlessRootSignature());
 	}
 };

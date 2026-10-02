@@ -5,16 +5,31 @@
 
 namespace Butterfly
 {
+	enum class SkyboxType : uint32_t
+	{
+		Equirectangular,
+		Cubemap
+	};
+
+
 	class Entity;
 	class SkyboxComponent
 	{
 	public:
 		SkyboxComponent(const Entity& entity);
 		void SetTextureHandle(uint32_t side, const AssetHandle<TextureAsset>& handle);
+		void SetTextureHandleHDRI(const AssetHandle<TextureAsset>& handle);
 		const AssetHandle<TextureAsset>& GetTextureHandle(uint32_t side) const;
+		const AssetHandle<TextureAsset>& GetTextureHandleHDRI() const { return m_hdriTexture; }
 		bool IsDirty() const { return m_isDirty; }
 		void ClearDirty() { m_isDirty = false; }
 
+		SkyboxType GetType() const { return static_cast<SkyboxType>(m_type); }
+		void SetType(SkyboxType type)
+		{
+			m_type = static_cast<uint32_t>(type); 
+			MarkDirty(); 
+		}
 	private:
 		void MarkDirty() { m_isDirty = true; }
 
@@ -31,7 +46,18 @@ namespace Butterfly
 		const UUID& GetTextureUUIDFront() const { return m_serializeUUIDs[4]; }
 		const UUID& GetTextureUUIDBack() const { return m_serializeUUIDs[5]; }
 
+		void SetTextureUUIDHDRI(const UUID& uuid);
+		const UUID& GetTextureUUIDHDRI() const { return m_hdriUUID; }
+
+		void SetTypeUInt(uint32_t type) { m_type = type; MarkDirty(); }
+		uint32_t GetTypeUInt() const { return m_type; }
+
 		friend class ComponentRegistry;
+
+		uint32_t  m_type = static_cast<uint32_t>(SkyboxType::Cubemap);
+		UUID m_hdriUUID;
+		AssetHandle<TextureAsset> m_hdriTexture;
+
 		std::array<UUID, 6> m_serializeUUIDs;
 		std::array<AssetHandle<TextureAsset>, 6> m_textureHandles;
 		bool m_isDirty = true;

@@ -71,4 +71,18 @@ namespace Butterfly
 		uint32_t m_viewIndex;
 		uint32_t m_offset;
 	};
+
+
+	class BFUnorderedAccessView : public BFView
+	{
+	public:
+		BFUnorderedAccessView(const D3D12Resource& resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc);
+		~BFUnorderedAccessView();
+		uint32_t View() const { return m_viewIndex; }
+
+	private:
+		D3D12_CPU_DESCRIPTOR_HANDLE m_handle;
+		D3D12_UNORDERED_ACCESS_VIEW_DESC m_desc;
+		uint32_t m_viewIndex;
+	};
 }

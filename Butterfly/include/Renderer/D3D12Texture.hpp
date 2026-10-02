@@ -8,6 +8,7 @@ namespace Butterfly
 	class BFDepthStencilView;
 	class BFRenderTargetView;
 	class BFShaderResourceView;
+	class BFUnorderedAccessView;
 
 	enum class BFTextureType
 	{
@@ -34,6 +35,7 @@ namespace Butterfly
 			ShaderResource = 1 << 1,
 			RenderTargettable = 1 << 2,
 			DepthStencilable = 1 << 3,
+			UnorderedAccess = 1 << 4,
 		};
 	};
 
@@ -53,6 +55,7 @@ namespace Butterfly
 		const BFDepthStencilView& DSV() const;
 		const BFRenderTargetView& RTV() const;
 		const BFShaderResourceView& SRV() const;
+		const BFUnorderedAccessView& UAV() const;
 
 		uint32_t Width() const { return m_desc.Width; }
 		uint32_t Height() const { return m_desc.Height; }
@@ -68,6 +71,7 @@ namespace Butterfly
 		BFDepthStencilView* m_dsv = nullptr;
 		BFRenderTargetView* m_rtv = nullptr;
 		BFShaderResourceView* m_srv = nullptr;
+		BFUnorderedAccessView* m_uav = nullptr;
 	};
 
 

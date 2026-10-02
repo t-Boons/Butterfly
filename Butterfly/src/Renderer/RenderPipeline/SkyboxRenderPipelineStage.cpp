@@ -2,27 +2,81 @@
 #include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"
 #include "Renderer/RenderPipeline/RenderPipeline.hpp"
 #include "Renderer/Renderer.hpp"
+#include "Renderer/D3D12Sampler.hpp"
+#include "Renderer/D3D12/D3D12CommandQueue.hpp"
 
 namespace Butterfly
 {
 	void SkyboxRenderPipelineStage::LoadSkybox(const SkyboxComponent& component)
 	{
-		std::array<RefPtr<BFTexture>, 6> textures;
-		for (uint32_t i = 0; i < 6; ++i)
+		if (component.GetType() == SkyboxType::Cubemap)
 		{
-			TextureAsset* asset = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.GetTextureHandle(i));
-			if (asset)
+
+			std::array<RefPtr<BFTexture>, 6> textures;
+			for (uint32_t i = 0; i < 6; ++i)
 			{
-				textures[i] = asset->Texture;
+				TextureAsset* asset = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.GetTextureHandle(i));
+				if (asset)
+				{
+					textures[i] = asset->Texture;
+				}
 			}
+
+			if (std::all_of(textures.begin(), textures.end(), [](const RefPtr<BFTexture>& tex) { return !tex; }))
+			{
+				return;
+			};
+
+			m_skyboxTexture = BFTexture::CreateCubemap(textures);
 		}
-
-		if (std::all_of(textures.begin(), textures.end(), [](const RefPtr<BFTexture>& tex) { return !tex; }))
+		else
 		{
-			return;
-		};
+			TextureAsset* asset = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.GetTextureHandleHDRI());
+			if (!asset || !asset->Texture)
+			{
+				return;
+			}
 
-		m_skyboxTexture = BFTexture::CreateCubemap(textures);
+			BFTextureDesc desc;
+			desc.Width = 2048;
+			desc.Height = 2048;
+			desc.ArraySize = 6;
+			desc.Format = asset->Texture->Desc().Format;
+			desc.Flags = BFTextureDesc::ShaderResource | BFTextureDesc::UnorderedAccess;
+			desc.Type = BFTextureType::Cubemap;
+			desc.DebugName = "SkyboxCubemap";
+			m_skyboxTexture = BFTexture::CreateTextureForGPU(desc);
+
+
+
+			D3D12CommandList list;
+			m_skyboxTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(list);
+
+			BFComputePipelineState pso;
+			pso.ComputeShader = BFShaderCache::GetOrCreate(L"assets/Shaders/EquirectangularToCubemap_cs.hlsl", ShaderType::Compute);
+
+			TextureAsset* hdri = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.GetTextureHandleHDRI());
+
+			BFSampler smp;
+			ShaderVariables()
+				.Add(hdri->Texture->SRV().View())
+				.Add(m_skyboxTexture->UAV().View())
+				.Add(smp.View())
+				.Add(2048)
+				.Submit(list, true);
+
+			list.List()->SetPipelineState(BFPipelineStateCache::GetOrCreatePipeline(pso).GetHW());
+			const uint32_t groupsX = (desc.Width + 7) / 8;
+			const uint32_t groupsY = (desc.Width + 7) / 8;
+			list.Dispatch(groupsX, groupsY, 6);
+
+			m_skyboxTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+			list.Close();
+			D3D12API()->Queue(QueueType::Direct)->Execute(list);
+			D3D12API()->Queue(QueueType::Direct)->WaitForFence();
+		}
 	}
 
 	void SkyboxRenderPipelineStage::UnloadSkybox()
@@ -81,7 +135,7 @@ namespace Butterfly
 					.Add(m_skyboxTexture->SRV().View())
 					.Submit(list);
 
-				list.List()->DrawInstanced(6, 1, 0, 0);
+				list.DrawInstanced(6, 1, 0, 0);
 			});
 	}
 }

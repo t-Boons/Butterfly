@@ -22,7 +22,7 @@ namespace Butterfly
 	ImTextureID Thumbnail::GetImGUITextureID()
 	{
 		ValidateGPUTexture();
-		return (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(m_gpuTexture->SRV().View()).ptr;
+		return (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(m_gpuTexture->SRV().View()).ptr;
 	}
 
 

@@ -11,7 +11,7 @@ namespace Butterfly
 		ShaderVariables();
 
 		ShaderVariables& Add(int index);
-		ShaderVariables& Submit(D3D12CommandList& list);
+		ShaderVariables& Submit(D3D12CommandList& list, bool compute = false);
 		ShaderVariables& Reset();
 
 	private:

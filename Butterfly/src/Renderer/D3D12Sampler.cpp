@@ -13,7 +13,7 @@ namespace Butterfly
             BF_PROFILE_EVENT();
 
             D3D12_SAMPLER_DESC samplerDesc = {};
-            samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT; // Linear filtering for minification, magnification, and mipmapping.
+            samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR; // Linear filtering for minification, magnification, and mipmapping.
             samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP; // Wrap addressing mode for the U coordinate.
             samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP; // Wrap addressing mode for the V coordinate.
             samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP; // Wrap addressing mode for the W coordinate.

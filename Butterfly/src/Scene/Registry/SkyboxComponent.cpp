@@ -15,6 +15,13 @@ namespace Butterfly
 		MarkDirty();
 	}
 
+	void SkyboxComponent::SetTextureHandleHDRI(const AssetHandle<TextureAsset>& handle)
+	{
+		m_hdriTexture = handle;
+		m_hdriUUID = handle.GetID();
+		MarkDirty();
+	}
+
 	const AssetHandle<TextureAsset>& SkyboxComponent::GetTextureHandle(uint32_t side) const
 	{
 		BF_CORE_ASSERT(side < 6, "SkyboxComponent::GetTextureHandle: Invalid side index for skybox: %u", side);
@@ -71,6 +78,15 @@ namespace Butterfly
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[5]))
 		{
 			m_serializeUUIDs[5] = uuid;
+			MarkDirty();
+		}
+	}
+
+	void SkyboxComponent::SetTextureUUIDHDRI(const UUID& uuid)
+	{
+		if (Application::Get().GetAssetManager().Acquire(uuid, m_hdriTexture))
+		{
+			m_hdriUUID = uuid;
 			MarkDirty();
 		}
 	}

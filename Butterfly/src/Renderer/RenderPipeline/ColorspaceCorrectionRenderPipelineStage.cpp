@@ -46,7 +46,7 @@ namespace Butterfly
 					.Add(static_cast<int>(m_colorSpace))
 					.Submit(list);
 
-				list.List()->DrawInstanced(6, 1, 0, 0);
+				list.DrawInstanced(6, 1, 0, 0);
 
 				GraphicsCommands::Blit(list, *compCopy->Resource(), viewport.GetRenderTarget());
 

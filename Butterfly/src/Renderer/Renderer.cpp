@@ -69,8 +69,8 @@ namespace Butterfly
 			[](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* cpu, D3D12_GPU_DESCRIPTOR_HANDLE* gpu)
 			{
 				const uint32_t handle = D3D12API()->DescriptorAllocatorSrvCbvUav()->Allocate();
-				*cpu = D3D12API()->DescriptorAllocatorSrvCbvUav()->CpuHandleFromSrvHandle(handle);
-				*gpu = D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(handle);
+				*cpu = D3D12API()->DescriptorAllocatorSrvCbvUav()->CpuHandleFromHandle(handle);
+				*gpu = D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(handle);
 			};
 
 		init_info.SrvDescriptorFreeFn =
@@ -151,7 +151,7 @@ namespace Butterfly
 		}
 
 
-		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromSrvHandle(it->second.GetRenderTarget().SRV().View()).ptr;
+		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(it->second.GetRenderTarget().SRV().View()).ptr;
 		ImGui::Image(textureID, { size.x, size.y });
 	}
 

@@ -135,6 +135,12 @@ namespace Butterfly
 			return m_resource;
 		}
 
+		DX12ResourceBuilder& DX12ResourceBuilder::Flags(const D3D12_RESOURCE_FLAGS& flag)
+		{
+			m_resource->BufferDescription.Flags = flag;
+			return *this;
+		}
+
 		DX12ResourceBuilder& DX12ResourceBuilder::SetName(const std::string& name)
 		{
 			m_resource->DebugName = name;

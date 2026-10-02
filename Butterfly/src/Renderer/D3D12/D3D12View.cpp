@@ -72,4 +72,20 @@ namespace Butterfly
 	{
 		D3D12API()->DescriptorAllocatorSrvCbvUav()->FreeHandle(m_viewIndex);
 	}
+
+
+	///
+	/// BFUnorderedAccessView
+	/// 
+	
+	BFUnorderedAccessView::BFUnorderedAccessView(const D3D12Resource& resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
+		: m_desc(desc), BFView(resource)
+	{
+		m_viewIndex = D3D12API()->DescriptorAllocatorSrvCbvUav()->CreateUav(resource, &desc);
+	}
+
+	BFUnorderedAccessView::~BFUnorderedAccessView()
+	{
+		D3D12API()->DescriptorAllocatorSrvCbvUav()->FreeHandle(m_viewIndex);
+	}
 }

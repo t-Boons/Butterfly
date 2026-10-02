@@ -24,7 +24,7 @@ namespace Butterfly
                 data.set(component, value);
                 return true;
             }
-            return false;
+			return true;
         }
 
         if (type == entt::resolve<glm::vec2>())
@@ -38,7 +38,7 @@ namespace Butterfly
                 return true;
             }
 
-            return false;
+            return true;
         }
 
         if (type == entt::resolve<glm::vec3>())
@@ -51,19 +51,17 @@ namespace Butterfly
 				{
 					value = v;
 					data.set(component, value);
-					return true;
 				}
-				return false;
+				return true;
 			}
 
             if (ImGUIHelpers::DrawVec3Control(name, v))
             {
                 value = v;
                 data.set(component, value);
-                return true;
             }
 
-            return false;
+            return true;
         }
 
         if (type == entt::resolve<glm::quat>())
@@ -74,10 +72,9 @@ namespace Butterfly
             {
                 value = glm::quat(glm::radians(eulerRotation));
                 data.set(component, value);
-                return true;
             }
 
-            return false;
+            return true;
         }
 
         if (type == entt::resolve<float>())
@@ -90,19 +87,17 @@ namespace Butterfly
 				{
 					value = v;
 					data.set(component, value);
-					return true;
 				}
-				return false;
+				return true;
 			}
 
             if (ImGUIHelpers::FloatField(name, v))
             {
                 value = v;
                 data.set(component, value);
-                return true;
             }
 
-            return false;
+            return true;
         }
 
         if (type == entt::resolve<bool>())
@@ -113,10 +108,9 @@ namespace Butterfly
             {
                 value = v;
                 data.set(component, value);
-                return true;
             }   
 
-            return false;
+			return true;
         }
 
 		if (type == entt::resolve<uint32_t>())
@@ -129,17 +123,17 @@ namespace Butterfly
 				{
 					value = v;
 					data.set(component, value);
-					return true;
 				}
-				return false;
+				return true;
 			}
 
 			if (ImGui::InputScalar(name, ImGuiDataType_U32, &v))
 			{
 				value = v;
 				data.set(component, value);
-				return true;
 			}
+
+			return true;
 		}
 
 		if (type == entt::resolve<UUID>())
@@ -165,12 +159,14 @@ namespace Butterfly
 
 				if (meta.Type != assetSelectorProps->Type)
 				{
-					return false;
+					return true;
 				}
 
 				value = newReference;
 				data.set(component, value);
 			}
+
+			return true;
 		}
 
 
@@ -252,14 +248,17 @@ namespace Butterfly
 					ImGui::PushID(dataName);
 					entt::meta_any value = data.get(component);
 
-					InspectorValue(data, component, value, dataName);
+					if(!InspectorValue(data, component, value, dataName))
+                    {
+						BF_CORE_LOG_CRITICAL("Failed to inspect property %s of component %s", dataName, componentName.data());
+                    }
 
 					ImGui::PopID();
 				}
 
 				ImGui::PopID();
 			}
-		});
+		});	
 
 		ImGui::Dummy(ImVec2(0.0f, 10.0f));
 		const ImVec2 size = ImGui::GetContentRegionAvail();

@@ -99,10 +99,40 @@ namespace Butterfly
 			}
 			return srvDesc;
 		}
+
+		inline const D3D12_UNORDERED_ACCESS_VIEW_DESC CreateUavFromHWTextureDesc(const BFTextureDesc& desc)
+		{
+			BF_PROFILE_EVENT();
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+			uavDesc.Format = desc.Format;
+			if (desc.SRGB)
+			{
+				uavDesc.Format = GetSRGBFormat(uavDesc.Format);
+			}
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			uavDesc.Texture2D.MipSlice = 0;
+			uavDesc.Texture2D.PlaneSlice = 0;
+			if (desc.Type == BFTextureType::Texture2DArray)
+			{
+				BF_CORE_ASSERT(desc.ArraySize > 1, "Texture2DArray must have ArraySize > 1.");
+				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+				uavDesc.Texture2DArray.ArraySize = desc.ArraySize;
+				uavDesc.Texture2DArray.FirstArraySlice = 0;
+				uavDesc.Texture2DArray.MipSlice = 0;
+			}
+			if (desc.Type == BFTextureType::Cubemap)
+			{
+				BF_CORE_ASSERT(desc.ArraySize == 6, "Cubemap must have 6 faces.");
+				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+				uavDesc.Texture2DArray.ArraySize = desc.ArraySize;
+				uavDesc.Texture2DArray.FirstArraySlice = 0;
+				uavDesc.Texture2DArray.MipSlice = 0;
+			}
+			return uavDesc;
+		}
 	}
 
 	// Texture create functions.
-
 	RefPtr<BFTexture> BFTexture::CreateTextureFromCPUBuffer(const BFTextureDesc& desc)
 	{
 		BF_PROFILE_EVENT("BFTexture::BFTexture (Texture upload)");
@@ -115,17 +145,23 @@ namespace Butterfly
 		builder.Texture(desc.Format, desc.Width, desc.Height, desc.ArraySize);
 		builder.SetName(desc.DebugName);
 
+		if (desc.Flags & BFTextureDesc::UnorderedAccess)
+		{
+			builder.Flags(D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+		}
+
 		newTexture->m_resource = builder.Create();
 
-		D3D12_RESOURCE_DESC textureDesc = newTexture->m_resource->HwResource->GetDesc();
+		const D3D12_RESOURCE_DESC textureDesc = newTexture->m_resource->HwResource->GetDesc();
 		const uint32_t numSubresources = textureDesc.DepthOrArraySize;
+
 		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numSubresources);
 		std::vector<UINT> numRows(numSubresources);
 		std::vector<UINT64> rowSizes(numSubresources);
-		uint64_t totalSize;
-		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
 
-		std::vector<D3D12_SUBRESOURCE_DATA> subresources(desc.ArraySize);
+		uint64_t totalSize = 0;
+
+		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
 
 		D3D12Resource* uploadResource = DX12ResourceBuilder()
 			.HeapType(D3D12_HEAP_TYPE_UPLOAD)
@@ -134,11 +170,22 @@ namespace Butterfly
 			.SetName("Intermediate texture.")
 			.Create();
 
+
+		const uint32_t sourceRowPitch = desc.Width * GetBytesPerPixel(desc.Format);
+
 		for (uint32_t slice = 0; slice < desc.ArraySize; ++slice)
 		{
-			const uint8_t* src = static_cast<const uint8_t*>(desc.Data) + slice * (desc.Width * desc.Height * 4);
+			const uint8_t* src = static_cast<const uint8_t*>(desc.Data) + slice * desc.Height * sourceRowPitch;
 			const auto& footprint = footprints[slice];
-			uploadResource->Write(src, footprint.Footprint.RowPitch * desc.Height, static_cast<uint32_t>(footprint.Offset));
+
+
+			const uint32_t dstRowPitch = footprint.Footprint.RowPitch;
+			const uint32_t copyRowSize = static_cast<uint32_t>(rowSizes[slice]);
+
+			for (uint32_t y = 0; y < desc.Height; ++y)
+			{
+				uploadResource->Write(src + y * sourceRowPitch, copyRowSize, static_cast<uint32_t>(footprint.Offset + y * dstRowPitch));
+			}
 		}
 
 		D3D12CommandList list(D3D12_COMMAND_LIST_TYPE_COPY);
@@ -155,19 +202,16 @@ namespace Butterfly
 			dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 			dstLocation.SubresourceIndex = slice;
 
-			list.List()->CopyTextureRegion(
-				&dstLocation,
-				0, 0, 0,
-				&srcLocation,
-				nullptr
-			);
+			list.List()->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
 		}
 
 		list.Close();
+
 		D3D12API()->Queue(QueueType::Copy)->Execute(list);
 		D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
 		delete uploadResource;
+
 		newTexture->CreateViews(desc);
 
 		return newTexture;
@@ -212,15 +256,20 @@ namespace Butterfly
 			newTexture->CreateViews(desc);
 		} else
 
-		if (desc.Flags & BFTextureDesc::Flag::ShaderResource)
+		if (desc.Flags & BFTextureDesc::Flag::ShaderResource || desc.Flags & BFTextureDesc::Flag::UnorderedAccess)
 		{
 			float col[] = { 0,0,0,0 };
-			newTexture->m_resource = DX12ResourceBuilder()
-				.HeapType(D3D12_HEAP_TYPE_DEFAULT)
-				.Texture(desc.Format, desc.Width, desc.Height, 1)
-				.InitialState(D3D12_RESOURCE_STATE_GENERIC_READ)
-				.SetName(desc.DebugName)
-				.Create();
+
+			DX12ResourceBuilder builder;
+			builder.HeapType(D3D12_HEAP_TYPE_DEFAULT);
+			builder.Texture(desc.Format, desc.Width, desc.Height, desc.ArraySize);
+			builder.InitialState(D3D12_RESOURCE_STATE_GENERIC_READ);
+			if (desc.Flags & BFTextureDesc::Flag::UnorderedAccess)
+			{
+				builder.Flags(D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+			}
+			builder.SetName(desc.DebugName);
+			newTexture->m_resource = builder.Create();
 
 			newTexture->CreateViews(desc);
 		}
@@ -339,6 +388,7 @@ namespace Butterfly
 		FREE(m_rtv);
 		FREE(m_dsv);
 		FREE(m_srv);
+		FREE(m_uav);
 		FREE(m_resource);
 	}
 
@@ -365,6 +415,12 @@ namespace Butterfly
 		return *m_srv;
 	}
 
+	const BFUnorderedAccessView& BFTexture::UAV() const
+	{
+		BF_CORE_ASSERT(m_uav != nullptr, "%s", "Texture does not have UAV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::UnorderedAccess set.");
+		return *m_uav;
+	}
+
 	void BFTexture::CreateViews(const BFTextureDesc& desc)
 	{
 		BF_PROFILE_EVENT();
@@ -385,6 +441,11 @@ namespace Butterfly
 		{
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = Utils::CreateSrvFromHWTextureDesc(desc);
 			m_srv = new BFShaderResourceView(*m_resource, srvDesc);
+		}
+		if (desc.Flags & BFTextureDesc::Flag::UnorderedAccess)
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = Utils::CreateUavFromHWTextureDesc(desc);
+			m_uav = new BFUnorderedAccessView(*m_resource, uavDesc);
 		}
 	}
 

@@ -63,7 +63,7 @@ namespace Butterfly
 					.Add(data.VertexBuffer->SRV().View())
 					.Submit(list);
 
-				list.List()->DrawInstanced(data.NumVertices, 1, 0, 0);
+				list.DrawInstanced(data.NumVertices, 1, 0, 0);
 			});
 	}
 

@@ -201,12 +201,14 @@ namespace Butterfly
 
 			entt::meta_factory<SkyboxComponent>{}
 			.type("Skybox").custom<ComponentProperties>(Serializable{}, InspectComponent{})
-				.data<&SkyboxComponent::SetTextureUUIDRight, &SkyboxComponent::GetTextureUUIDRight>("TextureUUIDRight").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()})
-				.data<&SkyboxComponent::SetTextureUUIDLeft, &SkyboxComponent::GetTextureUUIDLeft>("TextureUUIDLeft").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()})
-				.data<&SkyboxComponent::SetTextureUUIDTop, &SkyboxComponent::GetTextureUUIDTop>("TextureUUIDTop").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()})
-				.data<&SkyboxComponent::SetTextureUUIDBottom, &SkyboxComponent::GetTextureUUIDBottom>("TextureUUIDBottom").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()})
-				.data<&SkyboxComponent::SetTextureUUIDFront, &SkyboxComponent::GetTextureUUIDFront>("TextureUUIDFront").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()})
-				.data<&SkyboxComponent::SetTextureUUIDBack, &SkyboxComponent::GetTextureUUIDBack>("TextureUUIDBack").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsAssetSelector{TextureAsset::Type()});
+				.data<&SkyboxComponent::SetTypeUInt, &SkyboxComponent::GetTypeUInt>("Type").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsEnumSelector{ {"Equirectangular", "Cubemap"} })
+				.data<&SkyboxComponent::SetTextureUUIDRight, &SkyboxComponent::GetTextureUUIDRight>("TextureUUIDRight").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<SkyboxComponent>{[](const SkyboxComponent& component) { return component.GetType() == SkyboxType::Cubemap; }}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDLeft, &SkyboxComponent::GetTextureUUIDLeft>("TextureUUIDLeft").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<SkyboxComponent>{[](const SkyboxComponent& component) { return component.GetType() == SkyboxType::Cubemap; }}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDTop, &SkyboxComponent::GetTextureUUIDTop>("TextureUUIDTop").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<SkyboxComponent>{[](const SkyboxComponent& component) { return component.GetType() == SkyboxType::Cubemap; }}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDBottom, &SkyboxComponent::GetTextureUUIDBottom>("TextureUUIDBottom").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<SkyboxComponent>{[](const SkyboxComponent& component) { return component.GetType() == SkyboxType::Cubemap; }}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDFront, &SkyboxComponent::GetTextureUUIDFront>("TextureUUIDFront").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<SkyboxComponent>{[](const SkyboxComponent& component) { return component.GetType() == SkyboxType::Cubemap; }}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDBack, &SkyboxComponent::GetTextureUUIDBack>("TextureUUIDBack").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<SkyboxComponent>{[](const SkyboxComponent& component) { return component.GetType() == SkyboxType::Cubemap; }}, AsAssetSelector{TextureAsset::Type()})
+				.data<&SkyboxComponent::SetTextureUUIDHDRI, &SkyboxComponent::GetTextureUUIDHDRI>("TextureUUIDHDRI").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<SkyboxComponent>{[](const SkyboxComponent& component) { return component.GetType() == SkyboxType::Equirectangular; }}, AsAssetSelector{ TextureAsset::Type() });
 
 			entt::meta_factory<LightComponent>{}
 			.type("Light").custom<ComponentProperties>(Serializable{}, InspectComponent{})

@@ -29,8 +29,28 @@ namespace Butterfly
 	{
 		BFTextureDesc textureDesc;
 		int channels, width, height = 0;
+		bool hdr = stbi_is_hdr(meta.Path.string().c_str());
+		bool bit16 = stbi_is_16_bit(meta.Path.string().c_str());
 
-		stbi_uc* pixels = stbi_load(meta.Path.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+		DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
+		void* pixels = nullptr;
+		if (hdr)
+		{
+			pixels = stbi_loadf(meta.Path.string().c_str(), &width, &height, &channels, 4);
+			format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		}
+		else if (bit16)
+		{
+			pixels = stbi_load_16(meta.Path.string().c_str(), &width, &height, &channels, 4);
+			format = DXGI_FORMAT_R16G16B16A16_UNORM;
+		}
+		else
+		{
+
+			pixels = stbi_load(meta.Path.string().c_str(), &width, &height, &channels, 4);
+			format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		}
 
 		if (!pixels)
 		{
@@ -43,7 +63,7 @@ namespace Butterfly
 		textureDesc.Height = static_cast<uint32_t>(height);
 		textureDesc.DebugName = std::filesystem::path(meta.Path).filename().string();
 		textureDesc.Flags = BFTextureDesc::Flag::ShaderResource;
-		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		textureDesc.Format = format;
 		textureDesc.Data = pixels;
 
 		RefPtr<TextureAsset> textureAsset = MakeRef<TextureAsset>();

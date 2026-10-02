@@ -19,13 +19,31 @@ namespace Butterfly
 		return *this;
 	}
 
-	ShaderVariables& ShaderVariables::Submit(D3D12CommandList& list)
-	{
-		BF_PROFILE_EVENT();
+    ShaderVariables& ShaderVariables::Submit(D3D12CommandList& list, bool compute)
+    {
+        BF_PROFILE_EVENT();
 
-		list.List()->SetGraphicsRoot32BitConstants(0u, numDwords, reinterpret_cast<const void*>(&m_bufferIndices[0]), 0u);
-		return *this;
-	}
+        if (compute)
+        {
+            list.List()->SetComputeRoot32BitConstants(
+                0u,
+                numDwords,
+                m_bufferIndices.data(),
+                0u
+            );
+        }
+        else
+        {
+            list.List()->SetGraphicsRoot32BitConstants(
+                0u,
+                numDwords,
+                m_bufferIndices.data(),
+                0u
+            );
+        }
+
+        return *this;
+    }
 
 	ShaderVariables& ShaderVariables::Reset()
 	{
