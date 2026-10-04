@@ -28,6 +28,8 @@ namespace Butterfly
 		std::string DebugName = "Texture";
 		const void* Data = nullptr;
 		bool SRGB = false;
+		uint32_t NumMips = 1; // 0 Means generate all.
+		bool GenerateMips = false;
 
 		enum Flag : uint32_t
 		{
@@ -70,8 +72,8 @@ namespace Butterfly
 		BFTextureDesc m_desc{};
 		BFDepthStencilView* m_dsv = nullptr;
 		BFRenderTargetView* m_rtv = nullptr;
-		BFShaderResourceView* m_srv = nullptr;
-		BFUnorderedAccessView* m_uav = nullptr;
+		std::vector<BFShaderResourceView*> m_srv;
+		std::vector<BFUnorderedAccessView*> m_uav;
 	};
 
 

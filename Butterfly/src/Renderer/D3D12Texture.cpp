@@ -9,6 +9,12 @@ namespace Butterfly
 {
 	namespace Utils
 	{
+		inline uint32_t MaxMips(uint32_t width, uint32_t height)
+		{
+			return 1 + static_cast<uint32_t>( std::floor(std::log2(std::max(width, height)))
+		}
+
+
 		inline DXGI_FORMAT GetSRGBFormat(DXGI_FORMAT format)
 		{
 			switch (format)
@@ -137,12 +143,13 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT("BFTexture::BFTexture (Texture upload)");
 
+
 		RefPtr<BFTexture> newTexture = RefPtr<BFTexture>(new BFTexture());
 
 		DX12ResourceBuilder builder;
 		builder.HeapType(D3D12_HEAP_TYPE_DEFAULT);
 		builder.InitialState(D3D12_RESOURCE_STATE_COMMON);
-		builder.Texture(desc.Format, desc.Width, desc.Height, desc.ArraySize);
+		builder.Texture(desc.Format, desc.Width, desc.Height, desc.ArraySize, );
 		builder.SetName(desc.DebugName);
 
 		if (desc.Flags & BFTextureDesc::UnorderedAccess)
