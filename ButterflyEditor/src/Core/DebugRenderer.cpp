@@ -39,24 +39,23 @@ namespace Butterfly
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
 
-				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-				GraphicsCommands::SetRenderTargets(list, { &event.Viewport.GetRenderTarget() }, &event.Viewport.GetDepthStencil());
+				RasterPassStartInfo info;
+				info.RenderTarget = &event.Viewport.GetRenderTarget();
+				info.DepthStencil = &event.Viewport.GetDepthStencil();
+				info.DepthStencilLoadOp = LoadOP::Load;
+				info.RenderTargetLoadOp = LoadOP::Load;
+				list.StartRenderPass(info, "DebugRenderer");
 
-				GraphicsCommands::SetFullscreenViewportAndRect(list, event.Viewport.GetRenderTarget().Width(), event.Viewport.GetRenderTarget().Height());
+				list.SetViewport(RenderViewport::FromTexture(event.Viewport.GetRenderTarget()));
 
-				BFPipelineBuilder psoBuilder;
-				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE);
-				psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
-				psoBuilder.DepthStencilFormat(DXGI_FORMAT_D24_UNORM_S8_UINT);
-				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/DebugLines_vert.hlsl", ShaderType::Vertex));
-				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/DebugLines_frag.hlsl", ShaderType::Pixel));
-				psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
-				psoBuilder.DepthEnable(true);
-				psoBuilder.DepthWriteMask(D3D12_DEPTH_WRITE_MASK_ZERO);
-				psoBuilder.DepthFunc(D3D12_COMPARISON_FUNC_LESS_EQUAL);
-				psoBuilder.EnableBlending();
-
-				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
+				BFGraphicsPSOInfo psoInfo;
+				psoInfo.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+				psoInfo.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+				psoInfo.DepthStencil.BlendStates[0].EnableBlending = true;
+				psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
+				psoInfo.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/DebugLines_vert.hlsl", ShaderType::Vertex);
+				psoInfo.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/DebugLines_frag.hlsl", ShaderType::Pixel);
+				list.SetGraphicsPSO(psoInfo);
 
 				ShaderVariables()
 					.Add(event.Viewport.Uniforms->GetView(HASH("CameraData"))->View())
@@ -64,6 +63,8 @@ namespace Butterfly
 					.Submit(list);
 
 				list.DrawInstanced(data.NumVertices, 1, 0, 0);
+
+				list.EndRenderPass();
 			});
 	}
 

@@ -9,7 +9,6 @@ namespace Butterfly
 	{
 	public:
 		ShaderVariables();
-
 		ShaderVariables& Add(int index);
 		ShaderVariables& Submit(D3D12CommandList& list, bool compute = false);
 		ShaderVariables& Reset();

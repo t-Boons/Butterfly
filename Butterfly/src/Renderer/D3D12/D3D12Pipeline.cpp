@@ -4,7 +4,7 @@
 
 namespace Butterfly
 {
-	DX12Pipeline::DX12Pipeline(const PipelineStateStream& pss)
+	D3D12Pipeline::D3D12Pipeline(const PipelineStateStream& pss)
 		: m_pss(pss)
 	{
 		BF_PROFILE_EVENT();
@@ -14,7 +14,7 @@ namespace Butterfly
 		ThrowIfFailed(D3D12API()->Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_pso)));
 	}
 
-	DX12Pipeline::DX12Pipeline(const ComputePipelineStateStream& pss)
+	D3D12Pipeline::D3D12Pipeline(const ComputePipelineStateStream& pss)
 		: m_cpss(pss)
 	{
 		BF_PROFILE_EVENT();
@@ -22,13 +22,13 @@ namespace Butterfly
 		ThrowIfFailed(D3D12API()->Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_pso)));
 	}
 
-	DX12Pipeline::~DX12Pipeline()
+	D3D12Pipeline::~D3D12Pipeline()
 	{
 		COM_FREE(m_pso);
 	}
 
 
-	const DX12Pipeline& BFPipelineCache::GetOrCreatePipeline(uint64_t hash, PipelineStateStream* pss)
+	const D3D12Pipeline& BFPipelineCache::GetOrCreatePipeline(uint64_t hash, PipelineStateStream* pss)
 	{
 		BF_PROFILE_EVENT();
 
@@ -36,166 +36,20 @@ namespace Butterfly
 		if (pso == s_pipelines.end())
 		{
 			BF_CORE_LOG_INFO("Created New PSO with hash: %llu", hash);
-			s_pipelines[hash] = new DX12Pipeline(*pss);
+			s_pipelines[hash] = new D3D12Pipeline(*pss);
 		}
 		return *s_pipelines[hash];
 	}
-
-
-	BFPipelineBuilder& BFPipelineBuilder::VertexShader(const BFShader* vs)
+	
+	const D3D12Pipeline& BFPipelineCache::GetOrCreatePipeline(uint64_t hash, ComputePipelineStateStream* pss)
 	{
 		BF_PROFILE_EVENT();
 
-		BF_CORE_ASSERT(vs, "Vertex shader is null.");
-		BF_CORE_ASSERT(vs->Type() == ShaderType::Vertex, "PipelineBuilder shader is not a Vertex shader.");
-		m_pss.VS = { vs->Blob()->GetBufferPointer(), vs->Blob()->GetBufferSize() };
-		Utils::SumHash(m_hash, static_cast<uint64_t>(vs->NumBytes()));
-		return *this;
-	}
-
-	BFPipelineBuilder& BFPipelineBuilder::PixelShader(const BFShader* ps)
-	{
-		BF_PROFILE_EVENT();
-
-		BF_CORE_ASSERT(ps, "Pixel shader is null.");
-		BF_CORE_ASSERT(ps->Type() == ShaderType::Pixel, "PipelineBuilder shader is not a Pixel shader.");
-		m_pss.PS = { ps->Blob()->GetBufferPointer(), ps->Blob()->GetBufferSize() };
-		Utils::SumHash(m_hash, static_cast<uint64_t>(ps->NumBytes()));
-		return *this;
-	}
-
-
-	BFPipelineBuilder& BFPipelineBuilder::DepthStencilFormat(DXGI_FORMAT format)
-	{
-		BF_PROFILE_EVENT();
-
-		m_pss.DSVFormat = format;
-		Utils::SumHash(m_hash, static_cast<uint64_t>(format));
-		return *this;
-	}
-
-	BFPipelineBuilder& BFPipelineBuilder::CullingMode(D3D12_CULL_MODE mode)
-	{
-		BF_PROFILE_EVENT();
-
-		CD3DX12_RASTERIZER_DESC rasterizerDesc(m_pss.RasterizerState);
-		rasterizerDesc.CullMode = mode;
-		m_pss.RasterizerState = rasterizerDesc;
-		Utils::SumHash(m_hash, static_cast<uint64_t>(mode));
-		return *this;
-	}
-
-	BFPipelineBuilder& BFPipelineBuilder::RenderTargetFormats(const std::vector<DXGI_FORMAT>& formats)
-	{
-		BF_PROFILE_EVENT();
-
-		BF_CORE_ASSERT(formats.size() < 8, "RenderTarget format count exceeds 8, currently: %lu", formats.size());
-
-		D3D12_RT_FORMAT_ARRAY rtvFormats = {};
-		rtvFormats.NumRenderTargets = static_cast<uint32_t>(formats.size());
-		for (size_t i = 0; i < formats.size(); i++)
-		{
-			rtvFormats.RTFormats[i] = formats[i];
-			Utils::SumHash(m_hash, static_cast<uint64_t>(formats[i]));
-		}
-		m_pss.RTVFormats = rtvFormats;
-
-		return *this;
-	}
-
-	BFPipelineBuilder& BFPipelineBuilder::PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE type)
-	{
-		BF_PROFILE_EVENT();
-
-		m_pss.PrimitiveTopologyType = type;
-		Utils::SumHash(m_hash, static_cast<uint64_t>(type));
-		return *this;
-	}
-
-	BFPipelineBuilder& BFPipelineBuilder::EnableBlending()
-	{
-		CD3DX12_BLEND_DESC blendDesc(m_pss.BlendDesc);
-
-		D3D12_RENDER_TARGET_BLEND_DESC rtBlendDesc = {};
-		rtBlendDesc.BlendEnable = TRUE;
-		rtBlendDesc.LogicOpEnable = FALSE;
-
-		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
-		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_MAX;
-
-		rtBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-		blendDesc.RenderTarget[0] = rtBlendDesc;
-
-		m_pss.BlendDesc = blendDesc;
-		Utils::SumHash(m_hash, static_cast<uint64_t>(237589327));
-		return *this;
-	}
-
-	const DX12Pipeline& BFPipelineBuilder::Create()
-	{
-		BF_PROFILE_EVENT();
-
-		m_pss.RootSignature = D3D12API()->BindlessRootSignature();
-
-		return BFPipelineCache::GetOrCreatePipeline(m_hash, &m_pss);
-	}
-
-	BFPipelineBuilder& BFPipelineBuilder::DepthEnable(bool enable)
-	{
-		BF_PROFILE_EVENT();
-
-		CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc(m_pss.DepthStencilState);
-		depthStencilDesc.DepthEnable = enable;
-		m_pss.DepthStencilState = depthStencilDesc;
-		Utils::SumHash(m_hash, static_cast<uint64_t>(enable));
-		return *this;
-	}
-
-	BFPipelineBuilder& BFPipelineBuilder::DepthWriteMask(D3D12_DEPTH_WRITE_MASK mask)
-	{
-		BF_PROFILE_EVENT();
-
-		CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc(m_pss.DepthStencilState);
-		depthStencilDesc.DepthWriteMask = mask;
-		m_pss.DepthStencilState = depthStencilDesc;
-		Utils::SumHash(m_hash, static_cast<uint64_t>(mask));
-		return *this;
-	}
-
-	BFPipelineBuilder& BFPipelineBuilder::DepthFunc(D3D12_COMPARISON_FUNC func)
-	{
-		BF_PROFILE_EVENT();
-
-		CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc(m_pss.DepthStencilState);
-		depthStencilDesc.DepthFunc = func;
-		m_pss.DepthStencilState = depthStencilDesc;
-		Utils::SumHash(m_hash, static_cast<uint64_t>(func));
-		return *this;
-	}
-
-	const DX12Pipeline& BFPipelineStateCache::GetOrCreatePipeline(const BFComputePipelineState& state)
-	{
-		BF_PROFILE_EVENT();
-		BF_CORE_ASSERT(state.ComputeShader, "Compute shader is null.");
-		BF_CORE_ASSERT(state.ComputeShader->Type() == ShaderType::Compute, "PipelineBuilder shader is not a Compute shader.");
-
-		ComputePipelineStateStream pss = {};
-		pss.CS = { state.ComputeShader->Blob()->GetBufferPointer(), state.ComputeShader->Blob()->GetBufferSize() };
-		pss.RootSignature = D3D12API()->BindlessRootSignature();
-
-		std::hash<BFComputePipelineState> hasher;
-		const uint64_t hash = hasher(state);
 		auto pso = s_pipelines.find(hash);
 		if (pso == s_pipelines.end())
 		{
 			BF_CORE_LOG_INFO("Created New PSO with hash: %llu", hash);
-			s_pipelines[hash] = new DX12Pipeline(pss);
+			s_pipelines[hash] = new D3D12Pipeline(*pss);
 		}
 		return *s_pipelines[hash];
 	}

@@ -48,7 +48,7 @@ namespace Butterfly
 	protected:
 		BFRGTexture(const BFTextureDesc& desc)
 		{
-			m_resource = BFTexture::CreateTextureForGPU(desc);
+			m_resource = MakeRef<BFTexture>(desc);
 		}
 
 		RefPtr<BFTexture> m_resource;

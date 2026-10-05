@@ -37,7 +37,7 @@ float2 DirectionToEquirectangularUV(float3 direction)
     float2 uv;
 
     uv.x = phi / (2.0 * PI) + 0.5;
-    uv.y = theta / PI + 0.5;
+    uv.y = 0.5 - theta / PI;
 
     return uv;
 }

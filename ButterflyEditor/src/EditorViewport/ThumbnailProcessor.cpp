@@ -13,10 +13,10 @@ namespace Butterfly
 		textureDesc.Width = m_width;
 		textureDesc.Height = m_height;
 		textureDesc.DebugName = m_debugName;
-		textureDesc.Flags = BFTextureDesc::Flag::ShaderResource;
+		textureDesc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
 		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		textureDesc.Data = m_pixels.data();
-		m_gpuTexture = BFTexture::CreateTextureFromCPUBuffer(textureDesc);
+		textureDesc.UploadData.CPUCopySource = m_pixels.data();
+		m_gpuTexture = MakeRef<BFTexture>(textureDesc);
 	}
 
 	ImTextureID Thumbnail::GetImGUITextureID()

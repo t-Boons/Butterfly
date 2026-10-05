@@ -17,23 +17,22 @@ namespace Butterfly
 		BF_PROFILE_EVENT()
 
 		BF_CORE_ASSERT(src.Desc().Width == dst.Desc().Width && src.Desc().Height == dst.Desc().Height, "Source and destination textures must have the same dimensions for blitting: %s -> %s", src.Desc().DebugName.c_str(), dst.Desc().DebugName.c_str());
-		BF_CORE_ASSERT(src.Desc().Flags & BFTextureDesc::Flag::ShaderResource, "Source texture must have the ShaderResource flag set: %s", src.Desc().DebugName.c_str());
-		BF_CORE_ASSERT(dst.Desc().Flags & BFTextureDesc::Flag::RenderTargettable, "Destination texture must have the RenderTargettable flag set: %s", dst.Desc().DebugName.c_str());
+		BF_CORE_ASSERT(src.Desc().ViewTypes & BFTextureDesc::ViewType::ShaderResource, "Source texture must have the ShaderResource flag set: %s", src.Desc().DebugName.c_str());
+		BF_CORE_ASSERT(dst.Desc().ViewTypes & BFTextureDesc::ViewType::RenderTargettable, "Destination texture must have the RenderTargettable flag set: %s", dst.Desc().DebugName.c_str());
 		
-		list.BeginGPUMarker("Blit: " + src.Desc().DebugName + " -> " + dst.Desc().DebugName);
-		list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		GraphicsCommands::SetRenderTargets(list, { &dst }, nullptr);
-		GraphicsCommands::SetFullscreenViewportAndRect(list, dst.Desc().Width, dst.Desc().Height);
+		RasterPassStartInfo info;
+		info.RenderTarget = &dst;
+		info.RenderTargetLoadOp = LoadOP::Load;
+		list.StartRenderPass(info, "Blit: " + src.Desc().DebugName + " -> " + dst.Desc().DebugName);
 
-		BFPipelineBuilder psoBuilder;
-		psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-		psoBuilder.RenderTargetFormats({ dst.Desc().Format });
-		psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex));
-		psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Blit_frag.hlsl", ShaderType::Pixel));
-		psoBuilder.DepthEnable(false);
-		psoBuilder.CullingMode(D3D12_CULL_MODE_NONE);
+		list.SetViewport(RenderViewport::FromTexture(dst));
+		BFGraphicsPSOInfo psoInfo;
+		psoInfo.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex);
+		psoInfo.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Blit_frag.hlsl", ShaderType::Pixel);
+		psoInfo.DepthStencil.EnableDepth = false;
+		psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_NONE;
 
-		list.List()->SetPipelineState(psoBuilder.Create().GetHW());
+		list.SetGraphicsPSO(psoInfo);
 
 		src.Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
@@ -43,53 +42,7 @@ namespace Butterfly
 
 
 		list.DrawInstanced(6, 1, 0, 0);
-		list.EndGPUMarker();
-	}
-
-	void GraphicsCommands::SetRenderTargets(D3D12CommandList& list, const std::vector<BFTexture*>& rts, BFTexture* dsv)
-	{
-		BF_PROFILE_EVENT();
-
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles;
-		rtvHandles.reserve(8);
-		for (uint32_t i = 0; i < rts.size(); i++)
-		{
-			rts[i]->Resource()->Transition(list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			rtvHandles.push_back(rts[i]->RTV().Handle());
-		}
-
-		const D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = nullptr;
-		if (dsv)
-		{
-			dsv->Resource()->Transition(list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-			dsvHandle = &dsv->DSV().Handle();
-		}
-
-		list.List()->OMSetRenderTargets(static_cast<uint32_t>(rts.size()), &rtvHandles[0], false, dsvHandle);
-	}
-
-	void GraphicsCommands::ClearRenderTarget(D3D12CommandList& list, BFTexture& rt)
-	{
-		BF_PROFILE_EVENT();
-
-		rt.Resource()->Transition(list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		list.List()->ClearRenderTargetView(rt.RTV().Handle(), rt.ClearValue()->Color, 0, nullptr);
-	}
-
-	void GraphicsCommands::ClearRenderTarget(D3D12CommandList& list, BFTexture& rt, const std::array<float, 4>& color)
-	{
-		BF_PROFILE_EVENT();
-
-		rt.Resource()->Transition(list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		list.List()->ClearRenderTargetView(rt.RTV().Handle(), &color.front(), 0, nullptr);
-	}
-
-	void GraphicsCommands::ClearDepthStencil(D3D12CommandList& list, BFTexture& ds)
-	{
-		BF_PROFILE_EVENT();
-
-		ds.Resource()->Transition(list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		list.List()->ClearDepthStencilView(ds.DSV().Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		list.EndRenderPass();
 	}
 
 	void GraphicsCommands::SetFullscreenViewportAndRect(D3D12CommandList& list, uint32_t width, uint32_t height)

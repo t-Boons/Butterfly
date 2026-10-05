@@ -32,9 +32,7 @@ namespace Butterfly
 		uint32_t j = 0;
 		for (uint32_t i = 0; i < numPasses; ++i)
 		{
-			cmdList.BeginGPUMarker("RenderPass -> " + Passes[i]->Name());
 			Passes[i]->Execute(cmdList);
-			cmdList.EndGPUMarker();
 		}
 
 		ResourceInitializer.UpdateLifetimes();

@@ -130,20 +130,20 @@ namespace Butterfly
 				desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 				desc.Width = size.x;
 				desc.Height = size.y;
-				desc.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource;
+				desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
 				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " RenderTarget";
 
-				it->second.RenderTarget[it->second.FrameIndex] = BFTexture::CreateTextureForGPU(desc);
+				it->second.RenderTarget[it->second.FrameIndex] = MakeRef<BFTexture>(desc);
 			}
 			{
 				BFTextureDesc desc;
 				desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 				desc.Width = size.x;
 				desc.Height = size.y;
-				desc.Flags = BFTextureDesc::DepthStencilable;
+				desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable;
 				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " DepthStencil";
 
-				it->second.DepthStencil[it->second.FrameIndex] = BFTexture::CreateTextureForGPU(desc);
+				it->second.DepthStencil[it->second.FrameIndex] = MakeRef<BFTexture>(desc);
 			}
 			
 
@@ -174,11 +174,15 @@ namespace Butterfly
 		m_frameData.GetFence().Wait();
 		m_frameData.GetCmdList().Reset();
 
-		m_frameData.GetCmdList().BeginGPUMarker("Render");
-		GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(m_frameData.GetCmdList());
-
 		// Clear composite render target.
-		GraphicsCommands::ClearRenderTarget(m_frameData.GetCmdList(), m_frameData.GetCompositeRenderTarget(), { 0.05f, 0.05f, 0.05f, 1.0f });
+		{
+			RasterPassStartInfo info;
+			info.RenderTarget = &m_frameData.GetCompositeRenderTarget();
+			info.ClearColor = { 0.1f, 0.02f, 0.02f, 1.0f };
+			info.RenderTargetLoadOp = LoadOP::Clear;
+			m_frameData.GetCmdList().StartRenderPass(info, "Composite clear pass");
+			m_frameData.GetCmdList().EndRenderPass();
+		}
 
 		{
 			BF_PROFILE_EVENT("Renderer::Render: ImGUI");
@@ -210,25 +214,27 @@ namespace Butterfly
 				auto graph = builder.Create();
 				graph->Execute(m_frameData.GetCmdList());
 				delete graph;
+				m_frameData.GetCmdList().EndGPUMarker();
 
 				viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_GENERIC_READ);
-
-				m_frameData.GetCmdList().EndGPUMarker();
 			}
 		}
 
 		{
 			BF_PROFILE_EVENT("Renderer::Render: Render Submit");
-			m_frameData.GetCmdList().BeginGPUMarker("ImGUI");
 			ImGui::Render();
-			GraphicsCommands::SetRenderTargets(m_frameData.GetCmdList(), { &m_frameData.GetCompositeRenderTarget() }, nullptr);
+
+			RasterPassStartInfo info;
+			info.RenderTarget = &m_frameData.GetCompositeRenderTarget();
+			info.RenderTargetLoadOp = LoadOP::Load;
+			m_frameData.GetCmdList().StartRenderPass(info, "ImGUI Pass");
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_frameData.GetCmdList().List());
 
 			Application::Get().GetWindow().Context().RecordCopyToBackBuffer(*m_frameData.GetCompositeRenderTarget().Resource(), m_frameData.GetCmdList());
-			m_frameData.GetCmdList().EndGPUMarker();
+			
+			m_frameData.GetCmdList().EndRenderPass();
 
 
-			m_frameData.GetCmdList().EndGPUMarker();
 			m_frameData.GetCmdList().Close();
 			D3D12API()->Queue(QueueType::Direct)->Execute(m_frameData.GetCmdList());
 			m_frameData.GetFence().Signal(*D3D12API()->Queue(QueueType::Direct));
@@ -342,13 +348,13 @@ namespace Butterfly
 
 		for (uint32_t j = 0; j < NUM_RENDER_BUFFERS; j++)
 		{
-			m_frameData.CompositeRenderTarget[j] = BFTexture::CreateTextureForGPU({
-				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
-				.Width = static_cast<uint32_t>(m_resizeSize.x),
-				.Height = static_cast<uint32_t>(m_resizeSize.y),
-				.Flags = BFTextureDesc::RenderTargettable | BFTextureDesc::ShaderResource,
-				.DebugName = "Composite Render Target:" + std::to_string(j),
-				});
+			BFTextureDesc desc;
+			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			desc.Width = static_cast<uint32_t>(m_resizeSize.x);
+			desc.Height = static_cast<uint32_t>(m_resizeSize.y);
+			desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
+			desc.DebugName = "Composite Render Target:" + std::to_string(j);
+			m_frameData.CompositeRenderTarget[j] = MakeRef<BFTexture>(desc);
 		}
 	}
 

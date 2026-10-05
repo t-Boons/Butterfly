@@ -17,21 +17,31 @@ namespace Butterfly
 		Cubemap,
 	};
 
+	class BFTexture;
+	struct BFTextureUploadData
+	{
+		bool HasValidFace() const { return std::any_of(CubemapFacesSource.begin(), CubemapFacesSource.end(), [](const RefPtr<BFTexture>& face) { return face != nullptr; }); }
+
+		std::array<RefPtr<BFTexture>, 6> CubemapFacesSource;
+		RefPtr<BFTexture> GPUCopySource = nullptr;
+		const void* CPUCopySource = nullptr;
+	};
+
 	struct BFTextureDesc
 	{
 		BFTextureType Type = BFTextureType::Texture2D;
+		BFTextureUploadData UploadData;
 		DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
 		uint32_t Width = 0;
 		uint32_t Height = 0;
 		uint32_t ArraySize = 1;
-		uint32_t Flags = None;
+		uint32_t ViewTypes = None;
 		std::string DebugName = "Texture";
-		const void* Data = nullptr;
 		bool SRGB = false;
 		uint32_t NumMips = 1; // 0 Means generate all.
 		bool GenerateMips = false;
 
-		enum Flag : uint32_t
+		enum ViewType : uint32_t
 		{
 			None = 1 << 0,
 			ShaderResource = 1 << 1,
@@ -44,14 +54,11 @@ namespace Butterfly
 	class BFTexture : public BFResource, private NonCopyable
 	{
 	public:
-		static RefPtr<BFTexture> CreateTextureFromCPUBuffer(const BFTextureDesc& desc);
-		static RefPtr<BFTexture> CreateTextureForGPU(const BFTextureDesc& desc);
-		static RefPtr<BFTexture> CreateCubemap(const std::array<RefPtr<BFTexture>, 6>& textures);
-
+		BFTexture(const BFTextureDesc& desc);
 		~BFTexture();
 
 		BFTextureDesc Desc() const { return m_desc; }
-
+		DXGI_FORMAT Format() const { return m_desc.Format; }
 		const D3D12_CLEAR_VALUE* ClearValue() const;
 
 		const BFDepthStencilView& DSV() const;
@@ -61,19 +68,16 @@ namespace Butterfly
 
 		uint32_t Width() const { return m_desc.Width; }
 		uint32_t Height() const { return m_desc.Height; }
-
+		uint32_t NumMips() const { return m_desc.NumMips; }
 		D3D12Resource* Resource() { return m_resource; }
 
 	private:
-		BFTexture() = default;
-		void CreateViews(const BFTextureDesc& desc);
-
 		D3D12Resource* m_resource = nullptr;
 		BFTextureDesc m_desc{};
 		BFDepthStencilView* m_dsv = nullptr;
 		BFRenderTargetView* m_rtv = nullptr;
-		std::vector<BFShaderResourceView*> m_srv;
-		std::vector<BFUnorderedAccessView*> m_uav;
+		BFShaderResourceView* m_srv = nullptr;
+		BFUnorderedAccessView* m_uav = nullptr;
 	};
 
 

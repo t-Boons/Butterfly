@@ -9,6 +9,8 @@ namespace Butterfly
 {
 	void SkyboxRenderPipelineStage::LoadSkybox(const SkyboxComponent& component)
 	{
+		uint32_t width, height = 0;
+		DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
 		if (component.GetType() == SkyboxType::Cubemap)
 		{
 
@@ -19,6 +21,9 @@ namespace Butterfly
 				if (asset)
 				{
 					textures[i] = asset->Texture;
+					width = asset->Texture->Desc().Width;
+					height = asset->Texture->Desc().Height;
+					format = asset->Texture->Desc().Format;
 				}
 			}
 
@@ -27,7 +32,18 @@ namespace Butterfly
 				return;
 			};
 
-			m_skyboxTexture = BFTexture::CreateCubemap(textures);
+
+			BFTextureDesc desc;
+			desc.Width = width;
+			desc.Height = height;
+			desc.ArraySize = 6;
+			desc.Format = format;
+			desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
+			desc.Type = BFTextureType::Cubemap;
+			desc.DebugName = "SkyboxCubemap";
+			desc.UploadData.CubemapFacesSource= textures;
+
+			m_skyboxTexture = MakeRef<BFTexture>(desc);
 		}
 		else
 		{
@@ -37,23 +53,24 @@ namespace Butterfly
 				return;
 			}
 
+			const uint32_t cubemapSize = asset->Texture->Desc().Width;
 			BFTextureDesc desc;
-			desc.Width = 2048;
-			desc.Height = 2048;
+			desc.Width = cubemapSize;
+			desc.Height = cubemapSize;
 			desc.ArraySize = 6;
 			desc.Format = asset->Texture->Desc().Format;
-			desc.Flags = BFTextureDesc::ShaderResource | BFTextureDesc::UnorderedAccess;
+			desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource | BFTextureDesc::ViewType::UnorderedAccess;
 			desc.Type = BFTextureType::Cubemap;
 			desc.DebugName = "SkyboxCubemap";
-			m_skyboxTexture = BFTexture::CreateTextureForGPU(desc);
-
+			m_skyboxTexture = MakeRef<BFTexture>(desc);
 
 
 			D3D12CommandList list;
-			m_skyboxTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(list);
 
-			BFComputePipelineState pso;
+			list.StartComputePass("EquirectangularToCubemap");
+
+			m_skyboxTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			BFComputePSOInfo pso;
 			pso.ComputeShader = BFShaderCache::GetOrCreate(L"assets/Shaders/EquirectangularToCubemap_cs.hlsl", ShaderType::Compute);
 
 			TextureAsset* hdri = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.GetTextureHandleHDRI());
@@ -63,19 +80,22 @@ namespace Butterfly
 				.Add(hdri->Texture->SRV().View())
 				.Add(m_skyboxTexture->UAV().View())
 				.Add(smp.View())
-				.Add(2048)
+				.Add(cubemapSize)
 				.Submit(list, true);
 
-			list.List()->SetPipelineState(BFPipelineStateCache::GetOrCreatePipeline(pso).GetHW());
-			const uint32_t groupsX = (desc.Width + 7) / 8;
-			const uint32_t groupsY = (desc.Width + 7) / 8;
+			list.SetComputePSO(pso);
+			const uint32_t groupsX = (cubemapSize + 7) / 8;
+			const uint32_t groupsY = (cubemapSize + 7) / 8;
 			list.Dispatch(groupsX, groupsY, 6);
 
 			m_skyboxTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
+			list.EndComputePass();
+
 			list.Close();
 			D3D12API()->Queue(QueueType::Direct)->Execute(list);
 			D3D12API()->Queue(QueueType::Direct)->WaitForFence();
+
 		}
 	}
 
@@ -107,25 +127,23 @@ namespace Butterfly
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Skybox pass");
 
-				// Default Init stuff.
-				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				RasterPassStartInfo info;
+				info.RenderTarget = &viewport.GetRenderTarget();
+				info.DepthStencil = &viewport.GetDepthStencil();
+				info.RenderTargetLoadOp = LoadOP::Load;
+				info.DepthStencilLoadOp = LoadOP::Load;
+				list.StartRenderPass(info, "Skybox Pass");
 
-				GraphicsCommands::SetRenderTargets(list, { &viewport.GetRenderTarget() }, &viewport.GetDepthStencil());
+				list.SetViewport(RenderViewport::FromTexture(viewport.GetRenderTarget()));
 
-				GraphicsCommands::SetFullscreenViewportAndRect(list, viewport.GetRenderTarget().Width(), viewport.GetRenderTarget().Height());
-
-				BFPipelineBuilder psoBuilder;
-				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-				psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
-				psoBuilder.DepthStencilFormat({ DXGI_FORMAT_D24_UNORM_S8_UINT });
-				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex));
-				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Skybox_frag.hlsl", ShaderType::Pixel));
-				psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
-				psoBuilder.DepthEnable(true);
-				psoBuilder.DepthWriteMask(D3D12_DEPTH_WRITE_MASK_ZERO);
-				psoBuilder.DepthFunc(D3D12_COMPARISON_FUNC_LESS_EQUAL);
-
-				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
+				BFGraphicsPSOInfo pso;
+				pso.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
+				pso.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+				pso.DepthStencil.WriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+				pso.DepthStencil.EnableDepth = true;
+				pso.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Skybox_frag.hlsl", ShaderType::Pixel);
+				pso.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex);
+				list.SetGraphicsPSO(pso);
 
 				BFSampler sampler;
 
@@ -136,6 +154,8 @@ namespace Butterfly
 					.Submit(list);
 
 				list.DrawInstanced(6, 1, 0, 0);
+
+				list.EndRenderPass();
 			});
 	}
 }

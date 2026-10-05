@@ -48,7 +48,7 @@ namespace Butterfly
 			desc.Format = DXGI_FORMAT_R32_UINT;
 			desc.Width = viewport.GetRenderTarget().Width();
 			desc.Height = viewport.GetRenderTarget().Height();
-			desc.Flags = BFTextureDesc::RenderTargettable;
+			desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable;
 			desc.DebugName = "R32 Viewport objectpicker";
 			params->RenderTarget = builder.CreateTransientTexture("R32 Viewport objectpicker", desc);
 
@@ -56,34 +56,28 @@ namespace Butterfly
 			desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 			desc2.Width = viewport.GetRenderTarget().Width();
 			desc2.Height = viewport.GetRenderTarget().Height();
-			desc2.Flags = BFTextureDesc::DepthStencilable;
+			desc2.ViewTypes = BFTextureDesc::ViewType::DepthStencilable;
 			desc2.DebugName = "DepthStencil Viewport objectpicker";
 			params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport objectpicker", desc2);
 
 
 			event.Builder.AddPass<ObjectPickerPassData>("RenderObjectPickerPass", [&](const ObjectPickerPassData& data, D3D12CommandList& list)
 				{
-					BFTexture& rt = *data.RenderTarget->Resource();
+					RasterPassStartInfo info;
+					info.RenderTarget = data.RenderTarget->Resource().get();
+					info.DepthStencil = data.DepthStencil->Resource().get();
+					info.DepthStencilLoadOp = LoadOP::Clear;
+					info.RenderTargetLoadOp = LoadOP::Clear;
+					info.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+					info.DepthValue = 1.0f;
+					list.StartRenderPass(info, "RenderObjectPickerPass");
 
-					// Default Init stuff.
-					list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					list.SetViewport(RenderViewport::FromTexture(*data.RenderTarget->Resource()));
 
-					GraphicsCommands::SetRenderTargets(list, { &rt }, data.DepthStencil->Resource().get());
-
-					GraphicsCommands::ClearDepthStencil(list, *data.DepthStencil->Resource());
-					GraphicsCommands::ClearRenderTarget(list, rt, { 0.0f, 0.0f, 0.0f, 0.0f });
-
-					GraphicsCommands::SetFullscreenViewportAndRect(list, rt.Width(), rt.Height());
-
-					BFPipelineBuilder psoBuilder;
-					psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-					psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R32_UINT });
-					psoBuilder.DepthStencilFormat({ DXGI_FORMAT_D24_UNORM_S8_UINT });
-					psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_vert.hlsl", ShaderType::Vertex));
-					psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_frag.hlsl", ShaderType::Pixel));
-					psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
-
-					list.List()->SetPipelineState(psoBuilder.Create().GetHW());
+					BFGraphicsPSOInfo psoInfo;
+					psoInfo.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_vert.hlsl", ShaderType::Vertex);
+					psoInfo.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_frag.hlsl", ShaderType::Pixel);
+					list.SetGraphicsPSO(psoInfo);
 
 					uint32_t entityRenderIndex = 0;
 					auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
@@ -106,11 +100,13 @@ namespace Butterfly
 
 						entityRenderIndex++;
 
-						list.List()->IASetIndexBuffer(&mesh->GPUIndices->IBV());
+						list.SetIndexBuffer(*mesh->GPUIndices);
 						list.DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);
 					}
 
 					m_objectPickerReadback->ReadbackCopy(list, data.RenderTarget->Resource());
+
+					list.EndRenderPass();
 				});
 		}
 

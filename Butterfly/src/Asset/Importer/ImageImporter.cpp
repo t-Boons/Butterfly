@@ -62,12 +62,12 @@ namespace Butterfly
 		textureDesc.Width = static_cast<uint32_t>(width);
 		textureDesc.Height = static_cast<uint32_t>(height);
 		textureDesc.DebugName = std::filesystem::path(meta.Path).filename().string();
-		textureDesc.Flags = BFTextureDesc::Flag::ShaderResource;
+		textureDesc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
 		textureDesc.Format = format;
-		textureDesc.Data = pixels;
+		textureDesc.UploadData.CPUCopySource = pixels;
 
 		RefPtr<TextureAsset> textureAsset = MakeRef<TextureAsset>();
-		textureAsset->Texture = BFTexture::CreateTextureFromCPUBuffer(textureDesc);
+		textureAsset->Texture = MakeRef<BFTexture>(textureDesc);
 
 		manager.AddAssetEntry<TextureAsset>(AssetEntry{ meta.RootAssetID, TextureAsset::Type(), StaticCastRef<void>(textureAsset) });
 

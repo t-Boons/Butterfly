@@ -177,10 +177,10 @@ namespace Butterfly
 
 
 		BFTextureDesc desc;
-		desc.Data = static_cast<const void*>(img.image.data());
+		desc.UploadData.CPUCopySource = static_cast<const void*>(img.image.data());
 		desc.Width = img.width;
 		desc.Height = img.height;
-		desc.Flags = BFTextureDesc::ShaderResource;
+		desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
 		desc.DebugName = img.name;
 		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		desc.SRGB = isSRGB;
@@ -193,7 +193,7 @@ namespace Butterfly
 
 		desc.DebugName = name;
 		RefPtr<TextureAsset> outAsset = MakeRef<TextureAsset>();
-		outAsset->Texture = BFTexture::CreateTextureFromCPUBuffer(desc);
+		outAsset->Texture = MakeRef<BFTexture>(desc);
 
 		const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)
 			{

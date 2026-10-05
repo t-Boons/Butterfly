@@ -9,9 +9,112 @@ namespace Butterfly
 {
 	namespace Utils
 	{
+		inline void CopyGPUTexturesToCubemap(const std::array<RefPtr<BFTexture>, 6>& cubemapFacesSource, D3D12Resource* cubemap)
+		{
+			D3D12CommandList list(D3D12_COMMAND_LIST_TYPE_COPY);
+
+			for (uint32_t face = 0; face < 6; ++face)
+			{
+				if (!cubemapFacesSource[face])
+				{
+					BF_CORE_LOG_WARN("Face %d of cubemap is null or has no resource. Skipping copy.", face);
+					continue;
+				}
+
+				D3D12_TEXTURE_COPY_LOCATION src = {};
+				src.pResource = cubemapFacesSource[face]->Resource()->HwResource;
+				src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				src.SubresourceIndex = 0;
+
+				D3D12_TEXTURE_COPY_LOCATION dst = {};
+				dst.pResource = cubemap->HwResource;
+				dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				dst.SubresourceIndex = face;
+
+				list.List()->CopyTextureRegion(
+					&dst,
+					0, 0, 0,
+					&src,
+					nullptr
+				);
+			}
+
+			list.Close();
+
+			D3D12API()->Queue(QueueType::Copy)->Execute(list);
+			D3D12API()->Queue(QueueType::Copy)->WaitForFence();
+		}
+
+
+		inline void CopyTextureFromCPU(D3D12Resource* newTexture, const BFTextureDesc& desc)
+		{
+			BF_CORE_ASSERT(desc.UploadData.CPUCopySource, "If you want to copy data from CPU, you need to provide data in the BFTextureDesc::UploadData.CPUCopySource field.");
+
+
+			const D3D12_RESOURCE_DESC textureDesc = newTexture->HwResource->GetDesc();
+			const uint32_t numSubresources = textureDesc.DepthOrArraySize;
+
+			std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numSubresources);
+			std::vector<UINT> numRows(numSubresources);
+			std::vector<UINT64> rowSizes(numSubresources);
+
+			uint64_t totalSize = 0;
+
+			D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
+
+			D3D12Resource* uploadResource = DX12ResourceBuilder()
+				.HeapType(D3D12_HEAP_TYPE_UPLOAD)
+				.InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
+				.Buffer(totalSize)
+				.SetName("Intermediate texture.")
+				.Create();
+
+
+			const uint32_t sourceRowPitch = desc.Width * GetBytesPerPixel(desc.Format);
+
+			for (uint32_t slice = 0; slice < numSubresources; ++slice)
+			{
+				const uint8_t* src = static_cast<const uint8_t*>(desc.UploadData.CPUCopySource) + slice * desc.Height * sourceRowPitch;
+				const auto& footprint = footprints[slice];
+
+
+				const uint32_t dstRowPitch = footprint.Footprint.RowPitch;
+				const uint32_t copyRowSize = static_cast<uint32_t>(rowSizes[slice]);
+
+				for (uint32_t y = 0; y < desc.Height; ++y)
+				{
+					uploadResource->Write(src + y * sourceRowPitch, copyRowSize, static_cast<uint32_t>(footprint.Offset + y * dstRowPitch));
+				}
+			}
+
+			D3D12CommandList list(D3D12_COMMAND_LIST_TYPE_COPY);
+
+			for (uint32_t slice = 0; slice < numSubresources; ++slice)
+			{
+				D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+				srcLocation.pResource = uploadResource->HwResource;
+				srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+				srcLocation.PlacedFootprint = footprints[slice];
+
+				D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+				dstLocation.pResource = newTexture->HwResource;
+				dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				dstLocation.SubresourceIndex = slice;
+
+				list.List()->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+			}
+
+			list.Close();
+
+			D3D12API()->Queue(QueueType::Copy)->Execute(list);
+			D3D12API()->Queue(QueueType::Copy)->WaitForFence();
+
+			delete uploadResource;
+		}
+
 		inline uint32_t MaxMips(uint32_t width, uint32_t height)
 		{
-			return 1 + static_cast<uint32_t>( std::floor(std::log2(std::max(width, height)))
+			return 1 + static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))));
 		}
 
 
@@ -138,255 +241,101 @@ namespace Butterfly
 		}
 	}
 
-	// Texture create functions.
-	RefPtr<BFTexture> BFTexture::CreateTextureFromCPUBuffer(const BFTextureDesc& desc)
+	BFTexture::BFTexture(const BFTextureDesc& desc)
+		: m_desc(desc)
 	{
-		BF_PROFILE_EVENT("BFTexture::BFTexture (Texture upload)");
+		BF_CORE_ASSERT(desc.Width > 0 && desc.Height > 0, "Texture width and height must be greater than 0");
+		BF_CORE_ASSERT(desc.ArraySize > 0, "Texture array size must be greater than 0");
+		BF_CORE_ASSERT(desc.ViewTypes != BFTextureDesc::None, "Texture view types must be specified");
 
-
-		RefPtr<BFTexture> newTexture = RefPtr<BFTexture>(new BFTexture());
-
-		DX12ResourceBuilder builder;
-		builder.HeapType(D3D12_HEAP_TYPE_DEFAULT);
-		builder.InitialState(D3D12_RESOURCE_STATE_COMMON);
-		builder.Texture(desc.Format, desc.Width, desc.Height, desc.ArraySize, );
-		builder.SetName(desc.DebugName);
-
-		if (desc.Flags & BFTextureDesc::UnorderedAccess)
+		if (m_desc.NumMips == 0)
 		{
-			builder.Flags(D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+			m_desc.NumMips = Utils::MaxMips(desc.Width, desc.Height);
 		}
 
-		newTexture->m_resource = builder.Create();
-
-		const D3D12_RESOURCE_DESC textureDesc = newTexture->m_resource->HwResource->GetDesc();
-		const uint32_t numSubresources = textureDesc.DepthOrArraySize;
-
-		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numSubresources);
-		std::vector<UINT> numRows(numSubresources);
-		std::vector<UINT64> rowSizes(numSubresources);
-
-		uint64_t totalSize = 0;
-
-		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
-
-		D3D12Resource* uploadResource = DX12ResourceBuilder()
-			.HeapType(D3D12_HEAP_TYPE_UPLOAD)
-			.InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
-			.Buffer(totalSize)
-			.SetName("Intermediate texture.")
-			.Create();
-
-
-		const uint32_t sourceRowPitch = desc.Width * GetBytesPerPixel(desc.Format);
-
-		for (uint32_t slice = 0; slice < desc.ArraySize; ++slice)
+		if (m_desc.ViewTypes & BFTextureDesc::ViewType::RenderTargettable)
 		{
-			const uint8_t* src = static_cast<const uint8_t*>(desc.Data) + slice * desc.Height * sourceRowPitch;
-			const auto& footprint = footprints[slice];
+			BF_CORE_ASSERT(m_desc.Type != BFTextureType::Cubemap, "RenderTargettable textures cannot be Cubemaps.");
+			BF_CORE_ASSERT(m_desc.Type != BFTextureType::Texture2DArray, "RenderTargettable textures cannot be Texture2DArray.");
+			BF_CORE_ASSERT(m_desc.ArraySize == 1, "RenderTargettable textures cannot be Texture2DArray.");
 
-
-			const uint32_t dstRowPitch = footprint.Footprint.RowPitch;
-			const uint32_t copyRowSize = static_cast<uint32_t>(rowSizes[slice]);
-
-			for (uint32_t y = 0; y < desc.Height; ++y)
-			{
-				uploadResource->Write(src + y * sourceRowPitch, copyRowSize, static_cast<uint32_t>(footprint.Offset + y * dstRowPitch));
-			}
-		}
-
-		D3D12CommandList list(D3D12_COMMAND_LIST_TYPE_COPY);
-
-		for (uint32_t slice = 0; slice < desc.ArraySize; ++slice)
-		{
-			D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-			srcLocation.pResource = uploadResource->HwResource;
-			srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-			srcLocation.PlacedFootprint = footprints[slice];
-
-			D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
-			dstLocation.pResource = newTexture->m_resource->HwResource;
-			dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			dstLocation.SubresourceIndex = slice;
-
-			list.List()->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
-		}
-
-		list.Close();
-
-		D3D12API()->Queue(QueueType::Copy)->Execute(list);
-		D3D12API()->Queue(QueueType::Copy)->WaitForFence();
-
-		delete uploadResource;
-
-		newTexture->CreateViews(desc);
-
-		return newTexture;
-	}
-
-	RefPtr<BFTexture> BFTexture::CreateTextureForGPU(const BFTextureDesc& desc)
-	{
-		BF_PROFILE_EVENT();
-
-		RefPtr<BFTexture> newTexture = RefPtr<BFTexture>(new BFTexture());
-
-		BF_CORE_ASSERT(!(desc.Flags & BFTextureDesc::RenderTargettable &&
-			desc.Flags & BFTextureDesc::DepthStencilable),
-			"BFTexture can not have be RenderTargettable and DepthStenillable since it only tracks 1 resource.");
-
-
-		if (desc.Flags & BFTextureDesc::Flag::RenderTargettable)
-		{
 			float col[] = { 0,0,0,0 };
-			newTexture->m_resource = DX12ResourceBuilder()
+			m_resource = DX12ResourceBuilder()
 				.HeapType(D3D12_HEAP_TYPE_DEFAULT)
-				.RenderTarget(desc.Format, desc.Width, desc.Height)
-				.ClearColor(col, desc.Format)
+				.RenderTarget(m_desc.Format, m_desc.Width, m_desc.Height)
+				.ClearColor(col, m_desc.Format)
 				.InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET)
-				.SetName(desc.DebugName)
+				.SetName(m_desc.DebugName)
 				.Create();
-
-			newTexture->CreateViews(desc);
-		} else
-
-		if (desc.Flags & BFTextureDesc::Flag::DepthStencilable)
+		}
+		else if (m_desc.ViewTypes & BFTextureDesc::ViewType::DepthStencilable)
 		{
+			BF_CORE_ASSERT(m_desc.Type != BFTextureType::Cubemap, "DepthStencilable textures cannot be Cubemaps.");
+			BF_CORE_ASSERT(m_desc.Type != BFTextureType::Texture2DArray, "DepthStencilable textures cannot be Texture2DArray.");
+			BF_CORE_ASSERT(m_desc.ArraySize == 1, "DepthStencilable textures cannot be Texture2DArray.");
+
 			float col[] = { 0,0,0,0 };
-			newTexture->m_resource = DX12ResourceBuilder()
+			m_resource = DX12ResourceBuilder()
 				.HeapType(D3D12_HEAP_TYPE_DEFAULT)
-				.DepthStencil(desc.Format, desc.Width, desc.Height)
-				.ClearDepth(desc.Format)
+				.DepthStencil(m_desc.Format, m_desc.Width, m_desc.Height)
+				.ClearDepth(m_desc.Format)
 				.InitialState(D3D12_RESOURCE_STATE_DEPTH_READ)
-				.SetName(desc.DebugName)
+				.SetName(m_desc.DebugName)
 				.Create();
-
-			newTexture->CreateViews(desc);
-		} else
-
-		if (desc.Flags & BFTextureDesc::Flag::ShaderResource || desc.Flags & BFTextureDesc::Flag::UnorderedAccess)
+		}
+		else if (m_desc.ViewTypes & BFTextureDesc::ViewType::ShaderResource || m_desc.ViewTypes & BFTextureDesc::ViewType::UnorderedAccess)
 		{
 			float col[] = { 0,0,0,0 };
 
 			DX12ResourceBuilder builder;
 			builder.HeapType(D3D12_HEAP_TYPE_DEFAULT);
-			builder.Texture(desc.Format, desc.Width, desc.Height, desc.ArraySize);
-			builder.InitialState(D3D12_RESOURCE_STATE_GENERIC_READ);
-			if (desc.Flags & BFTextureDesc::Flag::UnorderedAccess)
-			{
-				builder.Flags(D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-			}
-			builder.SetName(desc.DebugName);
-			newTexture->m_resource = builder.Create();
+			builder.Texture(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.ArraySize, m_desc.NumMips);
 
-			newTexture->CreateViews(desc);
-		}
-
-		return newTexture;
-	}
-
-	RefPtr<BFTexture> BFTexture::CreateCubemap(const std::array<RefPtr<BFTexture>, 6>& textures)
-	{
-		uint32_t width = 0, height = 0;
-		DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
-
-		for (uint32_t i = 0; i < 6; ++i)
-		{
-			if (!textures[i])
-			{
-				BF_CORE_LOG_WARN("Cubemap face %d is null.", i);
-				continue;
-			}
+			if (m_desc.UploadData.CPUCopySource || m_desc.UploadData.GPUCopySource || m_desc.UploadData.HasValidFace())
+				builder.InitialState(D3D12_RESOURCE_STATE_COMMON);
 			else
-			{
-				// Fetch the highest res cubemap texture for now.
-				if (width < textures[i]->Desc().Width)
-					width = textures[i]->Desc().Width;
-				if (height < textures[i]->Desc().Height)
-					height = textures[i]->Desc().Height;
-				format = textures[i]->Desc().Format;
+				builder.InitialState(D3D12_RESOURCE_STATE_GENERIC_READ);
 
-				break;
-			}
+			if (m_desc.ViewTypes & BFTextureDesc::ViewType::UnorderedAccess)
+				builder.Flags(D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+			builder.SetName(m_desc.DebugName);
+			m_resource = builder.Create();
 		}
 
-		if(format == DXGI_FORMAT_UNKNOWN)
+		if (m_desc.UploadData.CPUCopySource)
 		{
-			BF_CORE_LOG_CRITICAL("Cubemap does not have a valid format.");
-			return nullptr;
+			Utils::CopyTextureFromCPU(m_resource, m_desc);
 		}
 
-		BFTextureDesc desc;
-		desc.ArraySize = 6;
-		desc.Type = BFTextureType::Cubemap;
-		desc.DebugName = "Cubemap";
-		desc.Width = width;
-		desc.Height = height;
-		desc.Format = format;
-		desc.Flags = BFTextureDesc::ShaderResource;
-
-		RefPtr<BFTexture> newTexture = RefPtr<BFTexture>(new BFTexture());
-
-		float col[] = { 0,0,0,0 };
-		newTexture->m_resource = DX12ResourceBuilder()
-			.HeapType(D3D12_HEAP_TYPE_DEFAULT)
-			.Texture(desc.Format, desc.Width, desc.Height, desc.ArraySize)
-			.InitialState(D3D12_RESOURCE_STATE_COMMON)
-			.SetName("Cubemap")
-			.Create();
-
-
-
-		D3D12_RESOURCE_DESC textureDesc = newTexture->m_resource->HwResource->GetDesc();
-		const uint32_t numSubresources = textureDesc.DepthOrArraySize;
-		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numSubresources);
-		std::vector<UINT> numRows(numSubresources);
-		std::vector<UINT64> rowSizes(numSubresources);
-		uint64_t totalSize;
-		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
-
-		D3D12CommandList list(D3D12_COMMAND_LIST_TYPE_COPY);
-
-		for (uint32_t slice = 0; slice < desc.ArraySize; ++slice)
+		if (m_desc.Type == BFTextureType::Cubemap && m_desc.UploadData.HasValidFace())
 		{
-			if (!textures[slice])
-			{
-				continue;
-			}
-
-			D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-			srcLocation.pResource = textures[slice]->m_resource->HwResource;
-			srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			srcLocation.PlacedFootprint = footprints[slice];
-			srcLocation.SubresourceIndex = 0;
-
-			D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
-			dstLocation.pResource = newTexture->m_resource->HwResource;
-			dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			dstLocation.SubresourceIndex = slice;
-
-
-
-			list.List()->CopyTextureRegion(
-				&dstLocation,
-				0, 0, 0,
-				&srcLocation,
-				nullptr
-			);
+			BF_CORE_ASSERT(m_desc.ArraySize == 6, "Cubemap must have 6 faces.");
+			Utils::CopyGPUTexturesToCubemap(m_desc.UploadData.CubemapFacesSource, m_resource);
 		}
 
-		list.Close();
-		D3D12API()->Queue(QueueType::Copy)->Execute(list);
-		D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
-		newTexture->CreateViews(desc);
-
-		return newTexture;
+		if (m_desc.ViewTypes & BFTextureDesc::ViewType::RenderTargettable)
+		{
+			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = Utils::CreateRTVDescFromHWTextureDesc(m_desc);
+			m_rtv = new BFRenderTargetView(*m_resource, rtvDesc);
+		}
+		if (m_desc.ViewTypes & BFTextureDesc::ViewType::DepthStencilable)
+		{
+			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = Utils::CreateDsvDescFromHWTextureDesc(m_desc);
+			m_dsv = new BFDepthStencilView(*m_resource, dsvDesc);
+		}
+		if (m_desc.ViewTypes & BFTextureDesc::ViewType::ShaderResource)
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = Utils::CreateSrvFromHWTextureDesc(m_desc);
+			m_srv = new BFShaderResourceView(*m_resource, srvDesc);
+		}
+		if (m_desc.ViewTypes & BFTextureDesc::ViewType::UnorderedAccess)
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = Utils::CreateUavFromHWTextureDesc(m_desc);
+			m_uav = new BFUnorderedAccessView(*m_resource, uavDesc);
+		}
 	}
-
-
-	// End Texture create functions.
-
-
 
 	BFTexture::~BFTexture()
 	{
@@ -426,34 +375,6 @@ namespace Butterfly
 	{
 		BF_CORE_ASSERT(m_uav != nullptr, "%s", "Texture does not have UAV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::UnorderedAccess set.");
 		return *m_uav;
-	}
-
-	void BFTexture::CreateViews(const BFTextureDesc& desc)
-	{
-		BF_PROFILE_EVENT();
-
-		m_desc = desc;
-
-		if (desc.Flags & BFTextureDesc::RenderTargettable)
-		{
-			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = Utils::CreateRTVDescFromHWTextureDesc(desc);
-			m_rtv = new BFRenderTargetView(*m_resource, rtvDesc);
-		}
-		if (desc.Flags & BFTextureDesc::Flag::DepthStencilable)
-		{
-			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = Utils::CreateDsvDescFromHWTextureDesc(desc);
-			m_dsv = new BFDepthStencilView(*m_resource, dsvDesc);
-		}
-		if (desc.Flags & BFTextureDesc::Flag::ShaderResource)
-		{
-			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = Utils::CreateSrvFromHWTextureDesc(desc);
-			m_srv = new BFShaderResourceView(*m_resource, srvDesc);
-		}
-		if (desc.Flags & BFTextureDesc::Flag::UnorderedAccess)
-		{
-			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = Utils::CreateUavFromHWTextureDesc(desc);
-			m_uav = new BFUnorderedAccessView(*m_resource, uavDesc);
-		}
 	}
 
 	BFTextureReadback::BFTextureReadback()

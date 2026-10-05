@@ -18,11 +18,11 @@ namespace Butterfly
 		desc.DebugName = "WhiteTexture";
 		desc.Width = 1;
 		desc.Height = 1;
-		desc.Flags = BFTextureDesc::ShaderResource;
+		desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
 		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		std::vector<uint8_t> data = { 255, 255, 255, 255 };
-		desc.Data = data.data();
-		m_whiteTexture = BFTexture::CreateTextureFromCPUBuffer(desc);
+		desc.UploadData.CPUCopySource = data.data();
+		m_whiteTexture = MakeRef<BFTexture>(desc);
 	}
 
 	void PBRRenderPipelineStage::OnRecordPass(const ViewportRenderEvent& ev)
@@ -60,26 +60,25 @@ namespace Butterfly
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
 
-				BFTexture& rt = *params.Comp;
+				RasterPassStartInfo info;
+				info.RenderTarget = params.Comp;
+				info.DepthStencil = &viewport.GetDepthStencil();
+				info.ClearColor = { 0.05f, 0.1f, 0.15f, 1.0f };
+				info.DepthValue = 1.0f;
+				info.RenderTargetLoadOp = LoadOP::Clear;
+				info.DepthStencilLoadOp = LoadOP::Clear;
 
-				// Default Init stuff.
-				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				GraphicsCommands::SetRenderTargets(list, { &rt }, &viewport.GetDepthStencil());
+				list.StartRenderPass(info, "Forward Model Pass");
 
-				GraphicsCommands::ClearDepthStencil(list, viewport.GetDepthStencil());
-				GraphicsCommands::ClearRenderTarget(list, rt, { 0.05f, 0.1f, 0.15f, 1.0f });
+				GraphicsCommands::SetFullscreenViewportAndRect(list, info.RenderTarget->Width(), info.RenderTarget->Height());
 
-				GraphicsCommands::SetFullscreenViewportAndRect(list, rt.Width(), rt.Height());
+				BFGraphicsPSOInfo psoInfo;
+				psoInfo.DepthStencil.EnableDepth = true;
+				psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
+				psoInfo.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Forward_vert.hlsl", ShaderType::Vertex);
+				psoInfo.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Forward_frag.hlsl", ShaderType::Pixel);
 
-				BFPipelineBuilder psoBuilder;
-				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-				psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
-				psoBuilder.DepthStencilFormat({ DXGI_FORMAT_D24_UNORM_S8_UINT });
-				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Forward_vert.hlsl", ShaderType::Vertex));
-				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Forward_frag.hlsl", ShaderType::Pixel));
-				psoBuilder.CullingMode(D3D12_CULL_MODE_BACK);
-
-				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
+				list.SetGraphicsPSO(psoInfo);
 
 				uint32_t entityIndex = 0;
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
@@ -93,7 +92,7 @@ namespace Butterfly
 					AssetManager& as = Application::Get().GetAssetManager();
 					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
 
-					list.List()->IASetIndexBuffer(&mesh->GPUIndices->IBV());
+					list.SetIndexBuffer(*mesh->GPUIndices);
 
 					for (auto& subMesh : mesh->SubMeshes)
 					{
@@ -117,6 +116,8 @@ namespace Butterfly
 
 					entityIndex++;
 				}
+
+				list.EndRenderPass();
 			});
 	}
 }

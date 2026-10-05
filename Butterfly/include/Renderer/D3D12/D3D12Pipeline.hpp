@@ -6,13 +6,13 @@
 namespace Butterfly
 {
 	class BFShader;
-
-	class DX12Pipeline : private NonCopyable
+	class BFComputePSOInfo;
+	class D3D12Pipeline : private NonCopyable
 	{
 	public:
-		DX12Pipeline(const PipelineStateStream& pss);
-		DX12Pipeline(const ComputePipelineStateStream& pss);
-		~DX12Pipeline();
+		D3D12Pipeline(const PipelineStateStream& pss);
+		D3D12Pipeline(const ComputePipelineStateStream& pss);
+		~D3D12Pipeline();
 
 		ID3D12PipelineState* GetHW() const { return m_pso; }
 
@@ -25,82 +25,51 @@ namespace Butterfly
 	class BFPipelineCache
 	{
 	public:
-		static const DX12Pipeline& GetOrCreatePipeline(uint64_t hash, PipelineStateStream* pss);
-
+		static const D3D12Pipeline& GetOrCreatePipeline(uint64_t hash, PipelineStateStream* pss);
+		static const D3D12Pipeline& GetOrCreatePipeline(uint64_t hash, ComputePipelineStateStream* pss);
 	private:
-		inline static std::unordered_map<size_t, const DX12Pipeline*> s_pipelines;
-	};
-
-	class BFComputePipelineState;
-
-	class BFPipelineStateCache : private NonCopyableNonMoveable
-	{
-	public:
-		static const DX12Pipeline& GetOrCreatePipeline(const BFComputePipelineState& state);
-
-	private:
-		inline static std::unordered_map<uint64_t, const DX12Pipeline*> s_pipelines;
-	};
-
-	class BFPipelineBuilder : private NonCopyable
-	{
-	public:
-		BFPipelineBuilder()
-			: m_hash(0u)
-		{
-		}
-
-		BFPipelineBuilder& VertexShader(const BFShader* vs);
-		BFPipelineBuilder& PixelShader(const BFShader* ps);
-
-		BFPipelineBuilder& DepthStencilFormat(DXGI_FORMAT format);
-		BFPipelineBuilder& CullingMode(D3D12_CULL_MODE mode);
-		BFPipelineBuilder& RenderTargetFormats(const std::vector<DXGI_FORMAT>& formats);
-		BFPipelineBuilder& PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE type);
-		BFPipelineBuilder& EnableBlending();
-
-		BFPipelineBuilder& DepthEnable(bool enable);
-		BFPipelineBuilder& DepthWriteMask(D3D12_DEPTH_WRITE_MASK mask);
-		BFPipelineBuilder& DepthFunc(D3D12_COMPARISON_FUNC func);
-
-		const DX12Pipeline& Create();
-
-	private:
-		PipelineStateStream m_pss = {};
-		uint64_t m_hash;
+		inline static std::unordered_map<size_t, const D3D12Pipeline*> s_pipelines;
 	};
 
 
-
-	struct RasterizerState
+	struct BlendState
 	{
-		D3D12_CULL_MODE CullMode;
+		bool EnableBlending = false;
+		D3D12_BLEND SrcBlend = D3D12_BLEND_SRC_ALPHA;
+		D3D12_BLEND DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+		D3D12_BLEND_OP BlendOp = D3D12_BLEND_OP_ADD;
+
+		D3D12_BLEND SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+		D3D12_BLEND DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+		D3D12_BLEND_OP BlendOpAlpha = D3D12_BLEND_OP_ADD;
+
+		D3D12_COLOR_WRITE_ENABLE RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	};
+
+	struct DepthStencilState
+	{
+		BlendState BlendStates[8];
+		D3D12_COMPARISON_FUNC DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		D3D12_DEPTH_WRITE_MASK WriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 		bool EnableDepth = true;
 	};
 
-	struct BFGraphicsPipelineState
+	struct RasterizerState
 	{
+		D3D12_CULL_MODE CullMode = D3D12_CULL_MODE_BACK;
+	};
+
+	struct BFGraphicsPSOInfo
+	{
+		D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		BFShader* VertexShader;
 		BFShader* PixelShader;
 		RasterizerState Rasterizer;
+		DepthStencilState DepthStencil;	
 	};
 
-	struct BFComputePipelineState
+	struct BFComputePSOInfo
 	{
 		BFShader* ComputeShader;
-	};
-}
-
-namespace std
-{
-	template<>
-	struct hash<Butterfly::BFComputePipelineState>
-	{
-		size_t operator()(const Butterfly::BFComputePipelineState& state) const
-		{
-			size_t hash = state.ComputeShader->NumBytes();
-			Butterfly::Utils::SumHash(hash, static_cast<uint64_t>(state.ComputeShader->Type()));;
-			return hash;
-		}
 	};
 }

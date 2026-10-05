@@ -16,7 +16,7 @@ namespace Butterfly
 		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		desc.Width = viewport.Size().x;
 		desc.Height = viewport.Size().y;
-		desc.Flags = BFTextureDesc::ShaderResource | BFTextureDesc::RenderTargettable;
+		desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource | BFTextureDesc::ViewType::RenderTargettable;
 		desc.DebugName = "ColorCorrected_CompositeRenderTarget";
 
 		BFRGTexture* compCopy = builder.CreateTransientTexture("CompositeRenderTarget", desc);
@@ -24,21 +24,20 @@ namespace Butterfly
 		CCPassData* data = builder.AllocParameters<CCPassData>();
 		builder.AddPass<CCPassData>("ColorspaceCorrectionPass", [&, compCopy](const CCPassData& data, D3D12CommandList& list)
 			{
-				list.List()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				RasterPassStartInfo info;
+				info.RenderTargetLoadOp = LoadOP::Load;
+				info.RenderTarget = compCopy->Resource().get();
+				list.StartRenderPass(info, "ColorspaceCorrectionPass");
 
-				GraphicsCommands::SetRenderTargets(list, { compCopy->Resource().get() }, nullptr);
+				list.SetViewport(RenderViewport::FromTexture(*compCopy->Resource()));
 
-				GraphicsCommands::SetFullscreenViewportAndRect(list, viewport.Size().x, viewport.Size().y);
+				BFGraphicsPSOInfo pso;
+				pso.Rasterizer.CullMode = D3D12_CULL_MODE_NONE;
+				pso.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex);
+				pso.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/CopyToSRGB_frag.hlsl", ShaderType::Pixel);
+				pso.DepthStencil.EnableDepth = false;
 
-				BFPipelineBuilder psoBuilder;
-				psoBuilder.PrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-				psoBuilder.RenderTargetFormats({ DXGI_FORMAT_R8G8B8A8_UNORM });
-				psoBuilder.VertexShader(BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex));
-				psoBuilder.PixelShader(BFShaderCache::GetOrCreate(L"assets/Shaders/CopyToSRGB_frag.hlsl", ShaderType::Pixel));
-				psoBuilder.DepthEnable(false);
-				psoBuilder.CullingMode(D3D12_CULL_MODE_NONE);
-
-				list.List()->SetPipelineState(psoBuilder.Create().GetHW());
+				list.SetGraphicsPSO(pso);
 
 				viewport.GetRenderTarget().Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				ShaderVariables()
@@ -48,8 +47,9 @@ namespace Butterfly
 
 				list.DrawInstanced(6, 1, 0, 0);
 
-				GraphicsCommands::Blit(list, *compCopy->Resource(), viewport.GetRenderTarget());
+				list.EndRenderPass();
 
+				GraphicsCommands::Blit(list, *compCopy->Resource(), viewport.GetRenderTarget());
 			});
 	}
 }
