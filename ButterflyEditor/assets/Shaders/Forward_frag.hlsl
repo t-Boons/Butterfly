@@ -86,6 +86,7 @@ struct BufferIndices
     int numLights;
     int materialBuffer;
     int materialIndex;
+    int skyboxTextureIndex;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
@@ -147,11 +148,26 @@ float4 main(V2P pixelInput) : SV_TARGET0
 
     float3 diffuseColor = albedo * (1.0 - metallic);
     float3 lightDir = normalize(float3(0.5, 1.0, 0.0f));
-    float3 lighting = float3(0.0, 0.0, 0.0);
     
     float3 N = normal;
     float3 V = normalize(pixelInput.eye - pixelInput.fragPos);
     float NoV = saturate(dot(N, V));
+
+    float3 ambient = float3(0.0, 0.0, 0.0);
+    float3 reflection = float3(0.0, 0.0, 0.0);
+
+    if (resources.skyboxTextureIndex >= 0)
+    {
+        TextureCube<float4> skyboxTex = ResourceDescriptorHeap[resources.skyboxTextureIndex];
+        float3 skyColor = skyboxTex.Sample(smp, N).rgb;
+        ambient = albedo * skyColor * (1.0 - metallic);
+
+        float3 R = reflect(-V, N);
+        reflection = skyboxTex.Sample(smp, R).rgb;
+    }
+    
+    float3 lighting = ambient;
+    lighting += reflection * metallic * 0.05f;
     
     for (int i = 0; i < resources.numLights; i++)
     {

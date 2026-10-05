@@ -13,6 +13,13 @@
 
 namespace Butterfly
 {
+	class BFTexture;
+	struct SkyboxPassParams
+	{
+		BFTexture* SkyboxTexture;
+	};
+
+
 	class ViewportRenderEvent;
 	class SkyboxRenderPipelineStage : public IRenderPipelineStage
 	{

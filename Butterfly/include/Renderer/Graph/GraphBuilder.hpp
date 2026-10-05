@@ -88,16 +88,13 @@ namespace Butterfly
 		BF_PROFILE_EVENT();
 
 		static_assert(!std::is_same<PassType, ParamStruct>::value, "PassType and ParamStruct may not be the same type.");
-		BF_CORE_ASSERT(HasPassType<ParamStruct>(), "GraphBuilder does not have a pass with type: %s", typeid(ParamStruct).name());
-
-
-		auto& depVec = PassFromType<PassType>()->m_dependencies;
-		if (std::find(depVec.begin(), depVec.end(), typeid(ParamStruct)) == depVec.end())
-		{
-			depVec.push_back(typeid(ParamStruct));
-		}
 
 		Pass<ParamStruct>* pass = PassFromType<ParamStruct>();
+		if (!pass)
+		{
+			return nullptr;
+		}
+
 		return &pass->m_parameters;
 	}
 
@@ -130,7 +127,10 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		BF_CORE_ASSERT(HasPassType<ParamStruct>(), "Pass with type ParamStruct cannot be found: %s", typeid(ParamStruct).name());
+		if (!HasPassType<ParamStruct>())
+		{
+			return nullptr;
+		}
 		return reinterpret_cast<Pass<ParamStruct>*>(m_graph->Passes[m_graph->PassTypes[typeid(ParamStruct)]]);
 	}
 

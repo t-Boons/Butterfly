@@ -24,6 +24,7 @@ struct BufferIndices
     int numLights;
     int materialBuffer;
     int materialIndex;
+    int skyboxTextureIndex;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);

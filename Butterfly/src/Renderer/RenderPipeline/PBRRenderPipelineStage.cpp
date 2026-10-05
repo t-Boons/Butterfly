@@ -9,6 +9,8 @@
 #include "Renderer/Material.hpp"
 #include "Renderer/Light.hpp"
 
+#include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"
+
 namespace Butterfly
 {
 	PBRRenderPipelineStage::PBRRenderPipelineStage()
@@ -31,6 +33,16 @@ namespace Butterfly
 		Viewport& viewport = ev.Viewport;
 
 		ForwardRenderer* params = builder.AllocParameters<ForwardRenderer>();
+
+		int skyboxTextureViewIndex = -1;
+		if (SkyboxPassParams* skyboxParams = builder.GetPassData<ForwardRenderer, SkyboxPassParams>())
+		{
+			if (skyboxParams->SkyboxTexture)
+			{
+				skyboxTextureViewIndex = skyboxParams->SkyboxTexture->SRV().View();
+			}
+		}
+		
 
 		params->Comp = &viewport.GetRenderTarget();
 
@@ -56,7 +68,7 @@ namespace Butterfly
 		}
 
 		builder.AddPass<ForwardRenderer>("Forward Model",
-			[&](const ForwardRenderer& params, D3D12CommandList& list)
+			[&, skyboxTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
 
@@ -65,8 +77,8 @@ namespace Butterfly
 				info.DepthStencil = &viewport.GetDepthStencil();
 				info.ClearColor = { 0.05f, 0.1f, 0.15f, 1.0f };
 				info.DepthValue = 1.0f;
-				info.RenderTargetLoadOp = LoadOP::Clear;
-				info.DepthStencilLoadOp = LoadOP::Clear;
+				info.RenderTargetLoadOp = LoadOP::Load;
+				info.DepthStencilLoadOp = LoadOP::Load;
 
 				list.StartRenderPass(info, "Forward Model Pass");
 
@@ -109,6 +121,7 @@ namespace Butterfly
 							.Add(viewport.Lights->GetNumLights())
 							.Add(viewport.Materials->GetMaterialBuffer().SRV().View())
 							.Add(viewport.Materials->GetMaterialIndex(subMesh.Material.GetID()))
+							.Add(skyboxTextureViewIndex)
 							.Submit(list);
 
 						list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);

@@ -13,19 +13,34 @@ namespace Butterfly
 		void SetPosition(const glm::vec3& position);
 		void SetRotation(const glm::quat& rotation);
 		void SetScale(const glm::vec3& scale);
+
+		void SetLocalPosition(const glm::vec3& position);
+		void SetLocalRotation(const glm::quat& rotation);
+		void SetLocalScale(const glm::vec3& scale);
+
 		void SetWorldMatrix(const glm::mat4& matrix);
 		void SetLocalMatrix(const glm::mat4& matrix);
+
 		void Attach(TransformComponent& other, uint32_t childIndex = 0);
+		Entity GetChild(uint32_t index) const { return m_children[index]; }
 
 		const glm::vec3& GetPosition() const { return m_position; }
 		const glm::quat& GetRotation() const { return m_rotation; }
 		const glm::vec3& GetScale() const { return m_scale; }
-		Entity GetChild(uint32_t index) const { return m_children[index]; }
+		const glm::vec3& GetLocalPosition() const { return m_localPosition; }
+		const glm::quat& GetLocalRotation() const { return m_localRotation; }
+		const glm::vec3& GetLocalScale() const { return m_localScale; }
+
+
 		const glm::mat4& GetLocalMatrix() const { return m_localMatrix; }
 		const glm::mat4& GetWorldMatrix();
+
 		glm::vec3 GetForward() const { return glm::normalize(m_rotation * glm::vec3(0.0f, 0.0f, -1.0f)); }
 		glm::vec3 GetUp() const { return glm::normalize(m_rotation * glm::vec3(0.0f, 1.0f, 0.0f)); }
 		glm::vec3 GetRight() const { return glm::normalize(m_rotation * glm::vec3(1.0f, 0.0f, 0.0f)); }
+		glm::vec3 GetLocalForward() const { return glm::normalize(m_localRotation * glm::vec3(0.0f, 0.0f, -1.0f)); }
+		glm::vec3 GetLocalUp() const { return glm::normalize(m_localRotation * glm::vec3(0.0f, 1.0f, 0.0f)); }
+		glm::vec3 GetLocalRight() const { return glm::normalize(m_localRotation * glm::vec3(1.0f, 0.0f, 0.0f)); }
 
 		bool IsChildOf(const TransformComponent& other) const;
 
@@ -48,9 +63,14 @@ namespace Butterfly
 		void SetParentUUID(const UUID& uuid) { m_parentUUID = uuid; }
 		const UUID& GetParentUUID() const { return m_parentUUID; }
 
-		void InvalidateMatrix();
-
 		void ValidateAfterDeserialization(Scene& scene);
+
+		void WorldMatrixChanged();
+		void LocalMatrixChanged();
+
+		glm::vec3 m_localPosition = { 0.0f, 0.0f, 0.0f };
+		glm::quat m_localRotation = { 1.0f, 0.0f, 0.0f, 0.0f };
+		glm::vec3 m_localScale = { 1.0f, 1.0f, 1.0f };
 
 		glm::vec3 m_position = { 0.0f, 0.0f, 0.0f };
 		glm::quat m_rotation = { 1.0f, 0.0f, 0.0f, 0.0f };

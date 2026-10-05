@@ -114,11 +114,8 @@ namespace Butterfly
 		GraphBuilder& builder = ev.Builder;
 		Viewport& viewport = ev.Viewport;
 
-		struct SkyboxPassParams
-		{
-		};
-
 		SkyboxPassParams* params = builder.AllocParameters<SkyboxPassParams>();
+		params->SkyboxTexture = m_skyboxTexture.get();
 
 		ForwardRenderer* forwardParams = builder.GetPassData<SkyboxPassParams, ForwardRenderer>();
 

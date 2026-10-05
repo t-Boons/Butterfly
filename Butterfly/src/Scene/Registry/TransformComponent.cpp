@@ -14,19 +14,37 @@ namespace Butterfly
 	void TransformComponent::SetPosition(const glm::vec3& position)
 	{
 		m_position = position;
-		InvalidateMatrix();
+		WorldMatrixChanged();
 	}
-
+	
 	void TransformComponent::SetRotation(const glm::quat& rotation)
 	{
 		m_rotation = rotation;
-		InvalidateMatrix();
+		WorldMatrixChanged();
 	}
 
 	void TransformComponent::SetScale(const glm::vec3& scale)
 	{
 		m_scale = scale;
-		InvalidateMatrix();
+		WorldMatrixChanged();
+	}
+
+	void TransformComponent::SetLocalPosition(const glm::vec3& position)
+	{
+		m_localPosition = position;
+		LocalMatrixChanged();
+	}
+
+	void TransformComponent::SetLocalRotation(const glm::quat& rotation)
+	{
+		m_localRotation = rotation;
+		LocalMatrixChanged();
+	}
+
+	void TransformComponent::SetLocalScale(const glm::vec3& scale)
+	{
+		m_localScale = scale;
+		LocalMatrixChanged();
 	}
 
 	void TransformComponent::SetLocalMatrix(const glm::mat4& matrix)
@@ -34,14 +52,27 @@ namespace Butterfly
 		m_localMatrix = matrix;
 		glm::vec3 scew;
 		glm::vec4 perspective;
-		glm::decompose(matrix, m_scale, m_rotation, m_position, scew, perspective);
+		glm::decompose(matrix, m_localScale, m_localRotation, m_localPosition, scew, perspective);
 
-		InvalidateMatrix();
+		for (auto& child : m_children)
+		{
+			child.GetComponent<TransformComponent>().SetWorldMatrix(matrix * child.GetComponent<TransformComponent>().GetLocalMatrix());
+		}
 	}
+
 	void TransformComponent::SetWorldMatrix(const glm::mat4& matrix)
 	{
-		glm::mat4 parentMatrix = m_parent.GetComponent<TransformComponent>().GetWorldMatrix();
+		glm::mat4 parentMatrix = glm::mat4(1.0f);
+		if (m_parent)
+		{
+			parentMatrix = m_parent.GetComponent<TransformComponent>().GetWorldMatrix();
+		}
 
+		glm::vec3 scew;
+		glm::vec4 perspective;
+		glm::decompose(matrix, m_scale, m_rotation, m_position, scew, perspective);
+
+		m_matrix = matrix;
 		SetLocalMatrix(glm::inverse(parentMatrix) * matrix);
 	}
 
@@ -91,8 +122,7 @@ namespace Butterfly
 		m_children.insert(m_children.begin() + childIndex, other.m_thisEntity);
 		m_childrenUUIDs.insert(m_childrenUUIDs.begin() + childIndex, other.m_thisEntity.GetComponent<IDComponent>().EntityUUID);
 
-		other.InvalidateMatrix();
-		InvalidateMatrix();
+		other.SetLocalMatrix(glm::inverse(GetWorldMatrix()) * other.GetWorldMatrix());
 	}
 
 	Entity TransformComponent::GetRoot() const
@@ -121,25 +151,6 @@ namespace Butterfly
 
 	const glm::mat4& TransformComponent::GetWorldMatrix()
 	{
-		if (m_isMatrixDirty)
-		{
-			m_matrix = glm::translate(glm::mat4(1.0f), m_position) *
-				glm::mat4_cast(m_rotation) *
-				glm::scale(glm::mat4(1.0f), m_scale);
-
-			m_localMatrix = m_matrix;
-
-			if (m_parent)
-			{
-				m_matrix = m_parent.GetComponent<TransformComponent>().GetWorldMatrix() * m_matrix;
-			}	
-			else
-			{
-				m_matrix = glm::mat4(1.0f);
-			}
-
-			m_isMatrixDirty = false;
-		}
 		return m_matrix;
 	}
 
@@ -152,18 +163,10 @@ namespace Butterfly
 	{
 		m_childrenUUIDs = uuids;
 	}
+
 	std::vector<UUID> TransformComponent::GetChildrenUUIDs() const
 	{
 		return m_childrenUUIDs;
-	}
-
-	void TransformComponent::InvalidateMatrix()
-	{
-		m_isMatrixDirty = true;
-		for (auto& child : m_children)
-		{
-			child.GetComponent<TransformComponent>().InvalidateMatrix();
-		}
 	}
 
 	void TransformComponent::DetachParent()
@@ -206,5 +209,15 @@ namespace Butterfly
 				break;
 			}
 		}
+	}
+
+	void TransformComponent::WorldMatrixChanged()
+	{
+		SetWorldMatrix(glm::translate(glm::mat4(1.0f), m_position) * glm::mat4_cast(m_rotation) * glm::scale(glm::mat4(1.0f), m_scale));
+	}
+
+	void TransformComponent::LocalMatrixChanged()
+	{
+		SetLocalMatrix(glm::translate(glm::mat4(1.0f), m_localPosition) * glm::mat4_cast(m_localRotation) * glm::scale(glm::mat4(1.0f), m_localScale));
 	}
 }

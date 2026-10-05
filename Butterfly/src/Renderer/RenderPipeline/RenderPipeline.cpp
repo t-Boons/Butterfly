@@ -2,13 +2,16 @@
 #include "Renderer/RenderPipeline/PBRRenderPipelineStage.hpp"
 #include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"
 #include "Renderer/RenderPipeline/ColorspaceCorrectionRenderPipelineStage.hpp"
+#include "Renderer/RenderPipeline/ClearRenderPipelineStage.hpp"
+
 namespace Butterfly
 {
 	RenderPipeline::RenderPipeline(Renderer& renderer)
 		: m_renderer(renderer)
 	{
-		RegisterStage<PBRRenderPipelineStage>();
+		RegisterStage<ClearRenderPipelineStage>();
 		RegisterStage<SkyboxRenderPipelineStage>();
+		RegisterStage<PBRRenderPipelineStage>();
 		RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
 	}
 

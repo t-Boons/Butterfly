@@ -67,7 +67,7 @@ namespace Butterfly
 
 		glm::mat4 GetViewMatrix(const glm::vec3& position, const glm::quat& rotation) const
 		{
-			return glm::inverse(glm::translate(glm::mat4(1.0f), position) * glm::toMat4(rotation));
+			return glm::mat4_cast(glm::inverse(rotation)) * glm::translate(glm::mat4(1.0f), -position);
 		}
 
 		CameraProjectionType GetProjectionType() const { return static_cast<CameraProjectionType>(m_projectionType); }
