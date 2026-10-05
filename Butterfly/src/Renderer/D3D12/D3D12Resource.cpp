@@ -191,6 +191,12 @@ namespace Butterfly
 			return *this;
 		}
 
+		DX12ResourceBuilder& DX12ResourceBuilder::Texture3D(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t depth, uint32_t numMips)
+		{
+			m_resource->BufferDescription = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, depth, 1);
+			return *this;
+		}
+
 		DX12ResourceBuilder& DX12ResourceBuilder::RenderTarget(DXGI_FORMAT format, uint32_t width, uint32_t height)
 		{
 			m_resource->BufferDescription = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height);

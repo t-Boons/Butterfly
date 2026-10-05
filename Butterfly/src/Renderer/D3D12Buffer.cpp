@@ -14,7 +14,7 @@ namespace Butterfly
             BF_PROFILE_EVENT();
 
             D3D12_INDEX_BUFFER_VIEW view;
-            view.BufferLocation = buffer.Resource()->GetGPUVirtualAddress();
+            view.BufferLocation = buffer.DXResource()->GetGPUVirtualAddress();
             view.SizeInBytes = buffer.NumBytes();
             view.Format = DXGI_FORMAT_R32_UINT;
             return view;
@@ -61,7 +61,7 @@ namespace Butterfly
             D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
             D3D12CommandList transitionList;
-            m_resource->Transition(transitionList, D3D12_RESOURCE_STATE_GENERIC_READ);
+            m_resource->Transition(transitionList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
             transitionList.Close();
             D3D12API()->Queue(QueueType::Direct)->Execute(transitionList);
@@ -95,14 +95,14 @@ namespace Butterfly
         m_resource->Write(src, numBytes, offset);
     }
 
-    ID3D12Resource2* BFStructuredBuffer::Resource() const
+    D3D12Resource* BFStructuredBuffer::Resource() const
     {
-        return m_resource->HwResource;
+        return m_resource;
     }
 
-    D3D12Resource& BFStructuredBuffer::DXResource() const
+    ID3D12Resource2* BFStructuredBuffer::DXResource() const
     {
-        return *m_resource;
+        return m_resource->HwResource;
     }
 
     const BFShaderResourceView& BFStructuredBuffer::SRV() const
@@ -178,13 +178,15 @@ namespace Butterfly
     // BFUniformBuffer
 
     BFUniformBuffer::BFUniformBuffer(uint32_t numBytes, const std::string& resourceTag)
-        : m_numBytes(numBytes), m_bytesAllocated(0)
+        : m_bytesAllocated(0)
     {
         BF_PROFILE_EVENT();
 
+        const uint32_t alignedSize = Align256(numBytes);
+		m_numBytes = alignedSize;
         D3D12Resource* resource = DX12ResourceBuilder()
             .HeapType(D3D12_HEAP_TYPE_UPLOAD)
-            .Buffer(numBytes)
+            .Buffer(alignedSize)
             .SetName(resourceTag)
             .Create();
 

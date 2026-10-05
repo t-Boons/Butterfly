@@ -46,6 +46,7 @@ namespace Butterfly
 		DX12ResourceBuilder& Buffer(const size_t& numBytes);
 		DX12ResourceBuilder& IndexBuffer(const size_t& numBytes);
 		DX12ResourceBuilder& Texture(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize, uint32_t numMips = 1);
+		DX12ResourceBuilder& Texture3D(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t depth, uint32_t numMips = 1);
 		DX12ResourceBuilder& RenderTarget(DXGI_FORMAT format, uint32_t width, uint32_t height);
 		DX12ResourceBuilder& DepthStencil(DXGI_FORMAT format, uint32_t width, uint32_t height);
 		DX12ResourceBuilder& InitialState(const D3D12_RESOURCE_STATES& state);

@@ -28,6 +28,12 @@ namespace Butterfly
 		return m_textureHandles[side];
 	}
 
+	void SkyboxComponent::SetType(SkyboxType type)
+	{
+		m_type = static_cast<uint32_t>(type);
+		MarkDirty();
+	}
+
 	void SkyboxComponent::SetTextureUUIDRight(const UUID& uuid)
 	{
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[0]))

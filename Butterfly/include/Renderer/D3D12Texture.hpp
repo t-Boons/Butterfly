@@ -15,6 +15,7 @@ namespace Butterfly
 		Texture2D,
 		Texture2DArray,
 		Cubemap,
+		Texture3D,
 	};
 
 	class BFTexture;
@@ -34,12 +35,13 @@ namespace Butterfly
 		DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
 		uint32_t Width = 0;
 		uint32_t Height = 0;
+		uint32_t Depth = 1;
 		uint32_t ArraySize = 1;
 		uint32_t ViewTypes = None;
 		std::string DebugName = "Texture";
 		bool SRGB = false;
 		uint32_t NumMips = 1; // 0 Means generate all.
-		bool GenerateMips = false;
+		//bool GenerateMips = false;
 
 		enum ViewType : uint32_t
 		{
@@ -68,7 +70,10 @@ namespace Butterfly
 
 		uint32_t Width() const { return m_desc.Width; }
 		uint32_t Height() const { return m_desc.Height; }
+		uint32_t Depth() const { return m_desc.Depth; }
 		uint32_t NumMips() const { return m_desc.NumMips; }
+		uint32_t ViewTypes() const { return m_desc.ViewTypes; }
+		BFTextureType Type() const { return m_desc.Type; }
 		D3D12Resource* Resource() { return m_resource; }
 
 	private:

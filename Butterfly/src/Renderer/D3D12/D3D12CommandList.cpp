@@ -110,7 +110,7 @@ namespace Butterfly
 
 		if (!m_bindlessBound)
 		{
-			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(*this);
+			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(*this, false);
 			m_bindlessBound = true;
 		}
 
@@ -159,7 +159,7 @@ namespace Butterfly
 
 		if (!m_bindlessBound)
 		{
-			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(*this);
+			GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(*this, true);
 			m_bindlessBound = true;
 		}
 	}

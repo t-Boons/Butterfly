@@ -206,6 +206,14 @@ namespace Butterfly
 				srvDesc.TextureCube.MipLevels = 1;
 				srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 			}
+			if (desc.Type == BFTextureType::Texture3D)
+			{
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+				srvDesc.Texture3D.MostDetailedMip = 0;
+				srvDesc.Texture3D.MipLevels = 1;
+				srvDesc.Texture3D.ResourceMinLODClamp = 0.0f;
+			}
+
 			return srvDesc;
 		}
 
@@ -236,6 +244,13 @@ namespace Butterfly
 				uavDesc.Texture2DArray.ArraySize = desc.ArraySize;
 				uavDesc.Texture2DArray.FirstArraySlice = 0;
 				uavDesc.Texture2DArray.MipSlice = 0;
+			}
+			if (desc.Type == BFTextureType::Texture3D)
+			{
+				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+				uavDesc.Texture3D.MipSlice = 0;
+				uavDesc.Texture3D.FirstWSlice = 0;
+				uavDesc.Texture3D.WSize = desc.Depth;
 			}
 			return uavDesc;
 		}
@@ -289,9 +304,13 @@ namespace Butterfly
 
 			DX12ResourceBuilder builder;
 			builder.HeapType(D3D12_HEAP_TYPE_DEFAULT);
-			builder.Texture(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.ArraySize, m_desc.NumMips);
 
-			if (m_desc.UploadData.CPUCopySource || m_desc.UploadData.GPUCopySource || m_desc.UploadData.HasValidFace())
+			if (m_desc.Type == BFTextureType::Texture3D)
+				builder.Texture3D(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.Depth, m_desc.NumMips);
+			else
+				builder.Texture(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.ArraySize, m_desc.NumMips);
+
+			if (m_desc.UploadData.CPUCopySource || m_desc.UploadData.GPUCopySource || m_desc.UploadData.HasValidFace() || m_desc.ViewTypes & BFTextureDesc::ViewType::UnorderedAccess)
 				builder.InitialState(D3D12_RESOURCE_STATE_COMMON);
 			else
 				builder.InitialState(D3D12_RESOURCE_STATE_GENERIC_READ);

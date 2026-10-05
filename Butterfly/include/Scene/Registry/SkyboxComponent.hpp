@@ -25,11 +25,8 @@ namespace Butterfly
 		void ClearDirty() { m_isDirty = false; }
 
 		SkyboxType GetType() const { return static_cast<SkyboxType>(m_type); }
-		void SetType(SkyboxType type)
-		{
-			m_type = static_cast<uint32_t>(type); 
-			MarkDirty(); 
-		}
+		void SetType(SkyboxType type);
+
 	private:
 		void MarkDirty() { m_isDirty = true; }
 
@@ -54,7 +51,7 @@ namespace Butterfly
 
 		friend class ComponentRegistry;
 
-		uint32_t  m_type = static_cast<uint32_t>(SkyboxType::Cubemap);
+		uint32_t m_type = static_cast<uint32_t>(SkyboxType::Equirectangular);
 		UUID m_hdriUUID;
 		AssetHandle<TextureAsset> m_hdriTexture;
 

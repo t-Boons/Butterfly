@@ -157,6 +157,7 @@ namespace Butterfly
 		{
 			EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(position.x - gridLineCount, 0, i), glm::vec3(position.x + gridLineCount, 0, i), color);
 		}
+
 	}
 
 	void SceneViewport::OnResize(const ViewportResizeEvent& event)

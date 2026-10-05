@@ -3,6 +3,7 @@
 #include "Asset/AssetHandle.hpp"
 #include "Renderer/D3D12Buffer.hpp"
 #include "Renderer/D3D12Texture.hpp"
+#include "Renderer/RenderIncludes.hpp"
 
 namespace Butterfly
 {
@@ -25,6 +26,9 @@ namespace Butterfly
 		RefPtr<BFStructuredBuffer> GPUTangents;
 		RefPtr<BFStructuredBuffer> GPUUVs;
 		RefPtr<BFIndexBuffer> GPUIndices;
+
+		Bounds Bounds;
+		RefPtr<BFTexture> SDF;
 
 
 		struct SubMesh
@@ -84,6 +88,47 @@ namespace Butterfly
 			}
 
 			GPULoaded = true;
+
+			for (auto& subMesh : SubMeshes)
+			{
+				for (uint32_t i = 0; i < subMesh.IndexCount; ++i)
+				{
+					uint32_t index = Indices[subMesh.IndexOffset + i];
+
+					const glm::vec3 position = Positions[index];
+					if (Bounds.Min.x > position.x) Bounds.Min.x = position.x;
+					if (Bounds.Min.y > position.y) Bounds.Min.y = position.y;
+					if (Bounds.Min.z > position.z) Bounds.Min.z = position.z;
+					if (Bounds.Max.x < position.x) Bounds.Max.x = position.x;
+					if (Bounds.Max.y < position.y) Bounds.Max.y = position.y;
+					if (Bounds.Max.z < position.z) Bounds.Max.z = position.z;
+				}
+			}
+			const float padding = 0.05f;
+			Bounds.Min -= glm::vec3(padding);
+			Bounds.Max += glm::vec3(padding);
+
+			D3D12CommandList list;
+
+			std::vector<SDFTriangle> triangles;
+			triangles.reserve(Indices.size() / 3);
+
+			for (auto& subMesh : SubMeshes)
+			{
+				for (uint32_t i = 0; i < subMesh.IndexCount; i += 3)
+				{
+					uint32_t index0 = Indices[subMesh.IndexOffset + i];
+					uint32_t index1 = Indices[subMesh.IndexOffset + i + 1];
+					uint32_t index2 = Indices[subMesh.IndexOffset + i + 2];
+					SDFTriangle triangle;
+					triangle.Vertex0 = Positions[index0];
+					triangle.Vertex1 = Positions[index1];
+					triangle.Vertex2 = Positions[index2];
+					triangles.push_back(triangle);
+				}
+			}
+
+			SDF = GraphicsCommands::CreateSDF(triangles, Bounds);
 		}
 	};
 

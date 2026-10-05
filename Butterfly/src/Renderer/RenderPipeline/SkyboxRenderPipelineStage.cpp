@@ -53,7 +53,7 @@ namespace Butterfly
 				return;
 			}
 
-			const uint32_t cubemapSize = asset->Texture->Desc().Width;
+			const uint32_t cubemapSize = asset->Texture->Desc().Height;
 			BFTextureDesc desc;
 			desc.Width = cubemapSize;
 			desc.Height = cubemapSize;
@@ -66,31 +66,7 @@ namespace Butterfly
 
 
 			D3D12CommandList list;
-
-			list.StartComputePass("EquirectangularToCubemap");
-
-			m_skyboxTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			BFComputePSOInfo pso;
-			pso.ComputeShader = BFShaderCache::GetOrCreate(L"assets/Shaders/EquirectangularToCubemap_cs.hlsl", ShaderType::Compute);
-
-			TextureAsset* hdri = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.GetTextureHandleHDRI());
-
-			BFSampler smp;
-			ShaderVariables()
-				.Add(hdri->Texture->SRV().View())
-				.Add(m_skyboxTexture->UAV().View())
-				.Add(smp.View())
-				.Add(cubemapSize)
-				.Submit(list, true);
-
-			list.SetComputePSO(pso);
-			const uint32_t groupsX = (cubemapSize + 7) / 8;
-			const uint32_t groupsY = (cubemapSize + 7) / 8;
-			list.Dispatch(groupsX, groupsY, 6);
-
-			m_skyboxTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-			list.EndComputePass();
+			GraphicsCommands::EquirectangularToCubemap(list, *asset->Texture, *m_skyboxTexture);
 
 			list.Close();
 			D3D12API()->Queue(QueueType::Direct)->Execute(list);
