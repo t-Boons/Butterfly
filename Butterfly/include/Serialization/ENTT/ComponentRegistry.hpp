@@ -221,7 +221,7 @@ namespace Butterfly
 			entt::meta_factory<CameraComponent>{}
 			.type("Camera").custom<ComponentProperties>(Serializable{}, InspectComponent{})
 				.data<&CameraComponent::SetProjectionTypeAsUInt, &CameraComponent::GetProjectionTypeAsUInt>("ProjectionType").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsEnumSelector{ {"Perspective", "Orthographic"} })
-				.data<&CameraComponent::SetFov, &CameraComponent::GetFov>("Fov").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<CameraComponent>{[](const CameraComponent& component) { return component.GetProjectionType() == CameraProjectionType::Perspective; }}, AsSlider{0.0f, 180.0f})
+				.data<&CameraComponent::SetFov, &CameraComponent::GetFov>("Fov").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<CameraComponent>{[](const CameraComponent& component) { return component.GetProjectionType() == CameraProjectionType::Perspective; }})
 				.data<&CameraComponent::SetSize, &CameraComponent::GetSize>("Size").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<CameraComponent>{[](const CameraComponent& component) { return component.GetProjectionType() == CameraProjectionType::Orthographic; }})
 				.data<&CameraComponent::SetZNear, &CameraComponent::GetZNear>("ZNear").custom<ComponentProperties>(Serializable{}, InspectProperty{})
 				.data<&CameraComponent::SetZFar, &CameraComponent::GetZFar>("ZFar").custom<ComponentProperties>(Serializable{}, InspectProperty{})

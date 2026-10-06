@@ -9,10 +9,7 @@ namespace Butterfly
 	RenderPipeline::RenderPipeline(Renderer& renderer)
 		: m_renderer(renderer)
 	{
-		RegisterStage<ClearRenderPipelineStage>();
-		RegisterStage<SkyboxRenderPipelineStage>();
-		RegisterStage<PBRRenderPipelineStage>();
-		RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
+		AddDefaultStages();
 	}
 
 	void RenderPipeline::RecordPasses(const ViewportRenderEvent& ev)
@@ -29,6 +26,20 @@ namespace Butterfly
 		{
 			stage->OnPostRender();
 		}
+	}
+
+	void RenderPipeline::ClearStages()
+	{
+		m_renderPipelineStages.clear();
+	}
+
+	void RenderPipeline::AddDefaultStages()
+	{
+		ClearStages();
+		RegisterStage<ClearRenderPipelineStage>();
+		RegisterStage<SkyboxRenderPipelineStage>();
+		RegisterStage<PBRRenderPipelineStage>();
+		RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
 	}
 
 }

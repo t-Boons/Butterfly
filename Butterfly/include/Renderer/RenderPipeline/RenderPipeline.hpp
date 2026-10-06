@@ -47,6 +47,9 @@ namespace Butterfly
 		void RecordPasses(const ViewportRenderEvent& ev);
 		void PostRender();
 
+		void ClearStages();
+		void AddDefaultStages();
+
 	private:
 		std::vector<RefPtr<IRenderPipelineStage>> m_renderPipelineStages;
 		Renderer& m_renderer;

@@ -86,7 +86,7 @@ struct BufferIndices
     int numLights;
     int materialBuffer;
     int materialIndex;
-    int skyboxTextureIndex;
+    int debugViewIndex;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
@@ -146,97 +146,33 @@ float4 main(V2P pixelInput) : SV_TARGET0
         emissive = emissiveTex.Sample(smp, pixelInput.texCoord).xyz;
     }
 
-    float3 diffuseColor = albedo * (1.0 - metallic);
-    float3 lightDir = normalize(float3(0.5, 1.0, 0.0f));
-    
-    float3 N = normal;
-    float3 V = normalize(pixelInput.eye - pixelInput.fragPos);
-    float NoV = saturate(dot(N, V));
-
-    float3 ambient = float3(0.0, 0.0, 0.0);
-    float3 reflection = float3(0.0, 0.0, 0.0);
-
-    if (resources.skyboxTextureIndex >= 0)
+    if (resources.debugViewIndex == 1) // Normals
     {
-        TextureCube<float4> skyboxTex = ResourceDescriptorHeap[resources.skyboxTextureIndex];
-        float3 skyColor = skyboxTex.Sample(smp, N).rgb;
-        ambient = albedo * skyColor * (1.0 - metallic);
-
-        float3 R = reflect(-V, N);
-        reflection = skyboxTex.Sample(smp, R).rgb;
+        return float4(normal * 0.5 + 0.5, 1.0f);
     }
-    
-    float3 lighting = ambient;
-    lighting += reflection * metallic * 0.05f;
-    
-    for (int i = 0; i < resources.numLights; i++)
+    else if (resources.debugViewIndex == 2) // Albedo
     {
-        Light light = lights[i];
-       
-        if(light.Type == 0) // Directional Light
-        {
-            float3 L = normalize(-light.Direction);
-            float3 H = normalize(L + V);
-            float NoL = saturate(dot(N, L));
-            float NoH = saturate(dot(N, H));
-            float VoH = saturate(dot(V, H));
-            
-            float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
-            float3 F = F_Schlick(F0, VoH);
-            float D = D_GGX(alphaRoughness, NoH);
-            float Vis = V_GGX(alphaRoughness, NoV, NoL);
-
-            float3 specularBRDF = F * Vis * D;
-            float3 diffuseBRDF = diffuseColor / PI;
-
-            lighting += (diffuseBRDF + specularBRDF) * NoL * light.Color;
-            
-            continue;
-        }
-        
-        float distance = length(light.Position - pixelInput.fragPos);
-        if (distance >= light.Range)
-        {
-            continue;
-        }
-        
-        float inverseSquare = 1.0 / max(distance * distance, EPSILON);
-        float rangeFade = 1.0 - saturate(distance / light.Range);
-        rangeFade *= rangeFade;
-        
-        
-        float3 L = normalize(light.Position - pixelInput.fragPos);
-        float3 H = normalize(L + V);
-        float NoL = saturate(dot(N, L));
-        float NoH = saturate(dot(N, H));
-        float VoH = saturate(dot(V, H));
-
-        float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
-        float3 F = F_Schlick(F0, VoH);
-        float D = D_GGX(alphaRoughness, NoH);
-        float Vis = V_GGX(alphaRoughness, NoV, NoL);
-
-        float3 specularBRDF = F * Vis * D;
-        float3 diffuseBRDF = diffuseColor / PI;
-
-
-        
-        if (light.Type == 1) // Point Light
-        {
-            float attenuation = inverseSquare * rangeFade;
-            lighting += (diffuseBRDF + specularBRDF) * NoL * attenuation * light.Color;
-            
-            continue;
-        }
-        
-        if(light.Type == 2) // Spot light
-        {
-            float cone = smoothstep(light.OuterConeAngleCos, light.InnerConeAngleCos, dot(-L, normalize(light.Direction)));
-            float attenuation = inverseSquare * rangeFade * cone;
-            lighting += (diffuseBRDF + specularBRDF) * NoL * attenuation * light.Color;
-            continue;
-        }
+        return float4(albedo, 1.0f);
     }
-    
-    return float4(lighting.xyz + emissive * material.EmissiveColor.rgb, 1.0f);
+    else if (resources.debugViewIndex == 3) // Roughness
+    {
+        return float4(perceptualRoughness, perceptualRoughness, perceptualRoughness, 1.0f);
+    }
+    else if (resources.debugViewIndex == 4) // Metallic
+    {
+        return float4(metallic, metallic, metallic, 1.0f);
+    }
+    else if (resources.debugViewIndex == 5) // Emission
+    {
+        return float4(emissive, 1.0f);
+    }
+    else if (resources.debugViewIndex == 6) // Depth
+    {
+        float depth = pixelInput.fragPos.z;
+        return float4(depth, depth, depth, 1.0f);
+    }
+    else if (resources.debugViewIndex == 7) // UVs
+    {
+        return float4(pixelInput.texCoord, 0.0f, 1.0f);
+    }
 }

@@ -44,12 +44,12 @@ namespace Butterfly
 				gpuLight.InnerConeAngleCos = glm::cos(glm::radians(light.GetInnerConeAngle()));
 				gpuLight.OuterConeAngleCos = glm::cos(glm::radians(light.GetOuterConeAngle()));
 				gpuLight.Position = transform.GetPosition();
-				gpuLight.Direction = transform.GetRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
+				gpuLight.Direction = transform.GetForward();
 				m_lights.push_back(gpuLight);
 			}
 
 			if (m_gpuLights->NumElements() < m_lights.size())
-			{
+			{	
 				BFStructuredBufferDesc desc;
 				desc.NumElements = static_cast<uint32_t>(m_lights.size() * 2);
 				desc.Stride = sizeof(GPULight);

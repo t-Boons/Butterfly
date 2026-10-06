@@ -267,11 +267,21 @@ namespace Butterfly
 				outMaterial->BaseColor[i] = static_cast<float>(material.pbrMetallicRoughness.baseColorFactor[i]);
 			}
 
-			const uint32_t numEC = static_cast<uint32_t>(material.emissiveFactor.size());
-			for (uint32_t i = 0; i < numEC; i++)
+			float emissiveStrength = 1.0f;
+
+			const auto extensionIt = material.extensions.find("KHR_materials_emissive_strength");
+			if (extensionIt != material.extensions.end())
 			{
-				outMaterial->EmissiveColor[i] = static_cast<float>(material.emissiveFactor[i]);
+				const tinygltf::Value& extension = extensionIt->second;
+				if (extension.Has("emissiveStrength"))
+				{
+					emissiveStrength = static_cast<float>(extension.Get("emissiveStrength").GetNumberAsDouble());
+				}
 			}
+
+			outMaterial->EmissiveColor.x = static_cast<float>(material.emissiveFactor[0]) * emissiveStrength;
+			outMaterial->EmissiveColor.y = static_cast<float>(material.emissiveFactor[1]) * emissiveStrength;
+			outMaterial->EmissiveColor.z = static_cast<float>(material.emissiveFactor[2]) * emissiveStrength;
 
 			outMaterial->Metallic = static_cast<float>(material.pbrMetallicRoughness.metallicFactor);
 			outMaterial->Roughness = static_cast<float>(material.pbrMetallicRoughness.roughnessFactor);

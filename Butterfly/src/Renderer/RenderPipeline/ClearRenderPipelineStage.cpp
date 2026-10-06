@@ -15,7 +15,7 @@ namespace Butterfly
 				RasterPassStartInfo info;
 				info.RenderTarget = &ev.Viewport.GetRenderTarget();
 				info.DepthStencil = &ev.Viewport.GetDepthStencil();
-				info.ClearColor = { 0.1f, 0.02f, 0.02f, 1.0f };
+				info.ClearColor = { 0.05f, 0.05f, 0.1f, 1.0f };
 				info.DepthValue = 1.0f;
 				info.DepthStencilLoadOp = LoadOP::Clear;
 				info.RenderTargetLoadOp = LoadOP::Clear;
