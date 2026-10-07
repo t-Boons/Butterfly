@@ -93,9 +93,19 @@ namespace Butterfly
 			Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);
 		}
 
+		if (!m_oldCameraFound)
+		{
+			const ImVec2 textSize = ImGui::CalcTextSize("NO CAMERA");
+			const ImVec2 windowSize = ImGui::GetWindowSize();
+			const ImVec2 windowPos = ImGui::GetWindowPos();
+			ImGui::GetWindowDrawList()->AddText(ImVec2(windowPos.x + (windowSize.x - textSize.x) * 0.5f, windowPos.y + (windowSize.y - textSize.y) * 0.5f), IM_COL32(255, 225, 225, 255), "NO CAMERA");
+		}
+
 		glm::vec2 viewportSize = glm::vec2(Application::Get().GetRenderer().GetViewport(m_viewportHandle).Size());
 		ImGui::InputFloat2("Viewport Size", &viewportSize[0], "%.0f", ImGuiInputTextFlags_ReadOnly);
 		ImGui::DragInt("Main Camera Index", (int*)&m_mainCameraIndex, 1.0f, 0, 10);
+
+
 
 		ImGui::PopStyleVar(2);
 		ImGui::End();
