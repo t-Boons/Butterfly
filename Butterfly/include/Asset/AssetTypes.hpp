@@ -28,6 +28,7 @@ namespace Butterfly
 		RefPtr<BFIndexBuffer> GPUIndices;
 
 		Bounds Bounds;
+		glm::vec3 SDFResolution = { 128.0f, 128.0f, 128.0f };
 		RefPtr<BFTexture> SDF;
 
 
@@ -107,7 +108,7 @@ namespace Butterfly
 			const float padding = 0.05f;
 			Bounds.Min -= glm::vec3(padding);
 			Bounds.Max += glm::vec3(padding);
-
+			SDFResolution = glm::vec3(32.0f, 32.0f, 32.0f);
 			D3D12CommandList list;
 
 			std::vector<SDFTriangle> triangles;
@@ -128,7 +129,7 @@ namespace Butterfly
 				}
 			}
 
-			//cSDF = GraphicsCommands::CreateSDF(triangles, Bounds);
+			SDF = GraphicsCommands::CreateSDF(triangles, Bounds, { 32, 32, 32 });
 		}
 	};
 

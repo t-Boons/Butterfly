@@ -10,6 +10,7 @@ namespace Butterfly
 
 	struct Bounds
 	{
+		glm::vec3 Size() const { return Max - Min; }
 		glm::vec3 Min = glm::vec3{ 0.0 };
 		glm::vec3 Max = glm::vec3{ 0.0 };
 	};
@@ -24,7 +25,7 @@ namespace Butterfly
 	class GraphicsCommands
 	{
 	public:
-		static RefPtr<BFTexture> CreateSDF(const std::vector<SDFTriangle>& triangleBuffer, const Bounds& bounds);
+		static RefPtr<BFTexture> CreateSDF(const std::vector<SDFTriangle>& triangleBuffer, const Bounds& bounds, const glm::uvec3& resolution);
 		static void Blit(D3D12CommandList& list, BFTexture& src, BFTexture& dst);
 		static void EquirectangularToCubemap(D3D12CommandList& list, BFTexture& equirectangular, BFTexture& cubemap);
 		static void SetFullscreenViewportAndRect(D3D12CommandList& list, uint32_t width, uint32_t height);

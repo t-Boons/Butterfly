@@ -8,6 +8,9 @@ struct ModelMatrixData
 {
     float4x4 ModelMatrix;
     float3x3 NormalMatrix;
+    float3 BoundsMin;
+    float3 BoundsSize;
+    float3 SDFResolution;
 };
 
 struct BufferIndices

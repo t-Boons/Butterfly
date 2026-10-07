@@ -58,10 +58,15 @@ namespace Butterfly
 				continue;
 			}
 
+			MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+
 			const glm::mat4 model = transform.GetWorldMatrix();
 			ModelMatrixData modelData;
 			modelData.ModelMatrix = model;
 			modelData.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+			modelData.BoundsMin = mesh->Bounds.Min;
+			modelData.BoundsSize = mesh->Bounds.Size();
+			modelData.SDFResolution = mesh->SDFResolution;
 			viewport.ModelMatrices->Write(&modelData, sizeof(ModelMatrixData), entityIndex * sizeof(ModelMatrixData));
 
 			entityIndex++;

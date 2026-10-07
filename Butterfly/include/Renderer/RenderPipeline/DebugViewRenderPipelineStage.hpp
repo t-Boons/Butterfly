@@ -15,6 +15,7 @@ namespace Butterfly
 		Metallic,
 		Emission,
 		UVs,
+		SDF
 	};
 
 	class DebugViewRenderPipelineStage : public IRenderPipelineStage

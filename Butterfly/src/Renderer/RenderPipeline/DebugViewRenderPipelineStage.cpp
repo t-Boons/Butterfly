@@ -35,11 +35,17 @@ namespace Butterfly
 				continue;
 			}
 
+			MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+
 			const glm::mat4 model = transform.GetWorldMatrix();
 			ModelMatrixData modelData;
 			modelData.ModelMatrix = model;
 			modelData.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+			modelData.BoundsMin = mesh->Bounds.Min;
+			modelData.BoundsSize = mesh->Bounds.Size();
+			modelData.SDFResolution = mesh->SDFResolution;
 			viewport.ModelMatrices->Write(&modelData, sizeof(ModelMatrixData), entityIndex * sizeof(ModelMatrixData));
+
 
 			entityIndex++;
 		}
@@ -80,6 +86,8 @@ namespace Butterfly
 					list.SetIndexBuffer(*mesh->GPUIndices);
 
 
+					mesh->SDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
 					BFSampler smp;
 					for (auto& subMesh : mesh->SubMeshes)
 					{
@@ -97,6 +105,7 @@ namespace Butterfly
 							.Add(viewport.Materials->GetMaterialBuffer().SRV().View())
 							.Add(viewport.Materials->GetMaterialIndex(subMesh.Material.GetID()))
 							.Add(static_cast<int>(m_debugViewType))
+							.Add(mesh->SDF->SRV().View())
 							.Submit(list);
 
 						list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);

@@ -8,6 +8,9 @@ struct ModelMatrixData
 {
     float4x4 ModelMatrix;
     float3x3 NormalMatrix;
+    float3 BoundsMin;
+    float3 BoundsSize;
+    float3 SDFResolution;
 };
 
 struct BufferIndices
@@ -25,6 +28,7 @@ struct BufferIndices
     int materialBuffer;
     int materialIndex;
     int debugViewIndex;
+    int sdfTextureIndex;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
@@ -38,6 +42,7 @@ struct V2P
     nointerpolation float tangentW : TANGENTW;
     float2 texCoord : TEXCOORD0;
     float3 eye : VIEWDIR;
+    float3 sdfUVW : UVW;
 };
 
 V2P main(uint vertexID : SV_VertexID)
@@ -59,5 +64,7 @@ V2P main(uint vertexID : SV_VertexID)
     output.texCoord = texcoords[vertexID];
     output.fragPos = mul(modelMatrices[resources.entityIndex].ModelMatrix, float4(position[vertexID], 1.0)).xyz;
     output.eye = uniforms.CameraPosition;
+    output.sdfUVW = (position[vertexID] - modelMatrices[resources.entityIndex].BoundsMin) / modelMatrices[resources.entityIndex].BoundsSize;
+
     return output;
 }

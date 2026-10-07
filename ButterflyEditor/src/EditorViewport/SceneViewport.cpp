@@ -320,7 +320,7 @@ namespace Butterfly
 
 		const ImVec2 windowSize = ImGui::GetWindowSize();
 		ImGui::SetCursorPos({ startCursorPos.x + 200, + startCursorPos.y});
-		std::vector<std::string> selectables = { "Lit", "Normal", "Albedo", "Roughness", "Metallic", "Emission", "Uvs" };
+		std::vector<std::string> selectables = { "Lit", "Normal", "Albedo", "Roughness", "Metallic", "Emission", "Uvs", "SDF" };
 
 
 		if (ImGUIHelpers::EnumSelector("View", selectables, m_selectedViewType))
@@ -346,12 +346,13 @@ namespace Butterfly
 					case 4: type = DebugViewType::Metallic; break;
 					case 5: type = DebugViewType::Emission; break;
 					case 6: type = DebugViewType::UVs; break;
+					case 7: type = DebugViewType::SDF; break;
 				}
 
 				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugViewRenderPipelineStage>().SetDebugViewType(type);
-				
 				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugRendererPipelineStage>();
 				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ObjectPickerRenderPipelineStage>();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
 
 			}
 		}

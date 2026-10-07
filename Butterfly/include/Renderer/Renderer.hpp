@@ -46,6 +46,10 @@ namespace Butterfly
 	{
 		glm::mat4 ModelMatrix;
 		glm::mat3 NormalMatrix;
+
+		glm::vec3 BoundsMin;
+		glm::vec3 BoundsSize;
+		glm::vec3 SDFResolution;
 	};
 
 	class BFRGTexture;

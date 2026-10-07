@@ -1,33 +1,3 @@
-#define PI 3.14159265359
-#define EPSILON 1e-5
-
-float3 F_Schlick(float3 F0, float VoH)
-{
-    return F0 + (1.0 - F0) * pow(1.0 - VoH, 5.0);
-}
-
-float D_GGX(float alphaRoughness, float NoH)
-{
-    float alphaRoughnessSq = alphaRoughness * alphaRoughness;
-    float f = NoH * NoH * (alphaRoughnessSq - 1.0) + 1.0;
-    return alphaRoughnessSq / (PI * f * f);
-}
-
-float V_GGX(float alphaRoughness, float NoV, float NoL)
-{
-    float alphaRoughnessSq = alphaRoughness * alphaRoughness;
-
-    float GGXV = NoL * sqrt(NoV * NoV * (1.0 - alphaRoughnessSq) + alphaRoughnessSq);
-    float GGXL = NoV * sqrt(NoL * NoL * (1.0 - alphaRoughnessSq) + alphaRoughnessSq);
-
-    float GGX = GGXV + GGXL;
-    if (GGX > 0.0)
-    {
-        return 0.5 / GGX;
-    }
-    return 0.0;
-}
-
 float3 MapNormal(float3 sampledNormal, float3 vertexNormal, float3 vertexTangent, float tangentSign)
 {
     float3 N = normalize(vertexNormal);
@@ -87,6 +57,7 @@ struct BufferIndices
     int materialBuffer;
     int materialIndex;
     int debugViewIndex;
+    int sdfTextureIndex;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
@@ -100,6 +71,7 @@ struct V2P
     nointerpolation float tangentW : TANGENTW;
     float2 texCoord : TEXCOORD0;
     float3 eye : VIEWDIR;
+    float3 sdfUVW : UVW;
 };
 
 
@@ -110,21 +82,6 @@ float4 main(V2P pixelInput) : SV_TARGET0
     StructuredBuffer<MaterialData> materials = ResourceDescriptorHeap[resources.materialBuffer];
     
     MaterialData material = materials[resources.materialIndex];
-    
-    float3 normal = normalize(pixelInput.normal);
-    if (material.NormalTexture >= 0)
-    {
-        Texture2D<float4> normalTex = ResourceDescriptorHeap[material.NormalTexture];
-        float3 sampledNormal = normalTex.Sample(smp, pixelInput.texCoord).xyz;
-        normal = MapNormal(sampledNormal, normal, pixelInput.tangent, pixelInput.tangentW);
-    }
-    
-    float3 albedo = material.BaseColor.xyz;
-    if (material.ColorTexture >= 0)
-    {
-        Texture2D<float4> albedoTex = ResourceDescriptorHeap[material.ColorTexture];
-        albedo = albedoTex.Sample(smp, pixelInput.texCoord).xyz;
-    }
     
     float metallic = material.Metallic;
     float perceptualRoughness = material.Roughness;
@@ -139,19 +96,29 @@ float4 main(V2P pixelInput) : SV_TARGET0
     perceptualRoughness = max(perceptualRoughness, 0.045);
     float alphaRoughness = perceptualRoughness * perceptualRoughness;
     
-    float3 emissive = material.EmissiveColor.xyz;
-    if (material.EmissionTexture >= 0)
-    {
-        Texture2D<float4> emissiveTex = ResourceDescriptorHeap[material.EmissionTexture];
-        emissive = emissiveTex.Sample(smp, pixelInput.texCoord).xyz;
-    }
+
 
     if (resources.debugViewIndex == 1) // Normals
     {
+        float3 normal = normalize(pixelInput.normal);
+        if (material.NormalTexture >= 0)
+        {
+            Texture2D<float4> normalTex = ResourceDescriptorHeap[material.NormalTexture];
+            float3 sampledNormal = normalTex.Sample(smp, pixelInput.texCoord).xyz;
+            normal = MapNormal(sampledNormal, normal, pixelInput.tangent, pixelInput.tangentW);
+        }
+        
         return float4(normal * 0.5 + 0.5, 1.0f);
     }
     else if (resources.debugViewIndex == 2) // Albedo
     {
+        float3 albedo = material.BaseColor.xyz;
+        if (material.ColorTexture >= 0)
+        {
+            Texture2D<float4> albedoTex = ResourceDescriptorHeap[material.ColorTexture];
+            albedo = albedoTex.Sample(smp, pixelInput.texCoord).xyz;
+        }
+        
         return float4(albedo, 1.0f);
     }
     else if (resources.debugViewIndex == 3) // Roughness
@@ -160,15 +127,39 @@ float4 main(V2P pixelInput) : SV_TARGET0
     }
     else if (resources.debugViewIndex == 4) // Metallic
     {
+        
         return float4(metallic, metallic, metallic, 1.0f);
     }
     else if (resources.debugViewIndex == 5) // Emission
     {
+        float3 emissive = material.EmissiveColor.xyz;
+        if (material.EmissionTexture >= 0)
+        {
+            Texture2D<float4> emissiveTex = ResourceDescriptorHeap[material.EmissionTexture];
+            emissive = emissiveTex.Sample(smp, pixelInput.texCoord).xyz;
+        }
+        
         return float4(emissive, 1.0f);
     }
     else if (resources.debugViewIndex == 6) // UVs
     {
         return float4(pixelInput.texCoord, 0.0f, 1.0f);
+    }
+    else if (resources.debugViewIndex == 7) // SDF Distance
+    {
+        float sdfDistance = 1.0f;
+        if (resources.sdfTextureIndex >= 0)
+        {
+            Texture3D<float> sdfTexture = ResourceDescriptorHeap[resources.sdfTextureIndex];
+            SamplerState smp = SamplerDescriptorHeap[resources.samplerIndex];
+            sdfDistance = sdfTexture.Sample(smp, pixelInput.sdfUVW);
+            
+            float3 color = lerp(float3(0.0f, 1.0f, 0.0f), float3(1.0f, 0.0f, 0.0f), saturate(sdfDistance * 10.0f));
+            return float4(color, 1.0f);
+
+        }
+        
+        return float4(1.0, 0.0, 1.0, 1.0);
     }
     
     return float4(1.0f, 1.0f, 0.0f, 1.0f);

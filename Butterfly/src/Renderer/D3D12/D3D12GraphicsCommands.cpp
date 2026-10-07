@@ -14,15 +14,15 @@
 
 namespace Butterfly
 {
-	RefPtr<BFTexture> GraphicsCommands::CreateSDF(const std::vector<SDFTriangle>& triangleBuffer, const Bounds& bounds)
+	RefPtr<BFTexture> GraphicsCommands::CreateSDF(const std::vector<SDFTriangle>& triangleBuffer, const Bounds& bounds, const glm::uvec3& resolution)
 	{
 		BF_PROFILE_EVENT()
 			
 		BFTextureDesc sdfDesc;
-		sdfDesc.Width = 128;
-		sdfDesc.Height = 128;
-		sdfDesc.Depth = 128;
-		sdfDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		sdfDesc.Width = resolution.x;
+		sdfDesc.Height = resolution.y;
+		sdfDesc.Depth = resolution.z;
+		sdfDesc.Format = DXGI_FORMAT_R16_FLOAT;
 		sdfDesc.ViewTypes = BFTextureDesc::ViewType::ShaderResource | BFTextureDesc::ViewType::UnorderedAccess;
 		sdfDesc.DebugName = "SDF";
 		sdfDesc.Type = BFTextureType::Texture3D;
