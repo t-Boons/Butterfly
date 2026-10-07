@@ -128,7 +128,7 @@ namespace Butterfly
 				}
 			}
 
-			SDF = GraphicsCommands::CreateSDF(triangles, Bounds);
+			//cSDF = GraphicsCommands::CreateSDF(triangles, Bounds);
 		}
 	};
 

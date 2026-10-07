@@ -166,13 +166,10 @@ float4 main(V2P pixelInput) : SV_TARGET0
     {
         return float4(emissive, 1.0f);
     }
-    else if (resources.debugViewIndex == 6) // Depth
-    {
-        float depth = pixelInput.fragPos.z;
-        return float4(depth, depth, depth, 1.0f);
-    }
-    else if (resources.debugViewIndex == 7) // UVs
+    else if (resources.debugViewIndex == 6) // UVs
     {
         return float4(pixelInput.texCoord, 0.0f, 1.0f);
     }
+    
+    return float4(1.0f, 1.0f, 0.0f, 1.0f);
 }

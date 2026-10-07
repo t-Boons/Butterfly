@@ -47,6 +47,8 @@
 #include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"
 #include "Renderer/RenderPipeline/PBRRenderPipelineStage.hpp"
 #include "Renderer/RenderPipeline/ColorspaceCorrectionRenderPipelinestage.hpp"
+#include "Renderer/RenderPipeline/DebugViewRenderPipelineStage.hpp"
+#include "Renderer/RenderPipeline/ClearRenderPipelineStage.hpp"
 
 #include "Serialization/ENTT/ComponentRegistry.hpp"
 

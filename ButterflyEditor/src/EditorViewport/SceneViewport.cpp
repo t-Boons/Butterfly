@@ -5,6 +5,7 @@
 #include "EditorViewport/EditorViewport.hpp"
 #include "Core/DebugRenderer.hpp"
 #include "ImGUI/FontAwesomeIcons.hpp"
+#include "ImGUI/ImGUIHelpers.hpp"
 
 namespace Butterfly
 {
@@ -317,6 +318,43 @@ namespace Butterfly
 		ImGui::PopStyleColor(3);
 		ImGui::PopStyleVar();
 
+		const ImVec2 windowSize = ImGui::GetWindowSize();
+		ImGui::SetCursorPos({ startCursorPos.x + 200, + startCursorPos.y});
+		std::vector<std::string> selectables = { "Lit", "Normal", "Albedo", "Roughness", "Metallic", "Emission", "Uvs" };
+
+
+		if (ImGUIHelpers::EnumSelector("View", selectables, m_selectedViewType))
+		{
+			if (m_selectedViewType == 0)
+			{
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->SetDefaultStages();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugRendererPipelineStage>();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ObjectPickerRenderPipelineStage>();
+			}
+			else
+			{
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->ClearStages();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+
+				DebugViewType type = DebugViewType::None;
+				switch (m_selectedViewType)
+				{
+					case 0: type = DebugViewType::None; break;
+					case 1: type = DebugViewType::Normal; break;
+					case 2: type = DebugViewType::Albedo; break;
+					case 3: type = DebugViewType::Roughness; break;
+					case 4: type = DebugViewType::Metallic; break;
+					case 5: type = DebugViewType::Emission; break;
+					case 6: type = DebugViewType::UVs; break;
+				}
+
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugViewRenderPipelineStage>().SetDebugViewType(type);
+				
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugRendererPipelineStage>();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ObjectPickerRenderPipelineStage>();
+
+			}
+		}
 		// Draw icons.
 		const glm::ivec2 viewportOffset = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
 		float iconSize = 24.0f;

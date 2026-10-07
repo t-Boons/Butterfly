@@ -18,10 +18,33 @@ namespace Butterfly
 		GraphBuilder& builder = ev.Builder;
 		Viewport& viewport = ev.Viewport;
 
-		struct DebugPassData
+		struct DebugViewPassData
 		{ };
 
-		builder.AddPass<DebugPassData>("DebugViewPass", [&](const DebugPassData& data, D3D12CommandList& list)
+		DebugViewPassData* data = builder.AllocParameters<DebugViewPassData>();
+
+		ev.Viewport.Lights->Update();
+		ev.Viewport.Materials->Validate();
+
+		uint32_t entityIndex = 0;
+		auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+		for (auto [entity, transform, meshRenderer] : view.each())
+		{
+			if (!meshRenderer.GetMeshHandle())
+			{
+				continue;
+			}
+
+			const glm::mat4 model = transform.GetWorldMatrix();
+			ModelMatrixData modelData;
+			modelData.ModelMatrix = model;
+			modelData.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+			viewport.ModelMatrices->Write(&modelData, sizeof(ModelMatrixData), entityIndex * sizeof(ModelMatrixData));
+
+			entityIndex++;
+		}
+
+		builder.AddPass<DebugViewPassData>("DebugViewPass", [&](const DebugViewPassData& data, D3D12CommandList& list)
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Debug View pass");
 
@@ -48,6 +71,8 @@ namespace Butterfly
 					psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
 					psoInfo.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/DebugView_vert.hlsl", ShaderType::Vertex);
 					psoInfo.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/DebugView_frag.hlsl", ShaderType::Pixel);
+
+					list.SetGraphicsPSO(psoInfo);
 
 					AssetManager& as = Application::Get().GetAssetManager();
 					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());

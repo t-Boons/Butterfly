@@ -34,5 +34,6 @@ namespace Butterfly
 		EventReceiver<ViewportPrerenderEvent> m_viewportPrerenderReceiver;
 		ObjectMovementSpace m_objectMovementSpace = ObjectMovementSpace::World;
 		ImGuizmo::OPERATION m_currentOperation = ImGuizmo::OPERATION::TRANSLATE;
+		uint32_t m_selectedViewType = 0;
 	};
 }

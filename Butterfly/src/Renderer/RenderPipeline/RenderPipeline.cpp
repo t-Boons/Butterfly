@@ -9,7 +9,7 @@ namespace Butterfly
 	RenderPipeline::RenderPipeline(Renderer& renderer)
 		: m_renderer(renderer)
 	{
-		AddDefaultStages();
+		SetDefaultStages();
 	}
 
 	void RenderPipeline::RecordPasses(const ViewportRenderEvent& ev)
@@ -33,7 +33,7 @@ namespace Butterfly
 		m_renderPipelineStages.clear();
 	}
 
-	void RenderPipeline::AddDefaultStages()
+	void RenderPipeline::SetDefaultStages()
 	{
 		ClearStages();
 		RegisterStage<ClearRenderPipelineStage>();

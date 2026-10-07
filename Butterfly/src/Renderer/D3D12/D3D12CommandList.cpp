@@ -328,19 +328,19 @@ namespace Butterfly
 
 	void D3D12CommandList::DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
 	{
-		//BF_CORE_ASSERT(m_bindlessBound, "D3D12CommandList::DrawIndexedInstanced Bindless descriptor heaps and root signature must be set before drawing. Call StartRenderPass before drawing.");
+		BF_CORE_ASSERT(m_bindlessBound, "D3D12CommandList::DrawIndexedInstanced Bindless descriptor heaps and root signature must be set before drawing. Call StartRenderPass before drawing.");
 		m_cmdList->DrawIndexedInstanced(indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
 	}
 
 	void D3D12CommandList::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
 	{
-		//BF_CORE_ASSERT(m_bindlessBound, "D3D12CommandList::DrawInstanced Bindless descriptor heaps and root signature must be set before drawing. Call StartRenderPass before drawing.");
+		BF_CORE_ASSERT(m_bindlessBound, "D3D12CommandList::DrawInstanced Bindless descriptor heaps and root signature must be set before drawing. Call StartRenderPass before drawing.");
 		m_cmdList->DrawInstanced(vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
 	}
 
 	void D3D12CommandList::Dispatch(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ)
 	{
-		//BF_CORE_ASSERT(m_bindlessBound, "D3D12CommandList::Dispatch Bindless descriptor heaps and root signature must be set before dispatching. Call StartComputePass before dispatching.");
+		BF_CORE_ASSERT(m_bindlessBound, "D3D12CommandList::Dispatch Bindless descriptor heaps and root signature must be set before dispatching. Call StartComputePass before dispatching.");
 		m_cmdList->Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
 	}
 

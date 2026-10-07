@@ -48,7 +48,7 @@ namespace Butterfly
 		void PostRender();
 
 		void ClearStages();
-		void AddDefaultStages();
+		void SetDefaultStages();
 
 	private:
 		std::vector<RefPtr<IRenderPipelineStage>> m_renderPipelineStages;

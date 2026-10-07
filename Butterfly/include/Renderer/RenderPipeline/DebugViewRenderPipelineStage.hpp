@@ -14,7 +14,6 @@ namespace Butterfly
 		Roughness,
 		Metallic,
 		Emission,
-		Depth,
 		UVs,
 	};
 
