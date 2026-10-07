@@ -23,5 +23,8 @@ namespace Butterfly
 
 		EventReceiver<ViewportResizeEvent> m_viewportResizeReceiver;
 		EventReceiver<ViewportPrerenderEvent> m_viewportPrerenderReceiver;
+
+		bool m_oldCameraFound = false;
+		bool m_shouldUpdateRenderPipeline = true;
 	};
 }

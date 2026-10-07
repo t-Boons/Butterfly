@@ -45,7 +45,24 @@ namespace Butterfly
 			}
 		}
 
-		event.Viewport.ShouldRender = cameraFound;
+		if (cameraFound != m_oldCameraFound)
+		{
+			m_shouldUpdateRenderPipeline = true;
+			m_oldCameraFound = cameraFound;
+		}
+
+		if (cameraFound && m_shouldUpdateRenderPipeline)
+		{
+			Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->SetDefaultStages();
+			m_shouldUpdateRenderPipeline = false;
+		}
+
+		if (!cameraFound && m_shouldUpdateRenderPipeline)
+		{
+			Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->ClearStages();
+			Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+			m_shouldUpdateRenderPipeline = false;
+		}
 
 		CameraData cameraData;
 		cameraData.ViewProjection = viewProjection;
