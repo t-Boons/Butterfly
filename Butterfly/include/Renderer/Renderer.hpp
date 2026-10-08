@@ -5,6 +5,7 @@
 #include "Core/Window.hpp"
 #include "Renderer/Light.hpp"
 #include "Renderer/Material.hpp"
+#include "Renderer/Model.hpp"
 
 namespace Butterfly
 {
@@ -40,16 +41,6 @@ namespace Butterfly
 	{
 		glm::mat4 InverseView;
 		glm::mat4 InverseProjection;
-	};
-
-	struct ModelMatrixData
-	{
-		glm::mat4 ModelMatrix;
-		glm::mat3 NormalMatrix;
-
-		glm::vec3 BoundsMin;
-		glm::vec3 BoundsSize;
-		glm::vec3 SDFResolution;
 	};
 
 	class BFRGTexture;

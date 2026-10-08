@@ -66,7 +66,7 @@ namespace Butterfly
 	class LightBuffer;
 	class MaterialLibrary;
 	class RenderPipeline;
-
+	class ModelBuffer;
 	struct Viewport
 	{
 	public:
@@ -78,9 +78,9 @@ namespace Butterfly
 		GraphTransientResourceCache& GetGraphResources() const { return *GraphResources[FrameIndex]; }
 
 		RefPtr<BFUniformBuffer> Uniforms;
-		RefPtr<BFStructuredBuffer> ModelMatrices;
 		RefPtr<MaterialLibrary> Materials;
 		RefPtr<LightBuffer> Lights;
+		RefPtr<ModelBuffer> Models;
 		RefPtr<RenderPipeline> RenderPipeline;
 
 		ViewportEvents Events;

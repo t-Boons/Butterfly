@@ -79,13 +79,19 @@ namespace Butterfly
 
 			ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
 
-			BF_CORE_LOG_INFO("Initialized DirectX 12");
+			BF_CORE_LOG_INFO("Initialized D3D12");
 			BF_CORE_LOG_INFO("	GPU:  %ls", desc.Description);
 			BF_CORE_LOG_INFO("	VRAM: %i MB", static_cast<int>(desc.DedicatedVideoMemory / (1024 * 1024)));
 			if (enableDebug) BF_CORE_LOG_WARN("	Debug layer enabled.");
 
 			if (m_device) break;
 		}
+
+		D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5{};
+		m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5));
+		BF_CORE_ASSERT(options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED, "DXR is not supported on this device.");
+		BF_CORE_LOG_INFO("RaytracingTier: D3D12_RAYTRACING_TIER_%d", options5.RaytracingTier); // Device must support DXR.
+
 
 		// Push debug filters.
 		D3D12_INFO_QUEUE_FILTER filter = {};

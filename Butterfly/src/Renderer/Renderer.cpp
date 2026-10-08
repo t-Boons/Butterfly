@@ -276,18 +276,11 @@ namespace Butterfly
 			viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(handle.m_index) + " Uniforms");
 			viewport.Handle = handle;
 
-			BFStructuredBufferDesc desc;
-			desc.Data = nullptr;
-			desc.HeapType = BFHeapType::Upload;
-			desc.NumElements = 128;
-			desc.Stride = sizeof(ModelMatrixData);
-			desc.DebugName = "Materials";
-
-			viewport.ModelMatrices = MakeRef<BFStructuredBuffer>(desc);
-
 
 			viewport.Materials = MakeRef<MaterialLibrary>();
 			viewport.Lights = MakeRef<LightBuffer>();
+			viewport.Models = MakeRef<ModelBuffer>();
+
 			viewport.RenderPipeline = MakeRef<RenderPipeline>(*this);
 
 			m_frameData.Viewports[handle] = viewport;

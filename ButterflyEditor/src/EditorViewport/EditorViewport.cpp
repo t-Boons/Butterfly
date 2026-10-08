@@ -42,6 +42,7 @@ namespace Butterfly
 		{
 			Application::Get().GetScene().SaveCurrentScene();
 		}
+
 	}
 
 	void EditorViewport::RunBeforeImGuiRender(const std::function<void()>& func)

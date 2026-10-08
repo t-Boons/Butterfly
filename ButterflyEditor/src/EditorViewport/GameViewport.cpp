@@ -76,6 +76,10 @@ namespace Butterfly
 
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(InverseCameraData), HASH("InverseCameraData"));
 		event.Viewport.Uniforms->Write(&data, sizeof(InverseCameraData), HASH("InverseCameraData"));
+
+		event.Viewport.Lights->Update();
+		event.Viewport.Materials->Validate();
+		event.Viewport.Models->Update();
 	}
 
 	void GameViewport::OnRenderImGUI()

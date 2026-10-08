@@ -94,8 +94,8 @@ namespace Butterfly
 						ShaderVariables()
 							.Add(mesh->GPUPositions->SRV().View())
 							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-							.Add(viewport.ModelMatrices->SRV().View())
-							.Add(entityRenderIndex) // Rendered entity index.
+							.Add(viewport.Models->SRV().View())
+							.Add(viewport.Models->GetModelViewIndex(entityRenderIndex))
 							.Add(static_cast<int>(entity)) // uint32_t Entity ID in registry.
 							.Submit(list);
 
@@ -184,6 +184,10 @@ namespace Butterfly
 
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(InverseCameraData), HASH("InverseCameraData"));
 		event.Viewport.Uniforms->Write(&data, sizeof(InverseCameraData), HASH("InverseCameraData"));
+
+		event.Viewport.Lights->Update();
+		event.Viewport.Materials->Validate();
+		event.Viewport.Models->Update();
 	}
 
 	void SceneViewport::OnRenderImGUI()

@@ -46,32 +46,6 @@ namespace Butterfly
 
 		params->Comp = &viewport.GetRenderTarget();
 
-		ev.Viewport.Lights->Update();
-		ev.Viewport.Materials->Validate();
-
-		uint32_t entityIndex = 0;
-		auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
-		for (auto [entity, transform, meshRenderer] : view.each())
-		{
-			if (!meshRenderer.GetMeshHandle())
-			{
-				continue;
-			}
-
-			MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-
-			const glm::mat4 model = transform.GetWorldMatrix();
-			ModelMatrixData modelData;
-			modelData.ModelMatrix = model;
-			modelData.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
-			modelData.BoundsMin = mesh->Bounds.Min;
-			modelData.BoundsSize = mesh->Bounds.Size();
-			modelData.SDFResolution = mesh->SDFResolution;
-			viewport.ModelMatrices->Write(&modelData, sizeof(ModelMatrixData), entityIndex * sizeof(ModelMatrixData));
-
-			entityIndex++;
-		}
-
 		builder.AddPass<ForwardRenderer>("Forward Model",
 			[&, skyboxTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
 			{
@@ -118,8 +92,8 @@ namespace Butterfly
 							.Add(mesh->GPUUVs->SRV().View())
 							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
 							.Add(m_defaultSampler->View())
-							.Add(viewport.ModelMatrices->SRV().View())
-							.Add(entityIndex)
+							.Add(viewport.Models->SRV().View())
+							.Add(viewport.Models->GetModelViewIndex(entityIndex))
 							.Add(viewport.Lights->SRV().View())
 							.Add(viewport.Lights->GetNumLights())
 							.Add(viewport.Materials->GetMaterialBuffer().SRV().View())
