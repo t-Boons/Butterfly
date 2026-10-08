@@ -10,11 +10,13 @@ namespace Butterfly
 	struct GPUModel
 	{
 		glm::mat4 ModelMatrix;
-		glm::mat3 NormalMatrix;
+		glm::mat4 InverseModelMatrix;
+		glm::mat4 NormalMatrix;
 
-		glm::vec3 BoundsMin;
-		glm::vec3 BoundsSize;
-		glm::vec3 SDFResolution;
+		glm::vec4 BoundsMin;
+		glm::vec4 BoundsSize;
+		glm::vec4 SDFResolution;
+		int SDFTextureIndex;
 	};
 
 
@@ -52,11 +54,21 @@ namespace Butterfly
 				MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
 
 				model.ModelMatrix = transform.GetWorldMatrix();
-				model.ModelMatrix = model.ModelMatrix;
-				model.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(model.ModelMatrix)));
-				model.BoundsMin = mesh->Bounds.Min;
-				model.BoundsSize = mesh->Bounds.Size();
-				model.SDFResolution = mesh->SDFResolution;
+				model.InverseModelMatrix = glm::inverse(model.ModelMatrix);
+				model.NormalMatrix = glm::transpose(glm::inverse(model.ModelMatrix));
+				model.BoundsMin = glm::vec4(mesh->Bounds.Min, 0.0f);
+				model.BoundsSize = glm::vec4(mesh->Bounds.Size(), 0.0f);
+
+				if (mesh->SDF)
+				{
+					model.SDFResolution = glm::vec4(mesh->SDFResolution, 0.0f);
+					model.SDFTextureIndex = mesh->SDF->SRV().View();
+				}
+				else
+				{
+					model.SDFResolution = glm::vec4(0.0f);
+					model.SDFTextureIndex = -1;
+				}
 
 				m_models.push_back(model);
 
@@ -85,5 +97,4 @@ namespace Butterfly
 		RefPtr<BFStructuredBuffer> m_modelBuffer;
 		std::vector<GPUModel> m_models;
 	};
-
 }

@@ -12,14 +12,14 @@ namespace Butterfly
 		BF_CORE_ASSERT(side < 6, "SkyboxComponent::SetTextureHandle: Invalid side index for skybox: %u", side);
 		m_textureHandles[side] = handle;
 		m_serializeUUIDs[side] = handle.GetID();
-		MarkDirty();
+		InvalidateVersion();
 	}
 
 	void SkyboxComponent::SetTextureHandleHDRI(const AssetHandle<TextureAsset>& handle)
 	{
 		m_hdriTexture = handle;
 		m_hdriUUID = handle.GetID();
-		MarkDirty();
+		InvalidateVersion();
 	}
 
 	const AssetHandle<TextureAsset>& SkyboxComponent::GetTextureHandle(uint32_t side) const
@@ -31,7 +31,7 @@ namespace Butterfly
 	void SkyboxComponent::SetType(SkyboxType type)
 	{
 		m_type = static_cast<uint32_t>(type);
-		MarkDirty();
+		InvalidateVersion();
 	}
 
 	void SkyboxComponent::SetTextureUUIDRight(const UUID& uuid)
@@ -39,7 +39,7 @@ namespace Butterfly
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[0]))
 		{
 			m_serializeUUIDs[0] = uuid;
-			MarkDirty();
+			InvalidateVersion();
 		}
 	}
 
@@ -48,7 +48,7 @@ namespace Butterfly
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[1]))
 		{
 			m_serializeUUIDs[1] = uuid;
-			MarkDirty();
+			InvalidateVersion();
 		}
 	}
 
@@ -57,7 +57,7 @@ namespace Butterfly
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[2]))
 		{
 			m_serializeUUIDs[2] = uuid;
-			MarkDirty();
+			InvalidateVersion();
 		}
 	}
 
@@ -66,7 +66,7 @@ namespace Butterfly
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[3]))
 		{
 			m_serializeUUIDs[3] = uuid;
-			MarkDirty();
+			InvalidateVersion();
 		}
 	}
 
@@ -75,7 +75,7 @@ namespace Butterfly
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[4]))
 		{
 			m_serializeUUIDs[4] = uuid;
-			MarkDirty();
+			InvalidateVersion();
 		}
 	}
 
@@ -84,7 +84,7 @@ namespace Butterfly
 		if(Application::Get().GetAssetManager().Acquire(uuid, m_textureHandles[5]))
 		{
 			m_serializeUUIDs[5] = uuid;
-			MarkDirty();
+			InvalidateVersion();
 		}
 	}
 
@@ -93,7 +93,7 @@ namespace Butterfly
 		if (Application::Get().GetAssetManager().Acquire(uuid, m_hdriTexture))
 		{
 			m_hdriUUID = uuid;
-			MarkDirty();
+			InvalidateVersion();
 		}
 	}
 }

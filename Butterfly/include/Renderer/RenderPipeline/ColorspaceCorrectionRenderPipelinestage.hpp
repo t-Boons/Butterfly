@@ -15,7 +15,6 @@ namespace Butterfly
 		};
 
 		virtual void OnRecordPass(const ViewportRenderEvent& ev) override;
-		virtual void OnPostRender() override {}
 
 		void SetColorSpace(ColorSpace colorSpace) { m_colorSpace = colorSpace; }
 

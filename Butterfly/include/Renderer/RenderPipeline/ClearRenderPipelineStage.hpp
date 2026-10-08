@@ -11,7 +11,6 @@ namespace Butterfly
 	{
 	public:
 		virtual void OnRecordPass(const ViewportRenderEvent& ev) override;
-		virtual void OnPostRender() override {}
 
 		void SetClearColor(const glm::vec4& color) { m_clearColor = color; }
 

@@ -168,7 +168,6 @@ namespace Butterfly
 				BF_CORE_LOG_ERROR("SceneManager::DestroyPendingEntities: Cannot destroy root entity");
 				continue;
 			}
-
 			DestroyChildren(entity);
 		}
 

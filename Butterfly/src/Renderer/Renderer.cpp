@@ -199,6 +199,13 @@ namespace Butterfly
 		{
 			BF_PROFILE_EVENT("Renderer::Render: Viewports");
 
+			for (auto& it : m_frameData.Viewports)
+			{
+				Viewport& viewport = it.second;
+				viewport.RenderPipeline->PreRender(ViewportPrerenderEvent{ viewport });
+				viewport.Events.OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
+			}
+
 			// Record all commands to render all viewports.
 			for (auto& it : m_frameData.Viewports)
 			{
@@ -207,10 +214,10 @@ namespace Butterfly
 				GraphBuilder builder(viewport.GetGraphResources());
 
 				m_frameData.GetCmdList().BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.m_index));
-				viewport.Events.OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
+
 				viewport.RenderPipeline->RecordPasses(ViewportRenderEvent{ builder, viewport });
 				viewport.Events.OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
-				viewport.Events.OnPostRender.Broadcast(ViewportPostRenderEvent{ builder, viewport });
+
 				auto graph = builder.Create();
 				graph->Execute(m_frameData.GetCmdList());
 				delete graph;
@@ -243,12 +250,8 @@ namespace Butterfly
 		for (auto& it : m_frameData.Viewports)
 		{
 			Viewport& viewport = it.second;
-			if (!viewport.ShouldRender)
-			{
-				continue;
-			}
-
-			viewport.RenderPipeline->PostRender();
+			viewport.RenderPipeline->PostRender(ViewportPostRenderEvent());
+			viewport.Events.OnPostRender.Broadcast(ViewportPostRenderEvent());
 		}
 
 		Application::Get().GetWindow().Context().Present();

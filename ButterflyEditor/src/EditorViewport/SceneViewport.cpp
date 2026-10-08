@@ -35,7 +35,6 @@ namespace Butterfly
 			m_objectPickerReadback = MakeRef<BFTextureReadback>();
 		}
 
-		virtual void OnPostRender() override {}
 		virtual void OnRecordPass(const ViewportRenderEvent& event) override
 		{
 			BF_PROFILE_EVENT()
@@ -188,6 +187,22 @@ namespace Butterfly
 		event.Viewport.Lights->Update();
 		event.Viewport.Materials->Validate();
 		event.Viewport.Models->Update();
+
+
+		if (SkyboxRenderPipelineStage* srps = event.Viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>())
+		{
+			auto view = Application::Get().GetScene().GetEntityRegistry().view<SkyboxComponent>();
+			auto first = view.begin();
+			if (first != view.end())
+			{
+				SkyboxComponent& sb = view.get<SkyboxComponent>(*first);
+				srps->Update(&sb);
+			}
+			else
+			{
+				srps->Update(nullptr);
+			}
+		}
 	}
 
 	void SceneViewport::OnRenderImGUI()
@@ -325,7 +340,7 @@ namespace Butterfly
 		const ImVec2 windowSize = ImGui::GetWindowSize();
 		ImGui::SetCursorPos({ startCursorPos.x + 200, + startCursorPos.y});
 		std::vector<std::string> selectables = { "Lit", "Normal", "Albedo", "Roughness", "Metallic", "Emission", "Uvs", "SDF" };
-
+		std::vector< DebugViewType> m_debugTypes = { DebugViewType::None, DebugViewType::Normal, DebugViewType::Albedo, DebugViewType::Roughness, DebugViewType::Metallic, DebugViewType::Emission, DebugViewType::UVs, DebugViewType::SDF };
 
 		if (ImGUIHelpers::EnumSelector("View", selectables, m_selectedViewType))
 		{
@@ -339,27 +354,13 @@ namespace Butterfly
 			{
 				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->ClearStages();
 				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
-
-				DebugViewType type = DebugViewType::None;
-				switch (m_selectedViewType)
-				{
-					case 0: type = DebugViewType::None; break;
-					case 1: type = DebugViewType::Normal; break;
-					case 2: type = DebugViewType::Albedo; break;
-					case 3: type = DebugViewType::Roughness; break;
-					case 4: type = DebugViewType::Metallic; break;
-					case 5: type = DebugViewType::Emission; break;
-					case 6: type = DebugViewType::UVs; break;
-					case 7: type = DebugViewType::SDF; break;
-				}
-
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugViewRenderPipelineStage>().SetDebugViewType(type);
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugViewRenderPipelineStage>().SetDebugViewType(m_debugTypes[m_selectedViewType]);
 				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugRendererPipelineStage>();
 				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ObjectPickerRenderPipelineStage>();
 				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
-
 			}
 		}
+
 		// Draw icons.
 		const glm::ivec2 viewportOffset = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
 		float iconSize = 24.0f;

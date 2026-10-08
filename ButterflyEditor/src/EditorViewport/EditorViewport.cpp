@@ -42,7 +42,6 @@ namespace Butterfly
 		{
 			Application::Get().GetScene().SaveCurrentScene();
 		}
-
 	}
 
 	void EditorViewport::RunBeforeImGuiRender(const std::function<void()>& func)
@@ -63,40 +62,6 @@ namespace Butterfly
 		for (auto& ext : m_viewportExtentions)
 			{
 			ext->OnRenderImGUI();
-		}
-
-
-		auto view = Application::Get().GetScene().GetEntityRegistry().view<SkyboxComponent>();
-		auto first = view.begin();
-		if (first != view.end())
-		{
-			SkyboxComponent& sb = view.get<SkyboxComponent>(*first);
-
-			if (sb.IsDirty())
-			{
-				sb.ClearDirty();
-
-				for (const auto& [handle, viewport] : Application::Get().GetRenderer().GetViewports())
-				{
-					SkyboxRenderPipelineStage* renderPipeline = viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>();
-					if (renderPipeline)
-					{
-						renderPipeline->LoadSkybox(sb);
-					}
-				}
-			}
-
-		}
-		else
-		{
-			for (const auto& [handle, viewport] : Application::Get().GetRenderer().GetViewports())
-			{
-				SkyboxRenderPipelineStage* renderPipeline = viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>();
-				if (renderPipeline && renderPipeline->IsSkyboxLoaded())
-				{
-					renderPipeline->UnloadSkybox();
-				}
-			}
 		}
 	}
 }

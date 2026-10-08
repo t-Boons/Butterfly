@@ -12,6 +12,14 @@ namespace Butterfly
 		SetDefaultStages();
 	}
 
+	void RenderPipeline::PreRender(const ViewportPrerenderEvent& ev)
+	{
+		for (auto& stage : m_renderPipelineStages)
+		{
+			stage->OnPreRender(ev);
+		}
+	}
+		
 	void RenderPipeline::RecordPasses(const ViewportRenderEvent& ev)
 	{
 		for (auto& stage : m_renderPipelineStages)
@@ -20,11 +28,11 @@ namespace Butterfly
 		}
 	}
 
-	void RenderPipeline::PostRender()
+	void RenderPipeline::PostRender(const ViewportPostRenderEvent& ev)
 	{
 		for (auto& stage : m_renderPipelineStages)
 		{
-			stage->OnPostRender();
+			stage->OnPostRender(ev);
 		}
 	}
 

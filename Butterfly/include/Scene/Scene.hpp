@@ -94,11 +94,8 @@ namespace Butterfly
 		const entt::registry& GetEntityRegistry() const { return m_activeScene->m_registry; }
 		const entt::entity& GetRootEntity() const { return m_activeScene->m_rootEntity; }
 
-
-
 		RefPtr<Scene> m_activeScene;
 	private:
 		void DestroyChildren(entt::entity entity);
-
 	};
 }

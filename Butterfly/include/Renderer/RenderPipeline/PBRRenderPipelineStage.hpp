@@ -9,7 +9,6 @@ namespace Butterfly
 	public:
 		PBRRenderPipelineStage();
 		virtual void OnRecordPass(const ViewportRenderEvent& ev) override;
-		virtual void OnPostRender() override {}
 
 	private:
 		RefPtr<BFTexture> m_whiteTexture;

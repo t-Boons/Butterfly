@@ -7,6 +7,23 @@
 
 namespace Butterfly
 {
+	void SkyboxRenderPipelineStage::Update(const SkyboxComponent* component)
+	{
+		if (component)
+		{
+			if (static_cast<int>(component->m_version) > m_skyboxVersion)
+			{
+				m_skyboxVersion = component->m_version;
+				LoadSkybox(*component);
+			}
+		}
+		else
+		{
+			m_skyboxVersion = -1;
+			UnloadSkybox();
+		}
+	}
+
 	void SkyboxRenderPipelineStage::LoadSkybox(const SkyboxComponent& component)
 	{
 		uint32_t width, height = 0;

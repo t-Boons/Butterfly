@@ -21,14 +21,12 @@ namespace Butterfly
 		void SetTextureHandleHDRI(const AssetHandle<TextureAsset>& handle);
 		const AssetHandle<TextureAsset>& GetTextureHandle(uint32_t side) const;
 		const AssetHandle<TextureAsset>& GetTextureHandleHDRI() const { return m_hdriTexture; }
-		bool IsDirty() const { return m_isDirty; }
-		void ClearDirty() { m_isDirty = false; }
 
 		SkyboxType GetType() const { return static_cast<SkyboxType>(m_type); }
 		void SetType(SkyboxType type);
 
 	private:
-		void MarkDirty() { m_isDirty = true; }
+		void InvalidateVersion() { m_version++; }
 
 		void SetTextureUUIDRight(const UUID& uuid);
 		void SetTextureUUIDLeft(const UUID& uuid);
@@ -46,10 +44,11 @@ namespace Butterfly
 		void SetTextureUUIDHDRI(const UUID& uuid);
 		const UUID& GetTextureUUIDHDRI() const { return m_hdriUUID; }
 
-		void SetTypeUInt(uint32_t type) { m_type = type; MarkDirty(); }
+		void SetTypeUInt(uint32_t type) { m_type = type; InvalidateVersion(); }
 		uint32_t GetTypeUInt() const { return m_type; }
 
 		friend class ComponentRegistry;
+		friend class SkyboxRenderPipelineStage;
 
 		uint32_t m_type = static_cast<uint32_t>(SkyboxType::Equirectangular);
 		UUID m_hdriUUID;
@@ -57,6 +56,6 @@ namespace Butterfly
 
 		std::array<UUID, 6> m_serializeUUIDs;
 		std::array<AssetHandle<TextureAsset>, 6> m_textureHandles;
-		bool m_isDirty = true;
+		uint32_t m_version = 0;
 	};
 }

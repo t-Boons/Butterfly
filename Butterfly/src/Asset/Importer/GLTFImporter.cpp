@@ -138,13 +138,22 @@ namespace Butterfly
 		return result;
 	}
 
-	void LoadGltfModel(const std::string& filePath, tinygltf::Model& model)
+	void LoadGltfModel(const std::filesystem::path& filePath, tinygltf::Model& model)
 	{
 		tinygltf::TinyGLTF loader;
 		std::string err;
 		std::string warn;
 
-		bool success = loader.LoadASCIIFromFile(&model, &err, &warn, filePath);
+		bool success = false;
+
+		if(filePath.extension() == ".gltf")
+		{
+			success = loader.LoadASCIIFromFile(&model, &err, &warn, filePath.string());
+		}
+		else if(filePath.extension() == ".glb")
+		{
+			success = loader.LoadBinaryFromFile(&model, &err, &warn, filePath.string());
+		}
 
 		BF_CORE_ASSERT(success, "%s %s", err.c_str(), filePath.c_str());
 
@@ -506,15 +515,17 @@ namespace Butterfly
 	RefPtr<ModelNode> CreateNodes(const tinygltf::Model& gltfModel, const std::vector<AssetHandle<MeshAsset>>& meshes)
 	{
 		RefPtr<ModelNode> root = MakeRef<ModelNode>();
-
 		const tinygltf::Scene& scene = gltfModel.scenes[gltfModel.defaultScene];
-		BF_CORE_ASSERT(scene.nodes.size() == 1, "Only single-root scenes are supported");
-
-		const int rootNodeIndex = scene.nodes[0];
-		const tinygltf::Node& gltfRoot = gltfModel.nodes[rootNodeIndex];
-		root = LoadNode(gltfModel, gltfRoot, rootNodeIndex, meshes);
-
-		root->Children = TraverseNode(gltfModel, gltfRoot.children, meshes);
+		root->Name = scene.name;
+		root->ModelMatrix = glm::mat4(1.0f);
+		for (uint32_t i = 0; i < scene.nodes.size(); ++i)
+		{
+			const int nodeIndex = scene.nodes[i];
+			const tinygltf::Node& gltfNode = gltfModel.nodes[nodeIndex];
+			RefPtr<ModelNode> newNode = LoadNode(gltfModel, gltfNode, nodeIndex, meshes);
+			newNode->Children = TraverseNode(gltfModel, gltfNode.children, meshes);
+			root->Children.push_back(newNode);
+		}
 
 		return root;
 	}
@@ -552,7 +563,7 @@ namespace Butterfly
 	bool GLTFImporter::CreateMeta(const std::filesystem::path& file, AssetFileMetadata& outMetadata) const
 	{
 		tinygltf::Model gltfModel;
-		LoadGltfModel(file.string(), gltfModel);
+		LoadGltfModel(file, gltfModel);
 
 		outMetadata.Path = file;
 		outMetadata.SourceFileID = UUID::Generate();

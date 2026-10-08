@@ -68,7 +68,7 @@ namespace Butterfly
 			});
 	}
 
-	void DebugRendererPipelineStage::OnPostRender()
+	void DebugRendererPipelineStage::OnPostRender(const ViewportPostRenderEvent& event)
 	{
 		EditorApplication::Get().GetDebugRenderer().OnPostRender();
 	}

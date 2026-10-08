@@ -80,12 +80,27 @@ namespace Butterfly
 		event.Viewport.Lights->Update();
 		event.Viewport.Materials->Validate();
 		event.Viewport.Models->Update();
+
+		if (SkyboxRenderPipelineStage* srps = event.Viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>())
+		{
+			auto view = Application::Get().GetScene().GetEntityRegistry().view<SkyboxComponent>();
+			auto first = view.begin();
+			if (first != view.end())
+			{
+				SkyboxComponent& sb = view.get<SkyboxComponent>(*first);
+				srps->Update(&sb);
+			}
+			else
+			{
+				srps->Update(nullptr);
+			}
+		}
 	}
 
 	void GameViewport::OnRenderImGUI()
 	{
 		BF_PROFILE_EVENT()
-
+			
 		const std::string windowName = "Game Viewport##" + std::to_string(m_viewportHandle.Index());
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);

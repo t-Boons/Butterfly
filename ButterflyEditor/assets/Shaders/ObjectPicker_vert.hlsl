@@ -4,13 +4,15 @@ struct CameraData
     float3 CameraPosition;
 };
 
-struct ModelMatrix
+struct ModelData
 {
     float4x4 ModelMatrix;
-    float3x3 NormalMatrix;
-    float3 BoundsMin;
-    float3 BoundsSize;
-    float3 SDFResolution;
+    float4x4 InverseModelMatrix;
+    float4x4 NormalMatrix;
+    float4 BoundsMin;
+    float4 BoundsSize;
+    float4 SDFResolution;
+    int SDFTextureIndex;
 };
 
 struct BufferIndices
@@ -34,7 +36,7 @@ V2P main(uint vertexID : SV_VertexID)
 {
     StructuredBuffer<float3> position = ResourceDescriptorHeap[resources.positionBuffer];
     ConstantBuffer<CameraData> uniforms = ResourceDescriptorHeap[resources.uniformIndex];
-    StructuredBuffer<ModelMatrix> modelMatrices = ResourceDescriptorHeap[resources.modelIndex];
+    StructuredBuffer<ModelData> modelMatrices = ResourceDescriptorHeap[resources.modelIndex];
     
     float4x4 MVP = mul(uniforms.ViewProjection, modelMatrices[resources.entityRenderIndex].ModelMatrix);
     

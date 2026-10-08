@@ -154,9 +154,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
             SamplerState smp = SamplerDescriptorHeap[resources.samplerIndex];
             sdfDistance = sdfTexture.Sample(smp, pixelInput.sdfUVW);
             
-            float3 color = lerp(float3(0.0f, 1.0f, 0.0f), float3(1.0f, 0.0f, 0.0f), saturate(sdfDistance * 10.0f));
-            return float4(color, 1.0f);
-
+            return float4(saturate(sdfDistance * 10.0), saturate(sdfDistance * 10.0), saturate(sdfDistance * 10.0), 1.0);
         }
         
         return float4(1.0, 0.0, 1.0, 1.0);

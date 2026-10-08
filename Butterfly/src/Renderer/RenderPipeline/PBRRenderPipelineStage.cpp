@@ -69,6 +69,23 @@ namespace Butterfly
 
 				list.SetGraphicsPSO(psoInfo);
 
+				D3D12_SAMPLER_DESC samplerDesc = {};
+				samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+				samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+				samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+				samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+				samplerDesc.MipLODBias = 0.0f;
+				samplerDesc.MaxAnisotropy = 1; 
+				samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NONE;
+				samplerDesc.BorderColor[0] = 0.0f;
+				samplerDesc.BorderColor[1] = 0.0f;
+				samplerDesc.BorderColor[2] = 0.0f;
+				samplerDesc.BorderColor[3] = 0.0f;
+				samplerDesc.MinLOD = 0.0f;
+				samplerDesc.MaxLOD = 0.0f;
+				BFSampler sdfSampler(&samplerDesc);
+
+
 				uint32_t entityIndex = 0;
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 				for (auto [entity, transform, meshRenderer] : view.each())
@@ -82,6 +99,8 @@ namespace Butterfly
 					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
 
 					list.SetIndexBuffer(*mesh->GPUIndices);
+
+					mesh->SDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 					for (auto& subMesh : mesh->SubMeshes)
 					{
@@ -99,6 +118,8 @@ namespace Butterfly
 							.Add(viewport.Materials->GetMaterialBuffer().SRV().View())
 							.Add(viewport.Materials->GetMaterialIndex(subMesh.Material.GetID()))
 							.Add(skyboxTextureViewIndex)
+							.Add(viewport.Models->GetNumModels())
+							.Add(sdfSampler.View())
 							.Submit(list);
 
 						list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);

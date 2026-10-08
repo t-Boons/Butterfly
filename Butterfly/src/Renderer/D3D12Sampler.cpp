@@ -14,9 +14,9 @@ namespace Butterfly
 
             D3D12_SAMPLER_DESC samplerDesc = {};
             samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR; // Linear filtering for minification, magnification, and mipmapping.
-            samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP; // Wrap addressing mode for the U coordinate.
-            samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP; // Wrap addressing mode for the V coordinate.
-            samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP; // Wrap addressing mode for the W coordinate.
+            samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
             samplerDesc.MipLODBias = 0.0f;                         // No bias for mip-level-of-detail.
             samplerDesc.MaxAnisotropy = 1;                         // Anisotropic filtering is off.
             samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NONE; // No comparison filtering.

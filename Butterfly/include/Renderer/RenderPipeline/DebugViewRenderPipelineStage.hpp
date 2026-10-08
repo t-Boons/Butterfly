@@ -22,7 +22,6 @@ namespace Butterfly
 	{
 	public:
 		virtual void OnRecordPass(const ViewportRenderEvent& ev) override;
-		virtual void OnPostRender() override {}
 
 		void SetDebugViewType(DebugViewType type) { m_debugViewType = type; }
 	private:

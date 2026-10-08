@@ -46,8 +46,6 @@ namespace Butterfly
 
 	struct ViewportPostRenderEvent
 	{
-		GraphBuilder& Builder;
-		Viewport& Viewport;
 	};
 
 	struct ViewportEvents
@@ -84,7 +82,6 @@ namespace Butterfly
 		RefPtr<RenderPipeline> RenderPipeline;
 
 		ViewportEvents Events;
-		bool ShouldRender = true;
 
 	private:
 		friend class Renderer;

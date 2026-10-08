@@ -4,13 +4,15 @@ struct CameraData
     float3 CameraPosition;
 };
 
-struct ModelMatrixData
+struct ModelData
 {
     float4x4 ModelMatrix;
-    float3x3 NormalMatrix;
-    float3 BoundsMin;
-    float3 BoundsSize;
-    float3 SDFResolution;
+    float4x4 InverseModelMatrix;
+    float4x4 NormalMatrix;
+    float4 BoundsMin;
+    float4 BoundsSize;
+    float4 SDFResolution;
+    int SDFTextureIndex;
 };
 
 struct BufferIndices
@@ -52,19 +54,19 @@ V2P main(uint vertexID : SV_VertexID)
     StructuredBuffer<float4> tangents = ResourceDescriptorHeap[resources.tangentBuffer];
     StructuredBuffer<float2> texcoords = ResourceDescriptorHeap[resources.texcoordBuffer];
     ConstantBuffer<CameraData> uniforms = ResourceDescriptorHeap[resources.uniformIndex];
-    StructuredBuffer<ModelMatrixData> modelMatrices = ResourceDescriptorHeap[resources.modelIndex];
+    StructuredBuffer<ModelData> modelMatrices = ResourceDescriptorHeap[resources.modelIndex];
     
     float4x4 MVP = mul(uniforms.ViewProjection, modelMatrices[resources.entityIndex].ModelMatrix);
     
     V2P output;
     output.position = mul(MVP, float4(position[vertexID], 1.0));
-    output.normal = mul(modelMatrices[resources.entityIndex].NormalMatrix, normals[vertexID]);
-    output.tangent.xyz = mul(modelMatrices[resources.entityIndex].NormalMatrix, tangents[vertexID].xyz);
+    output.normal = mul((float3x3) modelMatrices[resources.entityIndex].NormalMatrix, normals[vertexID]);
+    output.tangent.xyz = mul((float3x3) modelMatrices[resources.entityIndex].NormalMatrix, tangents[vertexID].xyz);
     output.tangentW = tangents[vertexID].w;
     output.texCoord = texcoords[vertexID];
     output.fragPos = mul(modelMatrices[resources.entityIndex].ModelMatrix, float4(position[vertexID], 1.0)).xyz;
     output.eye = uniforms.CameraPosition;
-    output.sdfUVW = (position[vertexID] - modelMatrices[resources.entityIndex].BoundsMin) / modelMatrices[resources.entityIndex].BoundsSize;
+    output.sdfUVW = (position[vertexID] - modelMatrices[resources.entityIndex].BoundsMin.xyz) / modelMatrices[resources.entityIndex].BoundsSize.xyz;
 
     return output;
 }

@@ -9,8 +9,9 @@ namespace Butterfly
 	class IRenderPipelineStage
 	{
 	public:
+		virtual void OnPreRender(const ViewportPrerenderEvent& ev) {}
 		virtual void OnRecordPass(const ViewportRenderEvent& ev) = 0;
-		virtual void OnPostRender() = 0;
+		virtual void OnPostRender(const ViewportPostRenderEvent& ev) {}
 	};
 
 	class RenderPipeline
@@ -44,8 +45,9 @@ namespace Butterfly
 			return nullptr;
 		}
 
+		void PreRender(const ViewportPrerenderEvent& ev);
 		void RecordPasses(const ViewportRenderEvent& ev);
-		void PostRender();
+		void PostRender(const ViewportPostRenderEvent& ev);
 
 		void ClearStages();
 		void SetDefaultStages();

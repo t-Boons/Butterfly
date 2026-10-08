@@ -11,7 +11,7 @@ namespace Butterfly
 	{
 	public:
 		virtual void OnRecordPass(const ViewportRenderEvent& event) override;
-		virtual void OnPostRender() override;
+		virtual void OnPostRender(const ViewportPostRenderEvent& event) override;
 	};
 
 	class DebugRenderer

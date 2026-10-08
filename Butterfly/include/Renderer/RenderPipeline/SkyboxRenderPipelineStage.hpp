@@ -25,13 +25,13 @@ namespace Butterfly
 	{
 	public:
 		virtual void OnRecordPass(const ViewportRenderEvent& ev) override;
-		virtual void OnPostRender() override {}
 
+		void Update(const SkyboxComponent* component);
+	private:
 		void LoadSkybox(const SkyboxComponent& component);
 		void UnloadSkybox();
 		bool IsSkyboxLoaded() const { return m_skyboxTexture != nullptr; }
-	private:
-
 		RefPtr<BFTexture> m_skyboxTexture;
+		int m_skyboxVersion = -1;
 	};
 }
