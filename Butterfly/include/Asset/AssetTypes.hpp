@@ -105,10 +105,10 @@ namespace Butterfly
 					if (Bounds.Max.z < position.z) Bounds.Max.z = position.z;
 				}
 			}
-			const float padding = 0.05f;
-			Bounds.Min -= glm::vec3(padding);
-			Bounds.Max += glm::vec3(padding);
-			SDFResolution = glm::vec3(128.0f, 128.0f, 128.0f);
+			const glm::vec3 padding = Bounds.Size() * 0.5f * 0.5f; // 20% of the size;
+			Bounds.Min -= padding;
+			Bounds.Max += padding;
+			SDFResolution = glm::vec3(32, 32, 32);
 			D3D12CommandList list;
 
 			std::vector<SDFTriangle> triangles;

@@ -76,6 +76,55 @@ float2 RayAABBIntersection(float3 rayOrigin, float3 rayDirection, float3 boundsM
 }
 
 
+struct BufferIndices
+{
+    int positionBuffer;
+    int normalBuffer;
+    int tangentBuffer;
+    int texcoordBuffer;
+    int uniformIndex;
+    int samplerIndex;
+    int modelIndex;
+    int entityIndex;
+    int lightBuffer;
+    int numLights;
+    int materialBuffer;
+    int materialIndex;
+    int skyboxTextureIndex;
+    int numModels;
+    int sdfSamplerIndex;
+};
+
+ConstantBuffer<BufferIndices> resources : register(b0);
+
+float SoftShadow(float3 origin, float3 dir, float3 boundsMin, float3 boundsSize, int sdf, float mint, float maxt, float w)
+{
+    float res = 1.0;
+    float ph = 1e20;
+
+    float t = mint;
+                
+    for (uint step = 0; step < 128 && t < maxt; step++)
+    {
+        float3 position = origin + dir * t;
+        float3 uvw = (position - boundsMin) / boundsSize;
+
+        Texture3D<float> sdfTexture = ResourceDescriptorHeap[sdf];
+        SamplerState sdfSampler = SamplerDescriptorHeap[resources.sdfSamplerIndex];
+        float h = sdfTexture.SampleLevel(sdfSampler, uvw, 0);
+        if(h < 0.001)
+            return 0.0;
+
+        float y = h * h / (2.0 * ph);
+        float d = sqrt(h * h - y * y);
+        res = min(res, d / (w * max(0.0, t - y)));
+        t += h;
+        ph = h;
+    }
+    return res;
+}
+
+
 struct MaterialData
 {
     float4 BaseColor;
@@ -100,27 +149,6 @@ struct Light
     float InnerConeAngleCos;
     float OuterConeAngleCos;
 };
-
-struct BufferIndices
-{
-    int positionBuffer;
-    int normalBuffer;
-    int tangentBuffer;
-    int texcoordBuffer;
-    int uniformIndex;
-    int samplerIndex;
-    int modelIndex;
-    int entityIndex;
-    int lightBuffer;
-    int numLights;
-    int materialBuffer;
-    int materialIndex;
-    int skyboxTextureIndex;
-    int numModels;
-    int sdfSamplerIndex;
-};
-
-ConstantBuffer<BufferIndices> resources : register(b0);
 
 struct V2P
 {
@@ -269,8 +297,8 @@ float4 main(V2P pixelInput) : SV_TARGET0
         }
     }
     
-    float3 result = lighting.xyz + emissive * material.EmissiveColor.rgb;
-    float3 shadowResult = skyLight;
+    float3 fragColor = lighting.xyz + emissive * material.EmissiveColor.rgb;
+    float3 fragShadowColor = skyLight;
     
     SamplerState sdfSampler = SamplerDescriptorHeap[resources.sdfSamplerIndex];
     StructuredBuffer<ModelData> modelData = ResourceDescriptorHeap[resources.modelIndex];
@@ -283,90 +311,63 @@ float4 main(V2P pixelInput) : SV_TARGET0
             float3 rayDirection = -light.Direction;
             float3 rayOrigin = pixelInput.fragPos + rayDirection * EPSILON;
             
-           
-            while (true)
-            {
-                bool intersects = false;
-                float closestT = FLT_MAX;
-                float closestTFar = 0.0;
-                
-                float3 closestRayOriginModel;
-                float3 closestRayDirectionModel;
-                int closeestModelIndex = -1;
-                float multi = 0.0;
-                for (int i = 0; i < resources.numModels; i++)
-                {
-                    ModelData model = modelData[i];
-                    
-                    if (model.SDFTextureIndex < 0 || i == resources.entityIndex)
-                    {
-                        continue;
-                    }
-                
-                    float3 originModel = mul(model.InverseModelMatrix, float4(rayOrigin, 1.0)).xyz;
-                    float3 directionModel = normalize(mul((float3x3) model.InverseModelMatrix, rayDirection));
-                    float2 tNearFar = RayAABBIntersection(originModel, directionModel, model.BoundsMin.xyz, model.BoundsMin.xyz + model.BoundsSize.xyz);
-                    
-                    if (tNearFar.x <= tNearFar.y && tNearFar.y >= 0.0)
-                    {
-                        float tNear = max(tNearFar.x, 0.0);
-                        
-                        if (tNear < closestT)
-                        {
-                            closestRayOriginModel = originModel;
-                            closestRayDirectionModel = directionModel;
-                            closestT = tNear;
-                            closestTFar = tNearFar.y;
-                            closeestModelIndex = i;
-                            intersects = true;
-                        }
-                    }
-                }
-                
-                if (closeestModelIndex < 0)
-                {
-                    return float4(result, 1.0);
-                }
-                
-                ModelData closestModel = modelData[closeestModelIndex];
-                bool exited = false;
+            float mint[8];
+            float maxt[8];
+            int intersectingModels[8];
+            float3 rayOriginModel[8];
+            float3 rayDirectionModel[8];
             
-                float t = closestT;
-
-                for (uint step = 0; step < 128; step++)
-                {
-                    float3 position = closestRayOriginModel + closestRayDirectionModel * t;
-                    float3 uvw = (position - (closestModel.BoundsMin.xyz)) / closestModel.BoundsSize.xyz;
-
-                    Texture3D<float> sdfTexture = ResourceDescriptorHeap[closestModel.SDFTextureIndex];
-                    float distance = sdfTexture.SampleLevel(sdfSampler, uvw, 0);
-
-                    // Hit geometry.
-                    if (distance < 0.01)
-                    {
-                        return float4(shadowResult, 1.0);
-                    }
-
-                    t += distance;
+            int numIntersectingModels = 0;
+            for (int i = 0; i < resources.numModels; i++)
+            {
+                intersectingModels[numIntersectingModels] = -1;
+                
+                ModelData model = modelData[i];
                     
-                    // Left the SDF volume.
-                    if (t > closestTFar)
-                    {
-                        float3 exitPositionModel = closestRayOriginModel + closestRayDirectionModel * closestTFar;
-                        rayOrigin = mul(closestModel.ModelMatrix, float4(exitPositionModel, 1.0) ).xyz;
-                        rayOrigin += rayDirection * EPSILON;
-                        exited = true;
-                        break;
-                    }
+                if (model.SDFTextureIndex < 0 || i == resources.entityIndex)
+                {
+                    continue;
                 }
                 
-                if (!exited)
+                rayOriginModel[numIntersectingModels] = mul(model.InverseModelMatrix, float4(rayOrigin, 1.0)).xyz;
+                rayDirectionModel[numIntersectingModels] = normalize(mul((float3x3) model.InverseModelMatrix, rayDirection));
+                float2 tNearFar = RayAABBIntersection(rayOriginModel[numIntersectingModels], rayDirectionModel[numIntersectingModels], model.BoundsMin.xyz, model.BoundsMin.xyz + model.BoundsSize.xyz);
+
+                if (tNearFar.x <= tNearFar.y && tNearFar.y >= 0.0)
                 {
-                    return float4(shadowResult, 1.0);
+                    float tNear = max(tNearFar.x, 0.0);
+                        
+                    if (tNear < tNearFar.y)
+                    {
+                        mint[numIntersectingModels] = tNear;
+                        maxt[numIntersectingModels] = tNearFar.y;
+                        intersectingModels[numIntersectingModels] = i;
+                        numIntersectingModels++;
+                    }
                 }
             }
+            
+            float shadow = 1.0;
+            float w = 0.1;
+            for (int i = 0; i < numIntersectingModels; i++)
+            {
+                float lightAmount = SoftShadow(rayOriginModel[i], 
+                rayDirectionModel[i], 
+                modelData[intersectingModels[i]].BoundsMin.xyz, 
+                modelData[intersectingModels[i]].BoundsSize.xyz, 
+                modelData[intersectingModels[i]].SDFTextureIndex, 
+                mint[i], maxt[i], w);
+                
+                shadow *= lightAmount;
+                
+                if (shadow <= EPSILON)
+                {
+                    return float4(fragShadowColor, 1.0);
+                }
+            }
+            return float4(fragColor * shadow, 1.0);
         }
     }
     
-    return float4(result, 1.0);
+    return float4(fragColor, 1.0);
 }

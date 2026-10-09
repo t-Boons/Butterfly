@@ -13,7 +13,7 @@ namespace Butterfly
 		Viewport& viewport = ev.Viewport;
 
 		BFTextureDesc desc;
-		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.Format = DXGI_FORMAT_R11G11B10_FLOAT;
 		desc.Width = viewport.Size().x;
 		desc.Height = viewport.Size().y;
 		desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource | BFTextureDesc::ViewType::RenderTargettable;

@@ -61,7 +61,7 @@ namespace Butterfly
 		ImGui_ImplDX12_InitInfo init_info{};
 		init_info.Device = D3D12API()->Device();
 		init_info.NumFramesInFlight = NUM_RENDER_BUFFERS;
-		init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		init_info.RTVFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
 		init_info.SrvDescriptorHeap = D3D12API()->DescriptorAllocatorSrvCbvUav()->Heap().Get();
 		init_info.CommandQueue = D3D12API()->Queue(QueueType::Direct)->D3D12Queue();
 
@@ -127,7 +127,7 @@ namespace Butterfly
 
 			{
 				BFTextureDesc desc;
-				desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
 				desc.Width = size.x;
 				desc.Height = size.y;
 				desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
@@ -345,7 +345,7 @@ namespace Butterfly
 		for (uint32_t j = 0; j < NUM_RENDER_BUFFERS; j++)
 		{
 			BFTextureDesc desc;
-			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
 			desc.Width = static_cast<uint32_t>(m_resizeSize.x);
 			desc.Height = static_cast<uint32_t>(m_resizeSize.y);
 			desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;

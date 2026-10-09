@@ -58,7 +58,7 @@ namespace Butterfly
 			BUFFER_COUNT,
 			m_width,
 			m_height,
-			DXGI_FORMAT_R8G8B8A8_UNORM,
+			DXGI_FORMAT_R10G10B10A2_UNORM,
 			DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
 
 		for (uint32_t i = 0; i < BUFFER_COUNT; ++i)
@@ -67,7 +67,7 @@ namespace Butterfly
 			ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
 
 			m_renderTargets[i] = DX12ResourceBuilder()
-				.RenderTarget(DXGI_FORMAT_R8G8B8A8_UNORM, m_width, m_height)
+				.RenderTarget(DXGI_FORMAT_R10G10B10A2_UNORM, m_width, m_height)
 				.SetName(("BackBuffer: " + std::to_string(i)).c_str())
 				.CreateFromSwapchain(renderTarget, D3D12_RESOURCE_STATE_PRESENT);
 		}
@@ -96,7 +96,7 @@ namespace Butterfly
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 		swapChainDesc.Width = m_width;                      
 		swapChainDesc.Height = m_height;                    
-		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		swapChainDesc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
 		swapChainDesc.Stereo = FALSE;
 		swapChainDesc.SampleDesc.Count = 1;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -114,7 +114,7 @@ namespace Butterfly
 			ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
 
 			m_renderTargets[i] = DX12ResourceBuilder()
-				.RenderTarget(DXGI_FORMAT_R8G8B8A8_UNORM, m_width, m_height)
+				.RenderTarget(DXGI_FORMAT_R10G10B10A2_UNORM, m_width, m_height)
 				.SetName(("BackBuffer: " + std::to_string(i)).c_str())
 				.CreateFromSwapchain(renderTarget, D3D12_RESOURCE_STATE_PRESENT);
 		}
