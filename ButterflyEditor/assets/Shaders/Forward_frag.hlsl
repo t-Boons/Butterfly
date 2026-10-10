@@ -97,32 +97,59 @@ struct BufferIndices
 
 ConstantBuffer<BufferIndices> resources : register(b0);
 
+float SampleSDF(int sdf, float3 position, float3 boundsMin, float3 boundsSize)
+{
+    float3 boundsMax = boundsMin + boundsSize;
+    float3 q = clamp(position, boundsMin, boundsMax);
+    float outside = length(position - q);
+
+    float3 uvw = (q - boundsMin) / boundsSize;
+    Texture3D<float> sdfTexture = ResourceDescriptorHeap[sdf];
+    SamplerState sdfSampler = SamplerDescriptorHeap[resources.sdfSamplerIndex];
+    float h = sdfTexture.SampleLevel(sdfSampler, uvw, 0);
+
+    if (outside <= 0.0)
+        return h;
+
+    return sqrt(outside * outside + max(h, 0.0) * max(h, 0.0));
+}
+
+// Source: https://iquilezles.org/articles/rmshadows/
 float SoftShadow(float3 origin, float3 dir, float3 boundsMin, float3 boundsSize, int sdf, float mint, float maxt, float w)
 {
     float res = 1.0;
     float ph = 1e20;
+    float t0 = mint;
+    float t = t0;
 
-    float t = mint;
-                
-    for (uint step = 0; step < 128 && t < maxt; step++)
+    for (uint step = 0; step < 64 && t < maxt; step++)
     {
-        float3 position = origin + dir * t;
-        float3 uvw = (position - boundsMin) / boundsSize;
+        float3 p = origin + dir * t;
+        float h = SampleSDF(sdf, p, boundsMin, boundsSize);
 
-        Texture3D<float> sdfTexture = ResourceDescriptorHeap[sdf];
-        SamplerState sdfSampler = SamplerDescriptorHeap[resources.sdfSamplerIndex];
-        float h = sdfTexture.SampleLevel(sdfSampler, uvw, 0);
-        if(h < 0.001)
+        if (h < 0.01)
             return 0.0;
 
         float y = h * h / (2.0 * ph);
-        float d = sqrt(h * h - y * y);
-        res = min(res, d / (w * max(0.0, t - y)));
+        float d2 = h * h - y * y;
+        float tc = t - y;
+        
+        if (d2 > 0.0 && tc >= t0)
+            res = min(res, sqrt(d2) / (w * max(tc, 1e-4)));
+
         t += h;
         ph = h;
     }
-    return res;
+    return saturate(res);
 }
+
+float ShadowPenumbraMargin(float3 origin, float3 boundsMin, float3 boundsSize, float w)
+{
+    float3 center = boundsMin + 0.5 * boundsSize;
+    float maxT = length(center - origin) + 0.5 * length(boundsSize);
+    return w * maxT;
+}
+
 
 
 struct MaterialData
@@ -194,6 +221,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
         metallic = metallicRoughnessSample.z;
         perceptualRoughness = metallicRoughnessSample.y;
     }
+    
     metallic = saturate(metallic);
     perceptualRoughness = max(perceptualRoughness, 0.045);
     float alphaRoughness = perceptualRoughness * perceptualRoughness;
@@ -231,7 +259,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
     for (int i = 0; i < resources.numLights; i++)
     {
         Light light = lights[i];
-       
+        
         if (light.Type == 0) // Directional Light
         {
             float3 L = normalize(-light.Direction);
@@ -299,74 +327,62 @@ float4 main(V2P pixelInput) : SV_TARGET0
     
     float3 fragColor = lighting.xyz + emissive * material.EmissiveColor.rgb;
     float3 fragShadowColor = skyLight;
-    
+
     SamplerState sdfSampler = SamplerDescriptorHeap[resources.sdfSamplerIndex];
     StructuredBuffer<ModelData> modelData = ResourceDescriptorHeap[resources.modelIndex];
     
-    if (resources.numLights > 0)
+    if (resources.numLights > 0 && lights[0].Type == 0)
     {
         Light light = lights[0];
-        if (light.Type == 0)
-        {
-            float3 rayDirection = -light.Direction;
-            float3 rayOrigin = pixelInput.fragPos + rayDirection * EPSILON;
-            
-            float mint[8];
-            float maxt[8];
-            int intersectingModels[8];
-            float3 rayOriginModel[8];
-            float3 rayDirectionModel[8];
-            
-            int numIntersectingModels = 0;
-            for (int i = 0; i < resources.numModels; i++)
-            {
-                intersectingModels[numIntersectingModels] = -1;
-                
-                ModelData model = modelData[i];
-                    
-                if (model.SDFTextureIndex < 0 || i == resources.entityIndex)
-                {
-                    continue;
-                }
-                
-                rayOriginModel[numIntersectingModels] = mul(model.InverseModelMatrix, float4(rayOrigin, 1.0)).xyz;
-                rayDirectionModel[numIntersectingModels] = normalize(mul((float3x3) model.InverseModelMatrix, rayDirection));
-                float2 tNearFar = RayAABBIntersection(rayOriginModel[numIntersectingModels], rayDirectionModel[numIntersectingModels], model.BoundsMin.xyz, model.BoundsMin.xyz + model.BoundsSize.xyz);
 
-                if (tNearFar.x <= tNearFar.y && tNearFar.y >= 0.0)
-                {
-                    float tNear = max(tNearFar.x, 0.0);
-                        
-                    if (tNear < tNearFar.y)
-                    {
-                        mint[numIntersectingModels] = tNear;
-                        maxt[numIntersectingModels] = tNearFar.y;
-                        intersectingModels[numIntersectingModels] = i;
-                        numIntersectingModels++;
-                    }
-                }
-            }
+        float w = 0.05;
+        float shadow = 1.0;
+        
+
+        float NoL = saturate(dot(normalize(pixelInput.normal), -light.Direction));
+        
+        for (int m = 0; m < resources.numModels; m++)
+        {
+            ModelData model = modelData[m];
+            if (model.SDFTextureIndex < 0)
+                continue;
+
+            float3 bMin = model.BoundsMin.xyz;
+            float3 bSize = model.BoundsSize.xyz;
+
+     
             
-            float shadow = 1.0;
-            float w = 0.1;
-            for (int i = 0; i < numIntersectingModels; i++)
-            {
-                float lightAmount = SoftShadow(rayOriginModel[i], 
-                rayDirectionModel[i], 
-                modelData[intersectingModels[i]].BoundsMin.xyz, 
-                modelData[intersectingModels[i]].BoundsSize.xyz, 
-                modelData[intersectingModels[i]].SDFTextureIndex, 
-                mint[i], maxt[i], w);
-                
-                shadow *= lightAmount;
-                
-                if (shadow <= EPSILON)
-                {
-                    return float4(fragShadowColor, 1.0);
-                }
-            }
-            return float4(fragColor * shadow, 1.0);
+            
+            float3 originW = pixelInput.fragPos + pixelInput.normal * EPSILON;
+            float3 originM = mul(model.InverseModelMatrix, float4(originW, 1.0)).xyz;
+            float3 dirM = normalize(mul(model.InverseModelMatrix, float4(-light.Direction, 0.0)).xyz);
+
+            float margin = ShadowPenumbraMargin(originM, bMin, bSize, w);
+            float2 tnf = RayAABBIntersection(originM, dirM, bMin - margin, bMin + bSize + margin);
+
+            bool isSelf = (m == resources.entityIndex);
+            
+            float fragmentDistanceToModel = SampleSDF(model.SDFTextureIndex, originM, bMin, bSize);
+
+            bool startsInContact = isSelf || fragmentDistanceToModel < 0.05;
+            float contactSkip = startsInContact ? 0.05 / max(NoL, 0.1) : 0.0;
+
+            float minT = max(tnf.x, contactSkip);
+            float maxT = tnf.y;
+            if (minT >= maxT)
+                continue;
+
+            float s = SoftShadow(originM, dirM, bMin, bSize, model.SDFTextureIndex, minT, maxT, w);
+
+            if (isSelf)
+                s = lerp(1.0, s, smoothstep(0.0, 0.25, NoL));
+            
+            shadow *= s;
+            if (shadow <= EPSILON)
+                break;
         }
+
+        return float4(lerp(fragShadowColor, fragColor, shadow), 1.0);
     }
     
     return float4(fragColor, 1.0);
