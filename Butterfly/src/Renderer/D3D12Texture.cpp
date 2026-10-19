@@ -407,11 +407,11 @@ namespace Butterfly
 		FREE(m_readbackBuffer);
 	}
 
-	void BFTextureReadback::ValidateBuffer(const RefPtr<BFTexture>& texture)
+	void BFTextureReadback::ValidateBuffer(const BFTexture& texture)
 	{
 		BF_PROFILE_EVENT();
 
-		D3D12Resource* src = texture->Resource();
+		const D3D12Resource* src = texture.Resource();
 		const auto desc = src->HwResource->GetDesc();
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
 		UINT numRows = 0;
@@ -465,13 +465,13 @@ namespace Butterfly
 		return true;
 	}
 
-	void BFTextureReadback::ReadbackCopy(D3D12CommandList& list, const RefPtr<BFTexture>& texture)
+	void BFTextureReadback::ReadbackCopy(D3D12CommandList& list, BFTexture& texture)
 	{
 		ValidateBuffer(texture);
 
-		D3D12Resource* src = texture->Resource();
+		D3D12Resource* src = texture.Resource();
 
-		m_textureDesc = texture->Desc();
+		m_textureDesc = texture.Desc();
 
 		const auto desc = src->HwResource->GetDesc();
 

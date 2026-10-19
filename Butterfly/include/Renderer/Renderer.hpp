@@ -31,18 +31,6 @@ namespace Butterfly
 
 	};
 
-	struct CameraData
-	{
-		glm::mat4 ViewProjection;
-		glm::vec3 CameraPosition;
-	};
-
-	struct InverseCameraData
-	{
-		glm::mat4 InverseView;
-		glm::mat4 InverseProjection;
-	};
-
 	class BFRGTexture;
 	struct ForwardRenderer
 	{

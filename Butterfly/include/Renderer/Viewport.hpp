@@ -56,6 +56,13 @@ namespace Butterfly
 		EventDispatcher<ViewportRenderEvent> OnRender;
 	};
 
+	struct CameraData
+	{
+		glm::mat4 ViewProjection;
+		glm::vec3 CameraPosition;
+		glm::mat4 InverseView;
+		glm::mat4 InverseProjection;
+	};
 
 	class BFTexture;
 	class BFUniformBuffer;
@@ -75,6 +82,7 @@ namespace Butterfly
 		BFTexture& GetDepthStencil() const { return *DepthStencil[FrameIndex]; }
 		GraphTransientResourceCache& GetGraphResources() const { return *GraphResources[FrameIndex]; }
 
+		CameraData UniformCameraData;
 		RefPtr<BFUniformBuffer> Uniforms;
 		RefPtr<MaterialLibrary> Materials;
 		RefPtr<LightBuffer> Lights;

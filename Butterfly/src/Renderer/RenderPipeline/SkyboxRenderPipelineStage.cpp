@@ -138,7 +138,7 @@ namespace Butterfly
 				BFSampler sampler;
 
 				ShaderVariables()
-					.Add(viewport.Uniforms->GetView(HASH("InverseCameraData"))->View())
+					.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
 					.Add(sampler.View())
 					.Add(m_skyboxTexture->SRV().View())
 					.Submit(list);

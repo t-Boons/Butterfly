@@ -1,8 +1,4 @@
-struct CameraData
-{
-    float4x4 ViewProjection;
-    float3 CameraPosition;
-};
+#include "common.hlsli"
 
 struct ModelData
 {
@@ -56,7 +52,7 @@ V2P main(uint vertexID : SV_VertexID)
     ConstantBuffer<CameraData> uniforms = ResourceDescriptorHeap[resources.uniformIndex];
     StructuredBuffer<ModelData> modelMatrices = ResourceDescriptorHeap[resources.modelIndex];
     
-    float4x4 MVP = mul(uniforms.ViewProjection, modelMatrices[resources.entityIndex].ModelMatrix);
+    float4x4 MVP = mul(uniforms.ViewProj, modelMatrices[resources.entityIndex].ModelMatrix);
     
     V2P output;
     output.position = mul(MVP, float4(position[vertexID], 1.0));
@@ -65,7 +61,7 @@ V2P main(uint vertexID : SV_VertexID)
     output.tangentW = tangents[vertexID].w;
     output.texCoord = texcoords[vertexID];
     output.fragPos = mul(modelMatrices[resources.entityIndex].ModelMatrix, float4(position[vertexID], 1.0)).xyz;
-    output.eye = uniforms.CameraPosition;
+    output.eye = uniforms.Position;
     output.sdfUVW = (position[vertexID] - modelMatrices[resources.entityIndex].BoundsMin.xyz) / modelMatrices[resources.entityIndex].BoundsSize.xyz;
 
     return output;

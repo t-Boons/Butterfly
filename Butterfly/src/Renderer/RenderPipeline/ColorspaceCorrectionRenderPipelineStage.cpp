@@ -19,17 +19,17 @@ namespace Butterfly
 		desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource | BFTextureDesc::ViewType::RenderTargettable;
 		desc.DebugName = "ColorCorrected_CompositeRenderTarget";
 
-		BFRGTexture* compCopy = builder.CreateTransientTexture("CompositeRenderTarget", desc);
+		BFTexture* compCopy = builder.CreateTransientTexture("CompositeRenderTarget", desc);
 
 		CCPassData* data = builder.AllocParameters<CCPassData>();
 		builder.AddPass<CCPassData>("ColorspaceCorrectionPass", [&, compCopy](const CCPassData& data, D3D12CommandList& list)
 			{
 				RasterPassStartInfo info;
 				info.RenderTargetLoadOp = LoadOP::Load;
-				info.RenderTarget = compCopy->Resource().get();
+				info.RenderTarget = compCopy;
 				list.StartRenderPass(info, "ColorspaceCorrectionPass");
 
-				list.SetViewport(RenderViewport::FromTexture(*compCopy->Resource()));
+				list.SetViewport(RenderViewport::FromTexture(*compCopy));
 
 				BFGraphicsPSOInfo pso;
 				pso.Rasterizer.CullMode = D3D12_CULL_MODE_NONE;
@@ -49,7 +49,7 @@ namespace Butterfly
 
 				list.EndRenderPass();
 
-				GraphicsCommands::Blit(list, *compCopy->Resource(), viewport.GetRenderTarget());
+				GraphicsCommands::Blit(list, *compCopy, viewport.GetRenderTarget());
 			});
 	}
 }

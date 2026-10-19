@@ -1,5 +1,3 @@
-static const float PI = 3.14159265359;
-
 struct BufferIndices
 {
     int hdriTexureIndex;
@@ -13,7 +11,6 @@ ConstantBuffer<BufferIndices> resources : register(b0);
 
 float3 GetCubemapDirection(float2 uv, uint face)
 {
-    // Convert [0, 1] to [-1, 1]
     float2 p = uv * 2.0 - 1.0;
 
     switch (face)
@@ -64,4 +61,4 @@ void main(uint3 id : SV_DispatchThreadID)
     float2 hdriUV = DirectionToEquirectangularUV(direction);
     float3 color = hdriTex.Sample(smp, hdriUV).rgb;
 	cubemap[uint3(pixel, face)] = float4(color, 1.0);
-	}
+}

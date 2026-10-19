@@ -75,7 +75,7 @@ namespace Butterfly
 		uint32_t ViewTypes() const { return m_desc.ViewTypes; }
 		BFTextureType Type() const { return m_desc.Type; }
 		D3D12Resource* Resource() { return m_resource; }
-
+		const D3D12Resource* Resource() const { return m_resource; }
 	private:
 		D3D12Resource* m_resource = nullptr;
 		BFTextureDesc m_desc{};
@@ -96,10 +96,10 @@ namespace Butterfly
 
 		bool ReadPixel(const glm::ivec2& pixel, uint32_t& out);
 
-		void ReadbackCopy(D3D12CommandList& list, const RefPtr<BFTexture>& texture);
+		void ReadbackCopy(D3D12CommandList& list, BFTexture& texture);
 
 	private:
-		void ValidateBuffer(const RefPtr<BFTexture>& texture);
+		void ValidateBuffer(const BFTexture& texture);
 
 		BFTextureDesc m_textureDesc;
 		D3D12Resource* m_readbackBuffer = nullptr;

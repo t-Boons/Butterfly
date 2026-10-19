@@ -11,8 +11,8 @@ namespace Butterfly
 {
 	struct ObjectPickerPassData
 	{
-		BFRGTexture* DepthStencil;
-		BFRGTexture* RenderTarget;
+		BFTexture* DepthStencil;
+		BFTexture* RenderTarget;
 	};
 
 
@@ -64,15 +64,15 @@ namespace Butterfly
 			event.Builder.AddPass<ObjectPickerPassData>("RenderObjectPickerPass", [&](const ObjectPickerPassData& data, D3D12CommandList& list)
 				{
 					RasterPassStartInfo info;
-					info.RenderTarget = data.RenderTarget->Resource().get();
-					info.DepthStencil = data.DepthStencil->Resource().get();
+					info.RenderTarget = data.RenderTarget;
+					info.DepthStencil = data.DepthStencil;
 					info.DepthStencilLoadOp = LoadOP::Clear;
 					info.RenderTargetLoadOp = LoadOP::Clear;
 					info.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 					info.DepthValue = 1.0f;
 					list.StartRenderPass(info, "RenderObjectPickerPass");
 
-					list.SetViewport(RenderViewport::FromTexture(*data.RenderTarget->Resource()));
+					list.SetViewport(RenderViewport::FromTexture(*data.RenderTarget));
 
 					BFGraphicsPSOInfo psoInfo;
 					psoInfo.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_vert.hlsl", ShaderType::Vertex);
@@ -104,7 +104,7 @@ namespace Butterfly
 						list.DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);
 					}
 
-					m_objectPickerReadback->ReadbackCopy(list, data.RenderTarget->Resource());
+					m_objectPickerReadback->ReadbackCopy(list, *data.RenderTarget);
 
 					list.EndRenderPass();
 				});
@@ -173,15 +173,11 @@ namespace Butterfly
 		CameraData cameraData;
 		cameraData.ViewProjection = m_spectatorCam.GetCamera()->ViewProjectionMatrix();
 		cameraData.CameraPosition = m_spectatorCam.GetCamera()->Position();
+		cameraData.InverseView = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ViewMatrix()));
+		cameraData.InverseProjection = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ProjectionMatrix()));
+
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
-
-		InverseCameraData data;
-		data.InverseView = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ViewMatrix()));
-		data.InverseProjection = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ProjectionMatrix()));
-
-		event.Viewport.Uniforms->GetOrCreateView(sizeof(InverseCameraData), HASH("InverseCameraData"));
-		event.Viewport.Uniforms->Write(&data, sizeof(InverseCameraData), HASH("InverseCameraData"));
 
 		event.Viewport.Lights->Update();
 		event.Viewport.Materials->Validate();

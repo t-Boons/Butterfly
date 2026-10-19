@@ -1,8 +1,4 @@
-struct CameraData
-{
-    float4x4 ViewProjection;
-    float3 CameraPosition;
-};
+#include "common.hlsli"
 
 struct Vertex
 {
@@ -29,7 +25,7 @@ V2P main(uint vertexID : SV_VertexID)
     ConstantBuffer<CameraData> uniforms = ResourceDescriptorHeap[resources.cameraDataIndex];
     StructuredBuffer<Vertex> vertices = ResourceDescriptorHeap[resources.vertexIndex];
 
-    float4x4 MVP = uniforms.ViewProjection;
+    float4x4 MVP = uniforms.ViewProj;
     
     V2P output;
     output.color = vertices[vertexID].Color;

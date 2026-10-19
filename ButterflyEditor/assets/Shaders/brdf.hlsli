@@ -1,6 +1,4 @@
-#define PI 3.14159265359
-#define EPSILON 0.0001
-#define FLT_MAX 3.402823466e+38F
+#include "common.hlsli"
 
 float3 F_Schlick(float3 F0, float VoH)
 {

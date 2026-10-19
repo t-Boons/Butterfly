@@ -67,15 +67,10 @@ namespace Butterfly
 		CameraData cameraData;
 		cameraData.ViewProjection = viewProjection;
 		cameraData.CameraPosition = cameraPosition;
+		cameraData.InverseView = glm::transpose(glm::inverse(view));
+		cameraData.InverseProjection = glm::transpose(glm::inverse(projection));
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
-
-		InverseCameraData data;
-		data.InverseView = glm::transpose(glm::inverse(view));
-		data.InverseProjection = glm::transpose(glm::inverse(projection));
-
-		event.Viewport.Uniforms->GetOrCreateView(sizeof(InverseCameraData), HASH("InverseCameraData"));
-		event.Viewport.Uniforms->Write(&data, sizeof(InverseCameraData), HASH("InverseCameraData"));
 
 		event.Viewport.Lights->Update();
 		event.Viewport.Materials->Validate();
