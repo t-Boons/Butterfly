@@ -1,11 +1,7 @@
 #pragma once
 #include "Core/Common.hpp"
 
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-
 #include <dxgi1_6.h>
-#include <windows.h>
 #include <wrl.h>
 #include "d3dx12/d3dx12.h"
 #include "d3d12.h"

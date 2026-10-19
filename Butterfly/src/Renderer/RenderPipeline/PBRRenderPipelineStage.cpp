@@ -85,10 +85,22 @@ namespace Butterfly
 				samplerDesc.MaxLOD = 0.0f;
 				BFSampler sdfSampler(&samplerDesc);
 
+				// TODO make this cleaner. Right now this is only used because all SDF's start as UNORDERED_ACCEASS
+				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+				for (const auto& [entity, transform, meshRenderer] : view.each())
+				{
+					if (!meshRenderer.GetMeshHandle())
+					{
+						continue;
+					}
+					AssetManager& as = Application::Get().GetAssetManager();
+					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+					if(mesh->SDF)
+						mesh->SDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				}
 
 				uint32_t entityIndex = 0;
-				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
-				for (auto [entity, transform, meshRenderer] : view.each())
+				for (const auto& [entity, transform, meshRenderer] : view.each())
 				{
 					if (!meshRenderer.GetMeshHandle())
 					{
@@ -99,8 +111,6 @@ namespace Butterfly
 					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
 
 					list.SetIndexBuffer(*mesh->GPUIndices);
-
-					mesh->SDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 					for (auto& subMesh : mesh->SubMeshes)
 					{

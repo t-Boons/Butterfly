@@ -58,8 +58,12 @@ namespace Butterfly
 
 					list.SetIndexBuffer(*mesh->GPUIndices);
 
-
-					mesh->SDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					int sdf = -1;
+					if (mesh->SDF)
+					{
+						mesh->SDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+						sdf = mesh->SDF->SRV().View();
+					}
 
 					BFSampler smp;
 					for (auto& subMesh : mesh->SubMeshes)
@@ -78,7 +82,7 @@ namespace Butterfly
 							.Add(viewport.Materials->GetMaterialBuffer().SRV().View())
 							.Add(viewport.Materials->GetMaterialIndex(subMesh.Material.GetID()))
 							.Add(static_cast<int>(m_debugViewType))
-							.Add(mesh->SDF->SRV().View())
+							.Add(sdf)
 							.Submit(list);
 
 						list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);

@@ -56,8 +56,8 @@ namespace Butterfly
 				model.ModelMatrix = transform.GetWorldMatrix();
 				model.InverseModelMatrix = glm::inverse(model.ModelMatrix);
 				model.NormalMatrix = glm::transpose(glm::inverse(model.ModelMatrix));
-				model.BoundsMin = glm::vec4(mesh->Bounds.Min, 0.0f);
-				model.BoundsSize = glm::vec4(mesh->Bounds.Size(), 0.0f);
+				model.BoundsMin = glm::vec4(mesh->MeshBounds.Min, 0.0f);
+				model.BoundsSize = glm::vec4(mesh->MeshBounds.Size(), 0.0f);
 
 				if (mesh->SDF)
 				{

@@ -69,6 +69,8 @@ add_library(Butterfly STATIC
     src/Renderer/ModelLoading/MikkTSpaceWrapper.cpp
 )
 
+target_compile_definitions(Butterfly PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+
 target_include_directories(Butterfly
     PUBLIC
         include)

@@ -1,7 +1,7 @@
 #pragma once
 #include "Butterfly.hpp"
 
-#define NUM_DEBUG_VERTICES 4096
+#define NUM_DEBUG_VERTICES 4096 * 2
 #define NUM_CIRCLE_VERTICES 20
 
 namespace Butterfly

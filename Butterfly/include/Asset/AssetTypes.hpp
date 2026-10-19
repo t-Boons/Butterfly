@@ -9,6 +9,7 @@ namespace Butterfly
 {
 	struct MaterialAsset;
 
+
 	struct MeshAsset
 	{
 		inline static const AssetType Type() { return { "Mesh" }; }
@@ -27,10 +28,10 @@ namespace Butterfly
 		RefPtr<BFStructuredBuffer> GPUUVs;
 		RefPtr<BFIndexBuffer> GPUIndices;
 
-		Bounds Bounds;
+
+		Bounds MeshBounds;
 		glm::vec3 SDFResolution = { 0.0f , 0.0f, 0.0f };
 		RefPtr<BFTexture> SDF;
-
 
 		struct SubMesh
 		{
@@ -38,7 +39,6 @@ namespace Butterfly
 			uint32_t IndexCount;
 			AssetHandle<MaterialAsset> Material;
 		};
-
 		std::vector<SubMesh> SubMeshes;
 
 		bool GPULoaded = false;
@@ -97,21 +97,20 @@ namespace Butterfly
 					uint32_t index = Indices[subMesh.IndexOffset + i];
 
 					const glm::vec3 position = Positions[index];
-					if (Bounds.Min.x > position.x) Bounds.Min.x = position.x;
-					if (Bounds.Min.y > position.y) Bounds.Min.y = position.y;
-					if (Bounds.Min.z > position.z) Bounds.Min.z = position.z;
-					if (Bounds.Max.x < position.x) Bounds.Max.x = position.x;
-					if (Bounds.Max.y < position.y) Bounds.Max.y = position.y;
-					if (Bounds.Max.z < position.z) Bounds.Max.z = position.z;
+					if (MeshBounds.Min.x > position.x) MeshBounds.Min.x = position.x;
+					if (MeshBounds.Min.y > position.y) MeshBounds.Min.y = position.y;
+					if (MeshBounds.Min.z > position.z) MeshBounds.Min.z = position.z;
+					if (MeshBounds.Max.x < position.x) MeshBounds.Max.x = position.x;
+					if (MeshBounds.Max.y < position.y) MeshBounds.Max.y = position.y;
+					if (MeshBounds.Max.z < position.z) MeshBounds.Max.z = position.z;
 				}
 			}
-			const glm::vec3 padding = Bounds.Size() * 0.5f * 0.5f; // 20% of the size;
-			Bounds.Min -= padding;
-			Bounds.Max += padding;
+			const glm::vec3 padding = MeshBounds.Size() * 0.5f * 0.2f; // 20% of the size;
+			MeshBounds.Min -= padding;
+			MeshBounds.Max += padding;
 
 
 			SDFResolution = glm::vec3(64.0f, 64.0f, 64.0f);
-			D3D12CommandList list;
 
 			std::vector<SDFTriangle> triangles;
 			triangles.reserve(Indices.size() / 3);
@@ -131,7 +130,7 @@ namespace Butterfly
 				}
 			}
 
-			SDF = GraphicsCommands::CreateSDF(triangles, Bounds, SDFResolution);
+			SDF = GraphicsCommands::CreateSDF(triangles, MeshBounds, SDFResolution);
 		}
 	};
 

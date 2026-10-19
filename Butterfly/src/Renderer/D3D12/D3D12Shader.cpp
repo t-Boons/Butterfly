@@ -30,15 +30,30 @@ namespace Butterfly
 			uint32_t codePage = CP_UTF8;
 			ComPtr<IDxcBlobEncoding> sourceBlob;
 			ThrowIfFailed(D3D12API()->ShaderUtils()->LoadFile(filePath.c_str(), &codePage, &sourceBlob));
+			const std::filesystem::path shaderPath(filePath);
+			const std::wstring includeDirectory = shaderPath.parent_path().wstring();
 
 
 			ComPtr<IDxcCompilerArgs> args;
-			LPCWSTR customArgs[] = {
+#ifdef BUTTERFLY_DEBUG
+			LPCWSTR customArgs[] =
+			{
 				L"-all_resources_bound",
 				L"-Zi",
-				L"-Qembed_debug"
+				L"-Qembed_debug",
+				L"-I",
+				includeDirectory.c_str()
+			};
+#else
+				LPCWSTR customArgs[] =
+			{
+				L"-all_resources_bound",
+				L"-Zi",
+				includeDirectory.c_str()
 			};
 
+#endif
+				
 			ThrowIfFailed(D3D12API()->ShaderUtils()->BuildArguments(
 				filePath.c_str(),
 				L"main",
@@ -51,7 +66,10 @@ namespace Butterfly
 
 			const DxcBuffer shaderBuffer = DxcBuffer{ sourceBlob->GetBufferPointer(), sourceBlob->GetBufferSize(), DXC_CP_ACP };
 
-			ThrowIfFailed(D3D12API()->ShaderCompiler()->Compile(&shaderBuffer, args->GetArguments(), args->GetCount(), nullptr, IID_PPV_ARGS(&result)));
+			IDxcIncludeHandler* includeHandler;
+			ThrowIfFailed(D3D12API()->ShaderUtils()->CreateDefaultIncludeHandler(&includeHandler));
+
+			ThrowIfFailed(D3D12API()->ShaderCompiler()->Compile(&shaderBuffer, args->GetArguments(), args->GetCount(), includeHandler, IID_PPV_ARGS(&result)));
 
 			ComPtr<IDxcBlobUtf8> errors;
 			ThrowIfFailed(result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr));

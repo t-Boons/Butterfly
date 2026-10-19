@@ -29,7 +29,7 @@ namespace Butterfly
 			BF_CORE_LOG_WARN("D3D12 -> %s", desc);
 			break;
 		case D3D12_MESSAGE_SEVERITY_ERROR:
-			BF_CORE_LOG_ERROR("D3D12 -> %s", desc);
+			BF_CORE_LOG_CRITICAL("D3D12 -> %s", desc);
 			break;
 		case D3D12_MESSAGE_SEVERITY_CORRUPTION:
 			BF_CORE_LOG_CRITICAL("D3D12 -> %s", desc);
@@ -120,7 +120,7 @@ namespace Butterfly
 		}
 
 		// Allocate descriptor allocators.
-		m_descriptorAllocatorSrvCbvUav = new DX12DescriptorAllocatorCbvSrvUav(4096);
+		m_descriptorAllocatorSrvCbvUav = new DX12DescriptorAllocatorCbvSrvUav(32768);
 		m_descriptorAllocatorsRtv = new DX12DescriptorAllocatorRtv(64);
 		m_descriptorAllocatorsDsv = new DX12DescriptorAllocatorDsv(64);
 		m_descriptorAllocatorsSampler = new DX12DescriptorAllocatorSampler(2048);

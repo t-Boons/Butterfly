@@ -1,5 +1,7 @@
+#include "Core/Common.hpp"
 #include "Core/Window.hpp"
 #include "Utils/Profiler.hpp"
+#include <commdlg.h>
 
 namespace Butterfly
 {

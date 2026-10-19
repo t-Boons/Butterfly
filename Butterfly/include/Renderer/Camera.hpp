@@ -8,7 +8,7 @@ namespace Butterfly
 		float Fov = glm::radians(45.0f);
 		float AspectRatio = 16.0f / 9.0f;
 		float ZNear = 0.01f;
-		float ZFar = 100.0f;
+		float ZFar = 1000.0f;
 	};
 
 	class Camera
