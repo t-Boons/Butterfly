@@ -19,7 +19,7 @@ namespace Butterfly
 		uint32_t NumBytes() const { return m_numBytes; }
 
 	private:
-		BFShader(const std::wstring& filePath, ShaderType type);
+		BFShader(const std::string& filePath, ShaderType type, const std::vector<std::string>& macros = {});
 
 		friend class BFShaderCache;
 		friend class BFPipelineCache;
@@ -31,9 +31,9 @@ namespace Butterfly
 	class BFShaderCache
 	{
 	public:
-		static BFShader* GetOrCreate(const std::wstring& filePath, ShaderType type);
+		static BFShader* GetOrCreate(const std::string& filePath, ShaderType type, const std::vector<std::string>& macros = {});
 
 	private:
-		inline static std::unordered_map<std::wstring, ScopePtr<BFShader>> m_map;
+		inline static std::unordered_map<uint64_t, ScopePtr<BFShader>> m_map;
 	};
 }

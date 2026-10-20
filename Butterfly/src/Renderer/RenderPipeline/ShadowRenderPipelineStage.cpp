@@ -94,125 +94,144 @@ namespace Butterfly
 		GraphBuilder& builder = ev.Builder;
 		Viewport& viewport = ev.Viewport;
 
-		if (!m_shadowMapTexture)
+		const std::array<glm::vec3, 8> frustumCorners = Utils::GetFrustumCorners(viewport.UniformCameraData.ViewProjection);
+
+		const std::array<float, 4> cascadeSplits
 		{
-			BFTextureDesc desc;
-			desc.Width = 512;
-			desc.Height = 512;
-			desc.Format = DXGI_FORMAT_D32_FLOAT;
-			desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable | BFTextureDesc::ViewType::ShaderResource;
-			desc.DebugName = "ShadowMap";
-			desc.Type = BFTextureType::Texture2DArray;
-			desc.ArraySize = NUM_CASCADES;
-			m_shadowMapTexture = MakeRef<BFTexture>(desc);
-		}
+			8,
+			16,
+			32,
+			64,
+		};
 
-		ShadowMapParameters* params = builder.AllocParameters<ShadowMapParameters>();
-		params->Map.ShadowMapTexture = m_shadowMapTexture.get();
+		std::vector<GPUShadowMap> gpuShadowMaps;
 
-		struct ShadowLightSource
+		for(uint32_t i = 0; i < viewport.Lights->GetLights().size(); ++i)
 		{
-			glm::mat4 ViewProj[NUM_CASCADES];
-		} shadowLightSource;
+			const GPULight& light = viewport.Lights->GetLights()[i];
 
-
-		GPULight directionalLight;
-		bool foundDirectionalLight = false;
-		for(const auto& light : viewport.Lights->GetLights())
-		{
 			if(Utils::GPULightTypeToLightType(light.Type) == LightType::Directional)
 			{
-				directionalLight = light;
-				foundDirectionalLight = true;
-				break;
+				const std::array<glm::mat4, NUM_CASCADES> cascadeViewProjections = Utils::GetCascadeSplitDirectionalLight(cascadeSplits, frustumCorners, viewport.UniformCameraData.Near, viewport.UniformCameraData.Far, light.Direction, 512);
+
+				m_shadowMaps.resize(1);
+				gpuShadowMaps.resize(1);
+				for (uint32_t j = 0; j < 1; ++j)
+				{
+					ShadowMap& map = m_shadowMaps[j];
+					GPUShadowMap& gpuMap = gpuShadowMaps[j];
+
+					const std::string name = "ShadowMap LightIndex: " + std::to_string(i);
+
+					BFTextureDesc desc;
+					desc.Width = 1024;
+					desc.Height = 1024;
+					desc.Format = DXGI_FORMAT_D32_FLOAT;
+					desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable | BFTextureDesc::ViewType::ShaderResource;
+					desc.DebugName = name;
+					desc.Type = BFTextureType::Texture2DArray;
+					desc.ArraySize = NUM_CASCADES;
+
+					map.ShadowMapTexture = builder.CreateTransientTexture(name, desc);
+					map.NumCascades = NUM_CASCADES;
+
+					gpuMap.ShadowMapTextureIndex = map.ShadowMapTexture->SRV().View();
+					gpuMap.NumCascades = NUM_CASCADES;
+
+					map.Size = 1024;
+					gpuMap.Size = 1024;
+
+					for (uint32_t k = 0; k < NUM_CASCADES; k++)
+					{
+						gpuMap.LightViewProjections[k] = cascadeViewProjections[k];
+						gpuMap.CascadeSplits[k] = cascadeSplits[k];
+						map.LightViewProjections[k] = cascadeViewProjections[k];
+						map.CascadeSplits[k] = cascadeSplits[k];
+					}
+				}
 			}
 		}
 
-		if (foundDirectionalLight)
-		{
-			const std::array<float, 4> cascadeSplits
+		BFStructuredBufferDesc bufferDesc;
+		bufferDesc.DebugName = "ShadowMapBuffer";
+		bufferDesc.HeapType = BFHeapType::Upload;
+		bufferDesc.Stride = sizeof(GPUShadowMap);
+		bufferDesc.NumElements = static_cast<uint32_t>(8);
+		BFStructuredBuffer* shadowMapBuffer = builder.CreateTransientStructuredBuffer("ShadowMapBuffer", bufferDesc);
+		shadowMapBuffer->Write(gpuShadowMaps.data(), sizeof(GPUShadowMap) * gpuShadowMaps.size());
+
+		ShadowMapPass* params = builder.AllocParameters<ShadowMapPass>();
+		params->ShadowMapBuffer = shadowMapBuffer;
+		params->NumShadowMaps = static_cast<uint32_t>(gpuShadowMaps.size());
+
+		builder.AddPass<ShadowMapPass>("ShadowMap",
+			[viewport, this](const ShadowMapPass& params, D3D12CommandList& list)
 			{
-				8,
-				16,
-				32,
-				64,
-			};
+				if (m_shadowMaps.empty())
+				{
+					return;
+				}
 
-			const std::array<glm::vec3, 8> frustumCorners = Utils::GetFrustumCorners(viewport.UniformCameraData.ViewProjection);
-			const std::array<glm::mat4, NUM_CASCADES> cascadeViewProjections = Utils::GetCascadeSplitDirectionalLight(
-				cascadeSplits, frustumCorners,
-				viewport.UniformCameraData.Near, viewport.UniformCameraData.Far, directionalLight.Direction, 512);
-
-
-			for (uint32_t i = 0; i < NUM_CASCADES; i++)
-			{
-				shadowLightSource.ViewProj[i] = cascadeViewProjections[i];
-				m_shadowMaps.LightViewProjections[i] = cascadeViewProjections[i];
-			}
-		}
-
-
-
-		viewport.Uniforms->GetOrCreateView(sizeof(ShadowLightSource), HASH("ShadowLightSource"));
-		viewport.Uniforms->Write(&shadowLightSource, sizeof(ShadowLightSource), HASH("ShadowLightSource"));
-
-		builder.AddPass<ShadowMapParameters>("ShadowMap",
-			[viewport, this](const ShadowMapParameters& params, D3D12CommandList& list)
-			{
 				RasterPassStartInfo info;
-				info.DepthStencil = params.Map.ShadowMapTexture;
+				info.DepthStencil = m_shadowMaps[0].ShadowMapTexture;
 				info.DepthStencilLoadOp = LoadOP::Clear;
 				info.DepthValue = 1.0f;
 				list.StartRenderPass(info, "ShadowMap Pass");
 
-				list.SetViewport(RenderViewport::FromTexture(*params.Map.ShadowMapTexture));
+				list.SetViewport(RenderViewport::FromTexture(*m_shadowMaps[0].ShadowMapTexture));
 
 				BFGraphicsPSOInfo pso;
 				pso.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
 				pso.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 				pso.DepthStencil.WriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 				pso.DepthStencil.EnableDepth = true;
-				pso.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/ShadowMap_vert.hlsl", ShaderType::Vertex);
+				pso.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/ShadowMap_vert.hlsl", ShaderType::Vertex);
 				list.SetGraphicsPSO(pso);
 
-				for (uint32_t cascadeIndex = 0; cascadeIndex < NUM_CASCADES; cascadeIndex++)
+				for (uint32_t shadowMapIndex = 0; shadowMapIndex < params.NumShadowMaps; shadowMapIndex++)
 				{
-					list.SetDepthStencilTarget(*params.Map.ShadowMapTexture, cascadeIndex);
-					list.ClearDepthStencilTarget(*params.Map.ShadowMapTexture, 1.0f, 0, cascadeIndex);
+					const ShadowMap& shadowMap = m_shadowMaps[shadowMapIndex];
 
-					uint32_t entityIndex = 0;
-					auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
-					for (const auto& [entity, transform, meshRenderer] : view.each())
+					for (uint32_t cascadeIndex = 0; cascadeIndex < NUM_CASCADES; cascadeIndex++)
 					{
-						if (!meshRenderer.GetMeshHandle())
+						list.SetDepthStencilTarget(*shadowMap.ShadowMapTexture, cascadeIndex);
+						list.ClearDepthStencilTarget(*shadowMap.ShadowMapTexture, 1.0f, 0, cascadeIndex);
+
+						uint32_t entityIndex = 0;
+						auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+						for (const auto& [entity, transform, meshRenderer] : view.each())
 						{
-							continue;
+							if (!meshRenderer.GetMeshHandle())
+							{
+								continue;
+							}
+
+							AssetManager& as = Application::Get().GetAssetManager();
+							MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+
+							list.SetIndexBuffer(*mesh->GPUIndices);
+
+							for (auto& subMesh : mesh->SubMeshes)
+							{
+								ShaderVariables()
+									.Add(mesh->GPUPositions->SRV().View())
+									.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
+									.Add(params.ShadowMapBuffer->SRV().View())
+									.Add(shadowMapIndex)
+									.Add(viewport.Models->SRV().View())
+									.Add(viewport.Models->GetModelViewIndex(entityIndex))
+									.Add(cascadeIndex)
+									.Submit(list);
+
+								list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);
+							}
+
+							entityIndex++;
 						}
-
-						AssetManager& as = Application::Get().GetAssetManager();
-						MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-
-						list.SetIndexBuffer(*mesh->GPUIndices);
-
-						for (auto& subMesh : mesh->SubMeshes)
-						{
-							ShaderVariables()
-								.Add(mesh->GPUPositions->SRV().View())
-								.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-								.Add(viewport.Uniforms->GetView(HASH("ShadowLightSource"))->View())
-								.Add(viewport.Models->SRV().View())
-								.Add(viewport.Models->GetModelViewIndex(entityIndex))
-								.Add(cascadeIndex)
-								.Submit(list);
-
-							list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);
-						}
-
-						entityIndex++;
 					}
 				}
 
-				params.Map.ShadowMapTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				m_shadowMaps[0].ShadowMapTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				list.EndRenderPass();
 			});
 	}

@@ -1,5 +1,6 @@
 #include "brdf.hlsli"
 #include "sdf.hlsli"
+#include "Shadow.hlsli"
 
 float3 MapNormal(float3 sampledNormal, float3 vertexNormal, float3 vertexTangent, float tangentSign)
 {
@@ -19,6 +20,8 @@ float3 MapNormal(float3 sampledNormal, float3 vertexNormal, float3 vertexTangent
     );
 }
 
+
+
 struct BufferIndices
 {
     int positionBuffer;
@@ -36,6 +39,10 @@ struct BufferIndices
     int skyboxTextureIndex;
     int numModels;
     int sdfSamplerIndex;
+    int shadowMapBufferIndex;
+    int numShadowMaps;
+    int blockerSamplerIndex;
+    int pcssShadowSamplerIndex;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
@@ -74,6 +81,7 @@ struct V2P
     nointerpolation float tangentW : TANGENTW;
     float2 texCoord : TEXCOORD0;
     float3 eye : VIEWDIR;
+    float depth : DEPTH;
 };
 
 
@@ -128,21 +136,9 @@ float4 main(V2P pixelInput) : SV_TARGET0
     float3 V = normalize(pixelInput.eye - pixelInput.fragPos);
     float NoV = saturate(dot(N, V));
 
-    float3 ambient = float3(0.0, 0.0, 0.0);
-    float3 reflection = float3(0.0, 0.0, 0.0);
-
-    if (resources.skyboxTextureIndex >= 0)
-    {
-        TextureCube<float4> skyboxTex = ResourceDescriptorHeap[resources.skyboxTextureIndex];
-        float3 skyColor = skyboxTex.Sample(smp, N).rgb;
-        ambient = albedo * skyColor * 0.05f * (1.0 - metallic);
-
-        float3 R = reflect(-V, N);
-        reflection = skyboxTex.Sample(smp, R).rgb;
-    }
-    
-    float3 skyLight = ambient + reflection * metallic * 0.01f;
-    float3 lighting = skyLight;
+    float3 ambient = float3(0.0, 0.0, 0.02);
+   
+    float3 lighting = ambient * diffuseColor;
     
     for (int i = 0; i < resources.numLights; i++)
     {
@@ -214,10 +210,11 @@ float4 main(V2P pixelInput) : SV_TARGET0
     }
     
     float3 fragColor = lighting.xyz + emissive * material.EmissiveColor.rgb;
-    float3 fragShadowColor = skyLight;
-
+    
+#if USE_SDF_SHADOWS
     SamplerState sdfSampler = SamplerDescriptorHeap[resources.sdfSamplerIndex];
     StructuredBuffer<ModelData> modelData = ResourceDescriptorHeap[resources.modelIndex];
+    
     
     float shadow = 1.0;
     float k = 32.0;
@@ -234,7 +231,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
                 ModelData model = modelData[m];
                 if (model.SDFTextureIndex < 0)
                     continue;
-
+    2
                 float3 boundMin = model.BoundsMin.xyz;
                 float3 boundSize = model.BoundsSize.xyz;
             
@@ -270,6 +267,23 @@ float4 main(V2P pixelInput) : SV_TARGET0
         }
         
         return float4(lerp(fragShadowColor, fragColor, shadow), 1.0);
+    }
+#endif
+
+    SamplerComparisonState pcssShadowSmp = SamplerDescriptorHeap[resources.pcssShadowSamplerIndex];
+    SamplerState blockerSmp = SamplerDescriptorHeap[resources.blockerSamplerIndex];
+    if (resources.shadowMapBufferIndex >= 0)
+    {
+        StructuredBuffer<GPUShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
+    
+        for (int i = 0; i < resources.numShadowMaps; i++)
+        {
+            GPUShadowMap shadowMap = shadowMaps[i];
+            Texture2DArray<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
+            
+            float shadow = CalculateCSMShadow(pixelInput.fragPos, pixelInput.normal, -lights[i].Direction, pixelInput.depth, shadowMap.CascadeSplits, shadowMap.LightViewProjections, shadowMapTexture, blockerSmp, pcssShadowSmp, shadowMap.Size);
+            fragColor = lerp(ambient * diffuseColor, fragColor, shadow);
+        }
     }
     
     return float4(fragColor, 1.0);

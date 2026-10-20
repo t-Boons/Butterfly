@@ -67,7 +67,7 @@ namespace Butterfly
 		const BFDepthStencilView& DSVArraySlice(uint32_t slice);
 		const BFRenderTargetView& RTV() const;
 		const BFShaderResourceView& SRV();
-		const BFShaderResourceView& SRVArraySlice(uint32_t slice);
+		const BFShaderResourceView& SRVArraySlice(uint32_t firstSlice, uint32_t lastSlice);
 		const BFUnorderedAccessView& UAV() const;
 
 		uint32_t Width() const { return m_desc.Width; }
@@ -78,13 +78,14 @@ namespace Butterfly
 		BFTextureType Type() const { return m_desc.Type; }
 		D3D12Resource* Resource() { return m_resource; }
 		const D3D12Resource* Resource() const { return m_resource; }
+
 	private:
 		D3D12Resource* m_resource = nullptr;
 		BFTextureDesc m_desc{};
 		BFRenderTargetView* m_rtv = nullptr;
 		BFUnorderedAccessView* m_uav = nullptr;
 
-		std::unordered_map<uint32_t, RefPtr<BFShaderResourceView>> m_srvSlices;
+		std::unordered_map<uint64_t, RefPtr<BFShaderResourceView>> m_srvSlices;
 		std::unordered_map<uint32_t, RefPtr<BFDepthStencilView>> m_dsvSlices;
 	};
 

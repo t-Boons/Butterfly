@@ -10,12 +10,12 @@
 #include "Renderer/Light.hpp"
 
 #include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"
+#include "Renderer/RenderPipeline/ShadowRenderPipelineStage.hpp"
 
 namespace Butterfly
 {
 	PBRRenderPipelineStage::PBRRenderPipelineStage()
 	{
-		m_defaultSampler = MakeRef<BFSampler>();
 		BFTextureDesc desc;
 		desc.DebugName = "WhiteTexture";
 		desc.Width = 1;
@@ -42,12 +42,23 @@ namespace Butterfly
 				skyboxTextureViewIndex = skyboxParams->SkyboxTexture->SRV().View();
 			}
 		}
+
+		int shadowMapBufferViewIndex = -1;
+		int numShadowMaps = 0;
+		if (ShadowMapPass* shadowPass = builder.GetPassData<ForwardRenderer, ShadowMapPass>())
+		{
+			if (shadowPass->ShadowMapBuffer)
+			{
+				shadowMapBufferViewIndex = shadowPass->ShadowMapBuffer->SRV().View();
+				numShadowMaps = shadowPass->NumShadowMaps;
+			}
+		}
 		
 
 		params->Comp = &viewport.GetRenderTarget();
 
 		builder.AddPass<ForwardRenderer>("Forward Model",
-			[&, skyboxTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
+			[this, viewport, shadowMapBufferViewIndex, numShadowMaps, skyboxTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
 
@@ -64,26 +75,27 @@ namespace Butterfly
 				BFGraphicsPSOInfo psoInfo;
 				psoInfo.DepthStencil.EnableDepth = true;
 				psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
-				psoInfo.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Forward_vert.hlsl", ShaderType::Vertex);
-				psoInfo.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Forward_frag.hlsl", ShaderType::Pixel);
+				psoInfo.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/Forward_vert.hlsl", ShaderType::Vertex);
+				psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/Forward_frag.hlsl", ShaderType::Pixel);
 
 				list.SetGraphicsPSO(psoInfo);
 
-				D3D12_SAMPLER_DESC samplerDesc = {};
-				samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-				samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-				samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-				samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-				samplerDesc.MipLODBias = 0.0f;
-				samplerDesc.MaxAnisotropy = 1; 
-				samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NONE;
-				samplerDesc.BorderColor[0] = 0.0f;
-				samplerDesc.BorderColor[1] = 0.0f;
-				samplerDesc.BorderColor[2] = 0.0f;
-				samplerDesc.BorderColor[3] = 0.0f;
-				samplerDesc.MinLOD = 0.0f;
-				samplerDesc.MaxLOD = 0.0f;
-				BFSampler sdfSampler(&samplerDesc);
+				BFSamplerDesc pcssSamplerDesc;
+				pcssSamplerDesc.Desc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+				pcssSamplerDesc.Desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+				pcssSamplerDesc.Desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+				pcssSamplerDesc.Desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+				pcssSamplerDesc.Desc.MipLODBias = 0.0f;
+				pcssSamplerDesc.Desc.MaxAnisotropy = 1;
+				pcssSamplerDesc.Desc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+				pcssSamplerDesc.Desc.BorderColor[0] = 1.0f;
+				pcssSamplerDesc.Desc.BorderColor[1] = 1.0f;
+				pcssSamplerDesc.Desc.BorderColor[2] = 1.0f;
+				pcssSamplerDesc.Desc.BorderColor[3] = 1.0f;
+				pcssSamplerDesc.Desc.MinLOD = 0.0f;
+				pcssSamplerDesc.Desc.MaxLOD = 0.0f;
+
+				BFSampler& pcssShadowMapSampler = BFSamplerCache::GetOrCreate(pcssSamplerDesc);
 
 				// TODO make this cleaner. Right now this is only used because all SDF's start as UNORDERED_ACCEASS
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
@@ -95,7 +107,7 @@ namespace Butterfly
 					}
 					AssetManager& as = Application::Get().GetAssetManager();
 					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-					if(mesh->SDF)
+					if (mesh->SDF)
 						mesh->SDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				}
 
@@ -120,7 +132,7 @@ namespace Butterfly
 							.Add(mesh->GPUTangents->SRV().View())
 							.Add(mesh->GPUUVs->SRV().View())
 							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-							.Add(m_defaultSampler->View())
+							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap()).View())
 							.Add(viewport.Models->SRV().View())
 							.Add(viewport.Models->GetModelViewIndex(entityIndex))
 							.Add(viewport.Lights->SRV().View())
@@ -129,7 +141,11 @@ namespace Butterfly
 							.Add(viewport.Materials->GetMaterialIndex(subMesh.Material.GetID()))
 							.Add(skyboxTextureViewIndex)
 							.Add(viewport.Models->GetNumModels())
-							.Add(sdfSampler.View())
+							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()).View())
+							.Add(shadowMapBufferViewIndex)
+							.Add(numShadowMaps)
+							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearBorder()).View())
+							.Add(pcssShadowMapSampler.View())
 							.Submit(list);
 
 						list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);

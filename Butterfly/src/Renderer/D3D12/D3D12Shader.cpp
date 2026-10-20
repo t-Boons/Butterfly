@@ -18,7 +18,7 @@ namespace Butterfly
 		return nullptr;
 	}
 
-	BFShader::BFShader(const std::wstring& filePath, ShaderType type)
+	BFShader::BFShader(const std::string& filePath, ShaderType type, const std::vector<std::string>& macros)
 		: m_type(type)
 	{
 		BF_PROFILE_EVENT();
@@ -29,7 +29,7 @@ namespace Butterfly
 		{
 			uint32_t codePage = CP_UTF8;
 			ComPtr<IDxcBlobEncoding> sourceBlob;
-			ThrowIfFailed(D3D12API()->ShaderUtils()->LoadFile(filePath.c_str(), &codePage, &sourceBlob));
+			ThrowIfFailed(D3D12API()->ShaderUtils()->LoadFile(Utils::StringToWString(filePath).c_str(), &codePage, &sourceBlob));
 			const std::filesystem::path shaderPath(filePath);
 			const std::wstring includeDirectory = shaderPath.parent_path().wstring();
 
@@ -53,15 +53,22 @@ namespace Butterfly
 			};
 
 #endif
+			std::vector<DxcDefine> defines;
+			for (const auto& macro : macros)
+			{
+				DxcDefine define;
+				define.Name = Utils::StringToWString(macro).c_str();
+				defines.push_back(define);
+			}
 				
 			ThrowIfFailed(D3D12API()->ShaderUtils()->BuildArguments(
-				filePath.c_str(),
+				Utils::StringToWString(filePath).c_str(),
 				L"main",
 				ShaderTypeToTargetProfile(type),
 				customArgs,
 				_countof(customArgs),
-				nullptr,
-				0,
+				defines.data(),
+				defines.size(),
 				&args));
 
 			const DxcBuffer shaderBuffer = DxcBuffer{ sourceBlob->GetBufferPointer(), sourceBlob->GetBufferSize(), DXC_CP_ACP };
@@ -93,18 +100,24 @@ namespace Butterfly
 	}
 
 
-	BFShader* BFShaderCache::GetOrCreate(const std::wstring& filePath, ShaderType type)
+	BFShader* BFShaderCache::GetOrCreate(const std::string& filePath, ShaderType type, const std::vector<std::string>& macros)
 	{
 		BF_PROFILE_EVENT();
 
-		auto shader = m_map.find(filePath);
+		uint64_t hash = std::hash<std::string>()(filePath);
+		for (auto& c : macros)
+		{
+			Utils::SumHash(hash, std::hash<std::string>()(c));
+		}
+
+		auto shader = m_map.find(hash);
 		if (shader == m_map.end())
 		{
 			BF_CORE_LOG_INFO("Created New Shader with filePath: %ls", filePath.c_str());
-			m_map[filePath] = ScopePtr<BFShader>(new BFShader(filePath, type));
+			m_map[hash] = ScopePtr<BFShader>(new BFShader(filePath, type, macros));
 		}
 
-		BF_CORE_ASSERT(m_map[filePath]->Type() == type, "Shader type mismatch for filePath: %ls", filePath.c_str());
-		return m_map[filePath].get();
+		BF_CORE_ASSERT(m_map[hash]->Type() == type, "Shader type mismatch for filePath: %ls", filePath.c_str());
+		return m_map[hash].get();
 	}
 }

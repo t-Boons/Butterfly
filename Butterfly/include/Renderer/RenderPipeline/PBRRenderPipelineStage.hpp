@@ -12,6 +12,5 @@ namespace Butterfly
 
 	private:
 		RefPtr<BFTexture> m_whiteTexture;
-		RefPtr<BFSampler> m_defaultSampler;
 	};
 }

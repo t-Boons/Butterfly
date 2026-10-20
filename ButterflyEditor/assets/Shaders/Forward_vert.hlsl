@@ -17,6 +17,9 @@ struct BufferIndices
     int skyboxTextureIndex;
     int numModels;
     int sdfSamplerIndex;
+    int shadowMapBufferIndex;
+    int numShadowMaps;
+    int pcssShadowSamplerIndex;
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
@@ -30,6 +33,7 @@ struct V2P
     nointerpolation float tangentW : TANGENTW;
     float2 texCoord : TEXCOORD0;
     float3 eye : VIEWDIR;
+    float depth : DEPTH;
 };
 
 V2P main(uint vertexID : SV_VertexID)
@@ -51,5 +55,6 @@ V2P main(uint vertexID : SV_VertexID)
     output.texCoord = texcoords[vertexID];
     output.fragPos = mul(modelMatrices[resources.entityIndex].ModelMatrix, float4(position[vertexID], 1.0)).xyz;
     output.eye = uniforms.Position;
+    output.depth = mul(uniforms.ViewProj, float4(output.fragPos, 1.0)).z;
     return output;
 }

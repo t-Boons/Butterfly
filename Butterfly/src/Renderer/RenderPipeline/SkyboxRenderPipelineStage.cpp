@@ -131,11 +131,11 @@ namespace Butterfly
 				pso.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 				pso.DepthStencil.WriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 				pso.DepthStencil.EnableDepth = true;
-				pso.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Skybox_frag.hlsl", ShaderType::Pixel);
-				pso.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex);
+				pso.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/Skybox_frag.hlsl", ShaderType::Pixel);
+				pso.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex);
 				list.SetGraphicsPSO(pso);
 
-				BFSampler sampler;
+				BFSampler& sampler = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
 
 				ShaderVariables()
 					.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())

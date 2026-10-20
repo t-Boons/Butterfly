@@ -75,8 +75,8 @@ namespace Butterfly
 					list.SetViewport(RenderViewport::FromTexture(*data.RenderTarget));
 
 					BFGraphicsPSOInfo psoInfo;
-					psoInfo.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_vert.hlsl", ShaderType::Vertex);
-					psoInfo.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/ObjectPicker_frag.hlsl", ShaderType::Pixel);
+					psoInfo.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/ObjectPicker_vert.hlsl", ShaderType::Vertex);
+					psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/ObjectPicker_frag.hlsl", ShaderType::Pixel);
 					list.SetGraphicsPSO(psoInfo);
 
 					uint32_t entityRenderIndex = 0;
@@ -156,14 +156,6 @@ namespace Butterfly
 		for (int i = position.z - gridLineCount; i <= position.z + gridLineCount; ++i)
 		{
 			EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(position.x - gridLineCount, 0, i), glm::vec3(position.x + gridLineCount, 0, i), color);
-		}
-
-		if (ShadowRenderPipelineStage* shadowStage = Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->TryGetStage<ShadowRenderPipelineStage>())
-		{
-			for (uint32_t i = 0; i < NUM_CASCADES; ++i)
-			{
-				EditorApplication::Get().GetDebugRenderer().DrawFrustum(shadowStage->GetShadowMaps().LightViewProjections[i], glm::vec4(1, 0, 0, 1));
-			}
 		}
 	}
 
@@ -446,25 +438,5 @@ namespace Butterfly
 
 		ImGui::PopStyleVar(2);
 		ImGui::End();
-
-		if (ShadowRenderPipelineStage* shadowStage = Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->TryGetStage<ShadowRenderPipelineStage>())
-		{
-			ImGui::Begin("Shadow Map", nullptr, ImGuiWindowFlags_NoCollapse);
-
-			if (shadowStage->GetShadowMapTexture())
-			{
-
-				ImVec2 windowSize = ImGui::GetContentRegionAvail();
-				windowSize.x = glm::min(windowSize.x, windowSize.y);
-				windowSize.y = windowSize.x;
-
-				for (uint32_t i = 0; i < 4; i++)
-				{
-					ImTextureID id = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(shadowStage->GetShadowMapTexture()->SRVArraySlice(i).View()).ptr;
-					ImGui::Image(id, windowSize, ImVec2(0, 1), ImVec2(1, 0));
-				}
-			}
-			ImGui::End();
-		}
 	}
 }

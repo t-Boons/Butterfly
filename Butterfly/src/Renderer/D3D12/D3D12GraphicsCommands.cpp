@@ -61,7 +61,7 @@ namespace Butterfly
 
 		outSDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		BFComputePSOInfo pso;
-		pso.ComputeShader = BFShaderCache::GetOrCreate(L"assets/Shaders/CreateSDF_cs.hlsl", ShaderType::Compute);
+		pso.ComputeShader = BFShaderCache::GetOrCreate("assets/Shaders/CreateSDF_cs.hlsl", ShaderType::Compute);
 
 		ShaderVariables()
 			.Add(outSDF->UAV().View())
@@ -97,8 +97,8 @@ namespace Butterfly
 
 		list.SetViewport(RenderViewport::FromTexture(dst));
 		BFGraphicsPSOInfo psoInfo;
-		psoInfo.VertexShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex);
-		psoInfo.PixelShader = BFShaderCache::GetOrCreate(L"assets/Shaders/Blit_frag.hlsl", ShaderType::Pixel);
+		psoInfo.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/Fullscreen_vert.hlsl", ShaderType::Vertex);
+		psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/Blit_frag.hlsl", ShaderType::Pixel);
 		psoInfo.DepthStencil.EnableDepth = false;
 		psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_NONE;
 
@@ -131,10 +131,10 @@ namespace Butterfly
 
 		const uint32_t cubemapSize = cubemap.Desc().Height;
 		BFComputePSOInfo pso;
-		pso.ComputeShader = BFShaderCache::GetOrCreate(L"assets/Shaders/EquirectangularToCubemap_cs.hlsl", ShaderType::Compute);
+		pso.ComputeShader = BFShaderCache::GetOrCreate("assets/Shaders/EquirectangularToCubemap_cs.hlsl", ShaderType::Compute);
 
 
-		BFSampler smp;
+		BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
 		ShaderVariables()
 			.Add(equirectangular.SRV().View())
 			.Add(cubemap.UAV().View())

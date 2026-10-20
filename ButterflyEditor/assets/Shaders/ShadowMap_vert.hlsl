@@ -1,16 +1,12 @@
 #include "common.hlsli"
-#define NUM_CASCADES 4
-
-struct ShadowLightSource
-{
-    float4x4 ViewProj[NUM_CASCADES];
-};
+#include "Shadow.hlsli"
 
 struct BufferIndices
 {
     int positionBuffer;
     int cameraDataIndex;
-    int shadowLightSourceIndex;
+    int shadowMapBufferIndex;
+    int shadowMapIndex;
     int modelDataBufferIndex;
     int entityIndex;
     int cascadeIndex;
@@ -26,10 +22,11 @@ struct V2P
 V2P main(uint vertexID : SV_VertexID)
 {
     ConstantBuffer<CameraData> cameraData = ResourceDescriptorHeap[resources.cameraDataIndex];
-    ConstantBuffer<ShadowLightSource> lightSource = ResourceDescriptorHeap[resources.shadowLightSourceIndex];
+    StructuredBuffer<GPUShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
     StructuredBuffer<ModelData> modelMatrices = ResourceDescriptorHeap[resources.modelDataBufferIndex];
     StructuredBuffer<float3> position = ResourceDescriptorHeap[resources.positionBuffer];
-    float4x4 MVP = mul(lightSource.ViewProj[resources.cascadeIndex], modelMatrices[resources.entityIndex].ModelMatrix);
+    
+    float4x4 MVP = mul(shadowMaps[resources.shadowMapIndex].LightViewProjections[resources.cascadeIndex], modelMatrices[resources.entityIndex].ModelMatrix);
     
     V2P output;
     output.position = mul(MVP, float4(position[vertexID], 1.0f));

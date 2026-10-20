@@ -193,7 +193,7 @@ namespace Butterfly
 			return dsvDesc;
 		}
 
-		inline const D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvFromHWTextureDesc(const BFTextureDesc& desc, uint32_t slice = 0)
+		inline const D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvFromHWTextureDesc(const BFTextureDesc& desc, uint32_t firstSlice, uint32_t lastSlice)
 		{
 			BF_PROFILE_EVENT();
 
@@ -215,8 +215,8 @@ namespace Butterfly
 			{
 				BF_CORE_ASSERT(desc.ArraySize > 1, "Texture2DArray must have ArraySize > 1.");
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-				srvDesc.Texture2DArray.ArraySize = 1;
-				srvDesc.Texture2DArray.FirstArraySlice = slice;
+				srvDesc.Texture2DArray.ArraySize = lastSlice - firstSlice + 1;
+				srvDesc.Texture2DArray.FirstArraySlice = firstSlice;
 				srvDesc.Texture2DArray.MostDetailedMip = 0;
 				srvDesc.Texture2DArray.PlaneSlice = 0;
 				srvDesc.Texture2DArray.MipLevels = 1;
@@ -411,20 +411,23 @@ namespace Butterfly
 
 	const BFShaderResourceView& BFTexture::SRV()
 	{
-		return SRVArraySlice(0);
+		return SRVArraySlice(0, m_desc.ArraySize - 1);
 	}
 
-	const BFShaderResourceView& BFTexture::SRVArraySlice(uint32_t slice)
+	const BFShaderResourceView& BFTexture::SRVArraySlice(uint32_t firstSlice, uint32_t lastSlice)
 	{
-		BF_CORE_ASSERT(slice < m_desc.ArraySize, "Slice index out of bounds for SRV array slice.");
+		BF_CORE_ASSERT(firstSlice < m_desc.ArraySize, "Slice index out of bounds for SRV array slice.");
+		BF_CORE_ASSERT(lastSlice < m_desc.ArraySize, "Slice index out of bounds for SRV array slice.");
 
-		auto it = m_srvSlices.find(slice);
+		uint64_t key = static_cast<uint64_t>(firstSlice) << 32 | lastSlice;
+
+		auto it = m_srvSlices.find(key);
 
 		if (it == m_srvSlices.end())
 		{
-			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = Utils::CreateSrvFromHWTextureDesc(m_desc, slice);
-			m_srvSlices[slice] = MakeRef<BFShaderResourceView>(*m_resource, srvDesc);
-			it = m_srvSlices.find(slice);
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = Utils::CreateSrvFromHWTextureDesc(m_desc, firstSlice, lastSlice);
+			m_srvSlices[key] = MakeRef<BFShaderResourceView>(*m_resource, srvDesc);
+			it = m_srvSlices.find(key);
 		}
 
 		return *it->second;
