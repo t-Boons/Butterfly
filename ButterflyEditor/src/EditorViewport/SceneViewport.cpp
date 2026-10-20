@@ -157,6 +157,14 @@ namespace Butterfly
 		{
 			EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(position.x - gridLineCount, 0, i), glm::vec3(position.x + gridLineCount, 0, i), color);
 		}
+
+		if (ShadowRenderPipelineStage* shadowStage = Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->TryGetStage<ShadowRenderPipelineStage>())
+		{
+			for (uint32_t i = 0; i < NUM_CASCADES; ++i)
+			{
+				EditorApplication::Get().GetDebugRenderer().DrawFrustum(shadowStage->GetShadowMaps().LightViewProjections[i], glm::vec4(1, 0, 0, 1));
+			}
+		}
 	}
 
 	void SceneViewport::OnResize(const ViewportResizeEvent& event)
@@ -175,6 +183,9 @@ namespace Butterfly
 		cameraData.CameraPosition = m_spectatorCam.GetCamera()->Position();
 		cameraData.InverseView = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ViewMatrix()));
 		cameraData.InverseProjection = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ProjectionMatrix()));
+		cameraData.Near = m_spectatorCam.GetCamera()->Near();
+		cameraData.Far = m_spectatorCam.GetCamera()->Far();
+		event.Viewport.UniformCameraData = cameraData;
 
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
@@ -435,5 +446,25 @@ namespace Butterfly
 
 		ImGui::PopStyleVar(2);
 		ImGui::End();
+
+		if (ShadowRenderPipelineStage* shadowStage = Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->TryGetStage<ShadowRenderPipelineStage>())
+		{
+			ImGui::Begin("Shadow Map", nullptr, ImGuiWindowFlags_NoCollapse);
+
+			if (shadowStage->GetShadowMapTexture())
+			{
+
+				ImVec2 windowSize = ImGui::GetContentRegionAvail();
+				windowSize.x = glm::min(windowSize.x, windowSize.y);
+				windowSize.y = windowSize.x;
+
+				for (uint32_t i = 0; i < 4; i++)
+				{
+					ImTextureID id = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(shadowStage->GetShadowMapTexture()->SRVArraySlice(i).View()).ptr;
+					ImGui::Image(id, windowSize, ImVec2(0, 1), ImVec2(1, 0));
+				}
+			}
+			ImGui::End();
+		}
 	}
 }

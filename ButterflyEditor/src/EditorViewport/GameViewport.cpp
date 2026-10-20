@@ -29,6 +29,7 @@ namespace Butterfly
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
 		glm::vec3 cameraPosition = glm::vec3(0.0f);
+		float zNear = 0.0f, zFar = 0.0f;
 		bool cameraFound = false;
 		for (const auto& [entity, camera, transform] : Application::Get().GetScene().GetEntityRegistry().view<CameraComponent, TransformComponent>().each())
 		{
@@ -41,6 +42,8 @@ namespace Butterfly
 				view = camera.GetViewMatrix(transform.GetPosition(), transform.GetRotation());
 				viewProjection = camera.GetViewprojectionMatrrix(transform.GetPosition(), transform.GetRotation());
 				projection = camera.GetProjectionMatrix();
+				zNear = camera.GetZNear();
+				zFar = camera.GetZFar();
 				break;
 			}
 		}
@@ -69,8 +72,11 @@ namespace Butterfly
 		cameraData.CameraPosition = cameraPosition;
 		cameraData.InverseView = glm::transpose(glm::inverse(view));
 		cameraData.InverseProjection = glm::transpose(glm::inverse(projection));
+		cameraData.Near = zNear;
+		cameraData.Far = zFar;
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
+		event.Viewport.UniformCameraData = cameraData;
 
 		event.Viewport.Lights->Update();
 		event.Viewport.Materials->Validate();

@@ -118,6 +118,18 @@ namespace Butterfly
 		}
 
 
+		inline DXGI_FORMAT SRVCompatibleFormat(DXGI_FORMAT format)
+		{
+			switch (format)
+			{
+			case DXGI_FORMAT_D32_FLOAT:
+				return DXGI_FORMAT_R32_FLOAT;
+			case DXGI_FORMAT_D24_UNORM_S8_UINT:
+				return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+			default:
+				return format; // Return the original format if no compatible SRV format exists
+			}
+		}
 		inline DXGI_FORMAT GetSRGBFormat(DXGI_FORMAT format)
 		{
 			switch (format)
@@ -154,28 +166,39 @@ namespace Butterfly
 			return rtvDesc;
 		}
 
-		inline const D3D12_DEPTH_STENCIL_VIEW_DESC CreateDsvDescFromHWTextureDesc(const BFTextureDesc& desc)
+		inline const D3D12_DEPTH_STENCIL_VIEW_DESC CreateDsvDescFromHWTextureDesc(const BFTextureDesc& desc, uint32_t slice = 0)
 		{
 			BF_PROFILE_EVENT();
 
 			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 
 			dsvDesc.Format = desc.Format;
-			if (desc.SRGB)
+
+			if (desc.Type == BFTextureType::Texture2D)
 			{
-				dsvDesc.Format = GetSRGBFormat(dsvDesc.Format);
+				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 			}
 
-			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			if (desc.Type == BFTextureType::Texture2DArray)
+			{
+				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+				dsvDesc.Texture2DArray.MipSlice = 0;
+				dsvDesc.Texture2DArray.FirstArraySlice = slice;
+				dsvDesc.Texture2DArray.ArraySize = 1;
+			}
+
 			return dsvDesc;
 		}
 
-		inline const D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvFromHWTextureDesc(const BFTextureDesc& desc)
+		inline const D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvFromHWTextureDesc(const BFTextureDesc& desc, uint32_t slice = 0)
 		{
 			BF_PROFILE_EVENT();
 
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-			srvDesc.Format = desc.Format;
+			srvDesc.Format = SRVCompatibleFormat(desc.Format);
 			if (desc.SRGB)
 			{
 				srvDesc.Format = GetSRGBFormat(srvDesc.Format);
@@ -192,9 +215,10 @@ namespace Butterfly
 			{
 				BF_CORE_ASSERT(desc.ArraySize > 1, "Texture2DArray must have ArraySize > 1.");
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-				srvDesc.Texture2DArray.ArraySize = desc.ArraySize;
-				srvDesc.Texture2DArray.FirstArraySlice = 0;
+				srvDesc.Texture2DArray.ArraySize = 1;
+				srvDesc.Texture2DArray.FirstArraySlice = slice;
 				srvDesc.Texture2DArray.MostDetailedMip = 0;
+				srvDesc.Texture2DArray.PlaneSlice = 0;
 				srvDesc.Texture2DArray.MipLevels = 1;
 			}
 
@@ -286,13 +310,11 @@ namespace Butterfly
 		else if (m_desc.ViewTypes & BFTextureDesc::ViewType::DepthStencilable)
 		{
 			BF_CORE_ASSERT(m_desc.Type != BFTextureType::Cubemap, "DepthStencilable textures cannot be Cubemaps.");
-			BF_CORE_ASSERT(m_desc.Type != BFTextureType::Texture2DArray, "DepthStencilable textures cannot be Texture2DArray.");
-			BF_CORE_ASSERT(m_desc.ArraySize == 1, "DepthStencilable textures cannot be Texture2DArray.");
 
 			float col[] = { 0,0,0,0 };
 			m_resource = DX12ResourceBuilder()
 				.HeapType(D3D12_HEAP_TYPE_DEFAULT)
-				.DepthStencil(m_desc.Format, m_desc.Width, m_desc.Height)
+				.DepthStencil(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.ArraySize)
 				.ClearDepth(m_desc.Format)
 				.InitialState(D3D12_RESOURCE_STATE_DEPTH_READ)
 				.SetName(m_desc.DebugName)
@@ -339,16 +361,6 @@ namespace Butterfly
 			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = Utils::CreateRTVDescFromHWTextureDesc(m_desc);
 			m_rtv = new BFRenderTargetView(*m_resource, rtvDesc);
 		}
-		if (m_desc.ViewTypes & BFTextureDesc::ViewType::DepthStencilable)
-		{
-			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = Utils::CreateDsvDescFromHWTextureDesc(m_desc);
-			m_dsv = new BFDepthStencilView(*m_resource, dsvDesc);
-		}
-		if (m_desc.ViewTypes & BFTextureDesc::ViewType::ShaderResource)
-		{
-			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = Utils::CreateSrvFromHWTextureDesc(m_desc);
-			m_srv = new BFShaderResourceView(*m_resource, srvDesc);
-		}
 		if (m_desc.ViewTypes & BFTextureDesc::ViewType::UnorderedAccess)
 		{
 			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = Utils::CreateUavFromHWTextureDesc(m_desc);
@@ -361,8 +373,6 @@ namespace Butterfly
 		BF_PROFILE_EVENT();
 
 		FREE(m_rtv);
-		FREE(m_dsv);
-		FREE(m_srv);
 		FREE(m_uav);
 		FREE(m_resource);
 	}
@@ -378,16 +388,46 @@ namespace Butterfly
 		return *m_rtv;
 	}
 
-	const BFDepthStencilView& BFTexture::DSV() const
+	const BFDepthStencilView& BFTexture::DSV()
 	{
-		BF_CORE_ASSERT(m_dsv != nullptr, "%s", "Texture does not have DSV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::DepthStencilable set.");
-		return *m_dsv;
+		return DSVArraySlice(0);
 	}
 
-	const BFShaderResourceView& BFTexture::SRV() const
+	const BFDepthStencilView& BFTexture::DSVArraySlice(uint32_t slice)
 	{
-		BF_CORE_ASSERT(m_srv != nullptr, "%s", "Texture does not have SRV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::ShaderResource set.");
-		return *m_srv;
+		BF_CORE_ASSERT(slice < m_desc.ArraySize, "Slice index out of bounds for DSV array slice.");
+
+		auto it = m_dsvSlices.find(slice);
+
+		if (it == m_dsvSlices.end())
+		{
+			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = Utils::CreateDsvDescFromHWTextureDesc(m_desc, slice);
+			m_dsvSlices[slice] = MakeRef<BFDepthStencilView>(*m_resource, dsvDesc);
+			it = m_dsvSlices.find(slice);
+		}
+
+		return *it->second;
+	}
+
+	const BFShaderResourceView& BFTexture::SRV()
+	{
+		return SRVArraySlice(0);
+	}
+
+	const BFShaderResourceView& BFTexture::SRVArraySlice(uint32_t slice)
+	{
+		BF_CORE_ASSERT(slice < m_desc.ArraySize, "Slice index out of bounds for SRV array slice.");
+
+		auto it = m_srvSlices.find(slice);
+
+		if (it == m_srvSlices.end())
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = Utils::CreateSrvFromHWTextureDesc(m_desc, slice);
+			m_srvSlices[slice] = MakeRef<BFShaderResourceView>(*m_resource, srvDesc);
+			it = m_srvSlices.find(slice);
+		}
+
+		return *it->second;
 	}
 
 	const BFUnorderedAccessView& BFTexture::UAV() const

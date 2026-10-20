@@ -7,6 +7,31 @@
 
 namespace Butterfly
 {
+	namespace Utils
+	{
+		inline uint32_t LightTypeToGPULightType(LightType type)
+		{
+			switch (type)
+			{
+			case LightType::Directional: return 0;
+			case LightType::Point: return 1;
+			case LightType::Spot: return 2;
+			default: return 0;
+			}
+		}
+
+		inline LightType GPULightTypeToLightType(uint32_t type)
+		{
+			switch (type)
+			{
+			case 0: return LightType::Directional;
+			case 1: return LightType::Point;
+			case 2: return LightType::Spot;
+			default: return LightType::Directional;
+			}
+		}
+	}
+
 	struct GPULight
 	{
 		uint32_t Type;
@@ -17,7 +42,6 @@ namespace Butterfly
 		float InnerConeAngleCos;
 		float OuterConeAngleCos;
 	};
-
 
 	class LightBuffer
 	{
@@ -38,7 +62,7 @@ namespace Butterfly
 			for (const auto& [entity, light, transform] : Application::Get().GetScene().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
 			{
 				GPULight gpuLight;
-				gpuLight.Type = static_cast<uint32_t>(light.GetType());
+				gpuLight.Type = Utils::LightTypeToGPULightType(light.GetType());
 				gpuLight.Color = light.GetColor();
 				gpuLight.Range = light.GetRange();
 				gpuLight.InnerConeAngleCos = glm::cos(glm::radians(light.GetInnerConeAngle()));
@@ -66,10 +90,17 @@ namespace Butterfly
 			return static_cast<uint32_t>(m_lights.size());
 		}
 
+		const std::vector<GPULight>& GetLights() const
+		{
+			return m_lights;
+		}
+
 		const BFShaderResourceView& SRV() const
 		{
 			return m_gpuLights->SRV();
 		}
+
+	private:
 
 		RefPtr<BFStructuredBuffer> m_gpuLights;
 		std::vector<GPULight> m_lights;

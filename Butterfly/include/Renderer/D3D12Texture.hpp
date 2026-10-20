@@ -63,9 +63,11 @@ namespace Butterfly
 		DXGI_FORMAT Format() const { return m_desc.Format; }
 		const D3D12_CLEAR_VALUE* ClearValue() const;
 
-		const BFDepthStencilView& DSV() const;
+		const BFDepthStencilView& DSV();
+		const BFDepthStencilView& DSVArraySlice(uint32_t slice);
 		const BFRenderTargetView& RTV() const;
-		const BFShaderResourceView& SRV() const;
+		const BFShaderResourceView& SRV();
+		const BFShaderResourceView& SRVArraySlice(uint32_t slice);
 		const BFUnorderedAccessView& UAV() const;
 
 		uint32_t Width() const { return m_desc.Width; }
@@ -79,10 +81,11 @@ namespace Butterfly
 	private:
 		D3D12Resource* m_resource = nullptr;
 		BFTextureDesc m_desc{};
-		BFDepthStencilView* m_dsv = nullptr;
 		BFRenderTargetView* m_rtv = nullptr;
-		BFShaderResourceView* m_srv = nullptr;
 		BFUnorderedAccessView* m_uav = nullptr;
+
+		std::unordered_map<uint32_t, RefPtr<BFShaderResourceView>> m_srvSlices;
+		std::unordered_map<uint32_t, RefPtr<BFDepthStencilView>> m_dsvSlices;
 	};
 
 

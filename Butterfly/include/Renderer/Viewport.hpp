@@ -59,9 +59,11 @@ namespace Butterfly
 	struct CameraData
 	{
 		glm::mat4 ViewProjection;
-		glm::vec3 CameraPosition;
-		glm::mat4 InverseView;
 		glm::mat4 InverseProjection;
+		glm::mat4 InverseView;
+		glm::vec3 CameraPosition;
+		float Near;
+		float Far;
 	};
 
 	class BFTexture;

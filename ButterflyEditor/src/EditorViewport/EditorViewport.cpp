@@ -60,7 +60,7 @@ namespace Butterfly
 		}
 
 		for (auto& ext : m_viewportExtentions)
-			{
+		{
 			ext->OnRenderImGUI();
 		}
 	}

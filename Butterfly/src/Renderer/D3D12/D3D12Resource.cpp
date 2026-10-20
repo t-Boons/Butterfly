@@ -204,9 +204,9 @@ namespace Butterfly
 			return *this;
 		}
 
-		DX12ResourceBuilder& DX12ResourceBuilder::DepthStencil(DXGI_FORMAT format, uint32_t width, uint32_t height)
+		DX12ResourceBuilder& DX12ResourceBuilder::DepthStencil(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize)
 		{
-			m_resource->BufferDescription = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height);
+			m_resource->BufferDescription = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, arraySize);
 			m_resource->BufferDescription.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 			return *this;
 		}

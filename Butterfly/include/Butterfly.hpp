@@ -49,6 +49,7 @@
 #include "Renderer/RenderPipeline/ColorspaceCorrectionRenderPipelinestage.hpp"
 #include "Renderer/RenderPipeline/DebugViewRenderPipelineStage.hpp"
 #include "Renderer/RenderPipeline/ClearRenderPipelineStage.hpp"
+#include "Renderer/RenderPipeline/ShadowRenderPipelineStage.hpp"
 
 #include "Serialization/ENTT/ComponentRegistry.hpp"
 

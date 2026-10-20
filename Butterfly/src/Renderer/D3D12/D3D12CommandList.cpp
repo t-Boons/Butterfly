@@ -117,33 +117,72 @@ namespace Butterfly
 		BeginGPUMarker(name);
 		m_passName = name;
 
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles;
-		rtvHandles.reserve(8);
-
-		info.RenderTarget->Resource()->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		rtvHandles.push_back(info.RenderTarget->RTV().Handle());
-
-		if (info.RenderTargetLoadOp == LoadOP::Clear)
+		if (info.RenderTarget)
 		{
-			m_cmdList->ClearRenderTargetView(info.RenderTarget->RTV().Handle(), &info.ClearColor[0], 0, nullptr);
+			SetColorTargets({ info.RenderTarget });
+
+			if (info.RenderTargetLoadOp == LoadOP::Clear)
+			{
+				m_cmdList->ClearRenderTargetView(info.RenderTarget->RTV().Handle(), &info.ClearColor[0], 0, nullptr);
+			}
 		}
 
-		const D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = nullptr;
 		if (info.DepthStencil)
 		{
-			info.DepthStencil->Resource()->Transition(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-			dsvHandle = &info.DepthStencil->DSV().Handle();
+			SetDepthStencilTarget(*info.DepthStencil);
 
 			if (info.DepthStencilLoadOp == LoadOP::Clear)
 			{
 				m_cmdList->ClearDepthStencilView(info.DepthStencil->DSV().Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, info.DepthValue, 0, 0, nullptr);
 			}
 		}
+	}
 
-		m_cmdList->OMSetRenderTargets(static_cast<uint32_t>(rtvHandles.size()), &rtvHandles[0], false, dsvHandle);
+	void D3D12CommandList::SetColorTarget(BFTexture& color)
+	{
+		SetColorTargets({ &color });
+	}
 
-		m_boundRts = { info.RenderTarget };
-		m_boundDsv = info.DepthStencil;
+	void D3D12CommandList::SetColorTargets(const std::vector<BFTexture*>& color)
+	{
+		m_colorTexture.clear();
+		m_colorTextureView.clear();
+		for (auto& c : color)
+		{
+			c->Resource()->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			m_colorTexture.push_back(c);
+			m_colorTextureView.push_back(c->RTV().Handle());
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = m_depthStencilTexture ? &m_depthStencilView : nullptr;
+		m_cmdList->OMSetRenderTargets(static_cast<uint32_t>(m_colorTextureView.size()), m_colorTextureView.data(), false, dsvHandle);
+	}
+
+	void D3D12CommandList::SetDepthStencilTarget(BFTexture& depthStencil, uint32_t slice)
+	{
+		m_depthStencilTexture = &depthStencil;
+		m_depthStencilView = depthStencil.DSVArraySlice(slice).Handle();
+		depthStencil.Resource()->Transition(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = m_depthStencilTexture ? &m_depthStencilView : nullptr;
+		m_cmdList->OMSetRenderTargets(static_cast<uint32_t>(m_colorTextureView.size()), m_colorTextureView.data(), false, &m_depthStencilView);
+	}
+
+	void D3D12CommandList::ClearRenderTarget(BFTexture& color, const glm::vec4& clearColor)
+	{
+		color.Resource()->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		m_cmdList->ClearRenderTargetView(color.RTV().Handle(), &clearColor[0], 0, nullptr);
+	}
+
+	void D3D12CommandList::ClearDepthStencilTarget(BFTexture& depthStencil, float depthValue, uint8_t stencilValue, uint32_t slice)
+	{
+		if(depthStencil.Format() == DXGI_FORMAT_D32_FLOAT)
+		{
+			m_cmdList->ClearDepthStencilView(depthStencil.DSVArraySlice(slice).Handle(), D3D12_CLEAR_FLAG_DEPTH, depthValue, stencilValue, 0, nullptr);
+		}
+		else
+		{
+			m_cmdList->ClearDepthStencilView(depthStencil.DSV().Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depthValue, stencilValue, 0, nullptr);
+		}
 	}
 
 	void D3D12CommandList::StartComputePass(const std::string& name)
@@ -182,8 +221,12 @@ namespace Butterfly
 
 		m_passRecording = false;
 		m_currentPassType = PassType::None;
-		m_boundRts.clear();
-		m_boundDsv = nullptr;
+
+		// Reset bound render targets and depth stencil to null to avoid accidental usage outside of a render pass.
+		m_colorTexture.clear();
+		m_colorTextureView.clear();
+		m_depthStencilTexture = nullptr;
+		m_depthStencilView = {};
 
 		EndGPUMarker();
 	}
@@ -192,8 +235,8 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		BF_CORE_ASSERT(m_currentPassType == PassType::Raster && pso.VertexShader && pso.PixelShader, "D3D12CommandList::SetGraphicsPSO needs to have a VertexShader and a PixelShader.");
-		BF_CORE_ASSERT(m_currentPassType == PassType::Raster && !m_boundRts.empty(), "D3D12CommandList::SetGraphicsPSO needs to have a RenderTarget bound.");
+		BF_CORE_ASSERT(m_colorTexture.empty() && !pso.PixelShader || !m_colorTexture.empty() && pso.PixelShader, "D3D12CommandList::SetGraphicsPSO needs to have a PixelShader.");
+		BF_CORE_ASSERT(m_currentPassType == PassType::Raster, "D3D12CommandList::SetGraphicsPSO needs to be a raster pass.");
 
 		PipelineStateStream pss;
 
@@ -203,30 +246,37 @@ namespace Butterfly
 
 		// Set rendertarget formats.
 		D3D12_RT_FORMAT_ARRAY rtvFormats = {};
-		rtvFormats.NumRenderTargets = static_cast<uint32_t>(m_boundRts.size());
-		for (size_t i = 0; i < m_boundRts.size(); i++)
+		rtvFormats.NumRenderTargets = static_cast<uint32_t>(m_colorTexture.size());
+		rtvFormats.RTFormats[0] = DXGI_FORMAT_UNKNOWN;
+		for (size_t i = 0; i < m_colorTexture.size(); i++)
 		{
-			rtvFormats.RTFormats[i] = m_boundRts[i]->Format();
-			Utils::SumHash(psoHash, static_cast<uint64_t>(m_boundRts[i]->Format()));
+			rtvFormats.RTFormats[i] = m_colorTexture[i]->Format();
+			Utils::SumHash(psoHash, static_cast<uint64_t>(m_colorTexture[i]->Format()));
 		}
 		pss.RTVFormats = rtvFormats;
 
 		// Set depth stencil format.
-		if (m_boundDsv)
+		if (m_depthStencilTexture)
 		{
-			pss.DSVFormat = m_boundDsv->Format();
-			Utils::SumHash(psoHash, static_cast<uint64_t>(m_boundDsv->Format()));
+			pss.DSVFormat = m_depthStencilTexture->Format();
+			Utils::SumHash(psoHash, static_cast<uint64_t>(m_depthStencilTexture->Format()));
 		}
 
 		// Set pixel shader.
-		BF_CORE_ASSERT(pso.PixelShader->Type() == ShaderType::Pixel, "D3D12CommandList::SetGraphicsPSO Shader is not a Pixel shader.");
-		pss.PS = { pso.PixelShader->Blob()->GetBufferPointer(), pso.PixelShader->Blob()->GetBufferSize() };
-		Utils::SumHash(psoHash, static_cast<uint64_t>(pso.PixelShader->NumBytes()));
+		if (pso.PixelShader)
+		{
+			BF_CORE_ASSERT(pso.PixelShader->Type() == ShaderType::Pixel, "D3D12CommandList::SetGraphicsPSO Shader is not a Pixel shader.");
+			pss.PS = { pso.PixelShader->Blob()->GetBufferPointer(), pso.PixelShader->Blob()->GetBufferSize() };
+			Utils::SumHash(psoHash, static_cast<uint64_t>(pso.PixelShader->NumBytes()));
+		}
 
 		// Set vertex shader.
-		BF_CORE_ASSERT(pso.VertexShader->Type() == ShaderType::Vertex, "D3D12CommandList::SetGraphicsPSO Shader is not a Vertex shader.");
-		pss.VS = { pso.VertexShader->Blob()->GetBufferPointer(), pso.VertexShader->Blob()->GetBufferSize() };
-		Utils::SumHash(psoHash, static_cast<uint64_t>(pso.VertexShader->NumBytes()));
+		if (pso.VertexShader)
+		{
+			BF_CORE_ASSERT(pso.VertexShader->Type() == ShaderType::Vertex, "D3D12CommandList::SetGraphicsPSO Shader is not a Vertex shader.");
+			pss.VS = { pso.VertexShader->Blob()->GetBufferPointer(), pso.VertexShader->Blob()->GetBufferSize() };
+			Utils::SumHash(psoHash, static_cast<uint64_t>(pso.VertexShader->NumBytes()));
+		}
 
 		// Set rasterizer.
 		CD3DX12_RASTERIZER_DESC rasterizerDesc(pss.RasterizerState);
@@ -238,8 +288,8 @@ namespace Butterfly
 		CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc(pss.DepthStencilState);
 		depthStencilDesc.DepthWriteMask = pso.DepthStencil.WriteMask;
 		depthStencilDesc.DepthFunc = pso.DepthStencil.DepthFunc;
-		depthStencilDesc.DepthEnable = pso.DepthStencil.EnableDepth && m_boundDsv;
-		if(pso.DepthStencil.EnableDepth && !m_boundDsv)
+		depthStencilDesc.DepthEnable = pso.DepthStencil.EnableDepth && m_depthStencilTexture;
+		if(pso.DepthStencil.EnableDepth && !m_depthStencilTexture)
 		{
 			BF_CORE_LOG_WARN("D3D12CommandList::SetGraphicsPSO DepthStencil.EnableDepth is true but no DSV is bound.");
 		}
@@ -329,12 +379,14 @@ namespace Butterfly
 	void D3D12CommandList::DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
 	{
 		BF_CORE_ASSERT(m_bindlessBound, "D3D12CommandList::DrawIndexedInstanced Bindless descriptor heaps and root signature must be set before drawing. Call StartRenderPass before drawing.");
+
 		m_cmdList->DrawIndexedInstanced(indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
 	}
 
 	void D3D12CommandList::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
 	{
 		BF_CORE_ASSERT(m_bindlessBound, "D3D12CommandList::DrawInstanced Bindless descriptor heaps and root signature must be set before drawing. Call StartRenderPass before drawing.");
+
 		m_cmdList->DrawInstanced(vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
 	}
 

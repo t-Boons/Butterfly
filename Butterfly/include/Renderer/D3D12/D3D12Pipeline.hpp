@@ -62,8 +62,8 @@ namespace Butterfly
 	struct BFGraphicsPSOInfo
 	{
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		BFShader* VertexShader;
-		BFShader* PixelShader;
+		BFShader* VertexShader = nullptr;
+		BFShader* PixelShader = nullptr;
 		RasterizerState Rasterizer;
 		DepthStencilState DepthStencil;	
 	};

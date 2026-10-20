@@ -1,16 +1,5 @@
 #include "common.hlsli"
 
-struct ModelData
-{
-    float4x4 ModelMatrix;
-    float4x4 InverseModelMatrix;
-    float4x4 NormalMatrix;
-    float4 BoundsMin;
-    float4 BoundsSize;
-    float4 SDFResolution;
-    int SDFTextureIndex;
-};
-
 struct BufferIndices
 {
     int positionBuffer;

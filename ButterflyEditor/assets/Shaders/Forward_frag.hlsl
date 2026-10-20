@@ -19,17 +19,6 @@ float3 MapNormal(float3 sampledNormal, float3 vertexNormal, float3 vertexTangent
     );
 }
 
-struct ModelData
-{
-    float4x4 ModelMatrix;
-    float4x4 InverseModelMatrix;
-    float4x4 NormalMatrix;
-    float4 BoundsMin;
-    float4 BoundsSize;
-    float4 SDFResolution;
-    int SDFTextureIndex;
-};
-
 struct BufferIndices
 {
     int positionBuffer;

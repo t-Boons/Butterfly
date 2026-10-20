@@ -3,6 +3,7 @@
 #include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"
 #include "Renderer/RenderPipeline/ColorspaceCorrectionRenderPipelineStage.hpp"
 #include "Renderer/RenderPipeline/ClearRenderPipelineStage.hpp"
+#include "Renderer/RenderPipeline/ShadowRenderPipelineStage.hpp"
 
 namespace Butterfly
 {
@@ -46,6 +47,7 @@ namespace Butterfly
 		ClearStages();
 		RegisterStage<ClearRenderPipelineStage>();
 		RegisterStage<SkyboxRenderPipelineStage>();
+		RegisterStage<ShadowRenderPipelineStage>();
 		RegisterStage<PBRRenderPipelineStage>();
 		RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
 	}

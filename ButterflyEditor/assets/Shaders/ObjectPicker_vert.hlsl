@@ -1,21 +1,4 @@
-struct CameraData
-{
-    float4x4 ViewProj;
-    float3 Position;
-    float4x4 InvView;
-    float4x4 InvProj;
-};
-
-struct ModelData
-{
-    float4x4 ModelMatrix;
-    float4x4 InverseModelMatrix;
-    float4x4 NormalMatrix;
-    float4 BoundsMin;
-    float4 BoundsSize;
-    float4 SDFResolution;
-    int SDFTextureIndex;
-};
+#include "common.hlsli"
 
 struct BufferIndices
 {

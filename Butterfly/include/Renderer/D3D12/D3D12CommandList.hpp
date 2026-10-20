@@ -26,7 +26,7 @@ namespace Butterfly
 
 	struct RasterPassStartInfo
 	{
-		BFTexture* RenderTarget;
+		BFTexture* RenderTarget = nullptr;
 		LoadOP RenderTargetLoadOp = LoadOP::Load;
 		glm::vec4 ClearColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 		BFTexture* DepthStencil = nullptr;
@@ -50,6 +50,13 @@ namespace Butterfly
 		void StartComputePass(const std::string& name);
 		void EndRenderPass();
 		void EndComputePass();
+
+		void SetColorTarget(BFTexture& color);
+		void SetColorTargets(const std::vector<BFTexture*>& color);
+		void SetDepthStencilTarget(BFTexture& depthStencil, uint32_t slice = 0);
+
+		void ClearRenderTarget(BFTexture& color, const glm::vec4& clearColor);
+		void ClearDepthStencilTarget(BFTexture& depthStencil, float depthValue = 1.0f, uint8_t stencilValue = 0, uint32_t slice = 0);
 
 		void SetGraphicsPSO(const BFGraphicsPSOInfo& pso);
 		void SetComputePSO(const BFComputePSOInfo& pso);
@@ -80,8 +87,10 @@ namespace Butterfly
 		ID3D12CommandAllocator* m_allocator;
 		D3D12_COMMAND_LIST_TYPE m_dxType;
 
-		std::vector<BFTexture*> m_boundRts;
-		BFTexture* m_boundDsv = nullptr;
+		std::vector<BFTexture*> m_colorTexture;
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_colorTextureView;
+		BFTexture* m_depthStencilTexture = nullptr;
+		D3D12_CPU_DESCRIPTOR_HANDLE m_depthStencilView = {};
 
 		bool m_bindlessBound = false;
 		PassType m_currentPassType = PassType::None;

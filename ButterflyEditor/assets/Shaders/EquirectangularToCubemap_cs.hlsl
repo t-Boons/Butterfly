@@ -1,3 +1,5 @@
+#include "common.hlsli"
+
 struct BufferIndices
 {
     int hdriTexureIndex;
