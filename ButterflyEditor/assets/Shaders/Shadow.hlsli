@@ -30,13 +30,14 @@ struct GPUShadowMap
 {
     float4x4 LightViewProjections[NUM_CASCADES];
     float CascadeSplits[NUM_CASCADES];
+    float CascadeTexelSize[NUM_CASCADES];
     int ShadowMapTextureIndex;
     int NumCascades;
     float Size;
 };
 
 
-float CalculateShadow(float3 worldPosition, float4x4 lightViewProjection, Texture2DArray<float> shadowMapTexture, int slice, SamplerState blockerSampler, SamplerComparisonState pcssSampler, float NoL, float shadowMapSize)
+float CalculateShadow(float3 worldPosition, float4x4 lightViewProjection, Texture2DArray<float> shadowMapTexture, int slice, SamplerState blockerSampler, SamplerComparisonState pcssSampler, float NoL, float shadowMapSize, float2 seed)
 {
     float4 lightClip = mul(lightViewProjection, float4(worldPosition, 1.0));
     float3 lightNDC = lightClip.xyz / lightClip.w;
@@ -47,57 +48,28 @@ float CalculateShadow(float3 worldPosition, float4x4 lightViewProjection, Textur
 
     if (any(uv < 0.0) || any(uv > 1.0) || receiverDepth < 0.0 || receiverDepth > 1.0) return 1.0;
 
-    float bias = lerp(0.005, 0.03, 1.0 - NoL);
+    float bias = 0.001;
     float compareDepth = receiverDepth - bias;
     float3 uvw = float3(uv, float(slice));
+    
+    float texel = 1.0 / shadowMapSize;
+    float radius = 2.5 * texel;
 
-    // 1. Blocker search: find shadow-map depths closer to the light.
-    float blockerDepthSum = 0.0;
-    float blockerCount = 0.0;
+    float angle = 6.2831853 * frac(52.9829189 * frac(dot(seed.xy, float2(0.06711056, 0.00583715))));
+    float2 rot = float2(cos(angle), sin(angle));
 
-    float searchRadius = 4.0 / shadowMapSize;
-
-    [unroll]
-    for (int i = 0; i < BLOCKER_SEARCH_SAMPLES; ++i)
+    float sum = 0;
+    [Unroll]
+    for (int i = 0; i < 16; i++)
     {
-        float2 sampleUV = uv + PoissonDisk[i] * searchRadius;
-
-        if (any(sampleUV < 0.0) || any(sampleUV > 1.0))
-            continue;
-
-        float depth = shadowMapTexture.SampleLevel(blockerSampler, float3(sampleUV, float(slice)), 0);
-
-        if (depth < compareDepth)
-        {
-            blockerDepthSum += depth;
-            blockerCount += 1.0;
-        }
+        float2 p = PoissonDisk[i];
+        p = float2(p.x * rot.x - p.y * rot.y, p.x * rot.y + p.y * rot.x);
+        sum += shadowMapTexture.SampleCmpLevelZero(pcssSampler, uvw + float3(p * radius, 0), compareDepth);
     }
-
-    if (blockerCount == 0.0)
-    {
-        return 1.0;
-    }
-
-    float averageBlockerDepth = blockerDepthSum / blockerCount;
-    float penumbra = max(0.0, (receiverDepth - averageBlockerDepth) / max(averageBlockerDepth, 0.001));
-    float filterRadius = min(LIGHT_SIZE_UV * penumbra, MAX_FILTER_RADIUS_UV);
-    filterRadius = max(filterRadius, 1.0 / shadowMapSize);
-
-    float visibility = 0.0;
-
-    [unroll]
-    for (int j = 0; j < PCF_SAMPLES; ++j)
-    {
-        float2 sampleUV = uv + PoissonDisk[j] * filterRadius;
-
-        visibility += shadowMapTexture.SampleCmpLevelZero(pcssSampler, float3(sampleUV, float(slice)), compareDepth);
-    }
-
-    return visibility / PCF_SAMPLES;
+    return sum / 16.0;
 }
 
-float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3 lightDirection, float cameraDepth, float CascadeSplits[NUM_CASCADES], float4x4 LightViewProjections[NUM_CASCADES], Texture2DArray<float> shadowMaps, SamplerState blockerSampler, SamplerComparisonState pcssSmp, float shadowMapSize)
+float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3 lightDirection, float cameraDepth, float CascadeSplits[NUM_CASCADES], float cascadeTexelSizes[NUM_CASCADES], float4x4 LightViewProjections[NUM_CASCADES], Texture2DArray<float> shadowMaps, SamplerState blockerSampler, SamplerComparisonState pcssSmp, float shadowMapSize, float2 seed)
 {
     uint cascadeIndex = 0;
     for (uint i = 0; i < NUM_CASCADES; ++i)
@@ -111,5 +83,13 @@ float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3 lightD
     }
 
     float NoL = saturate(dot(normalize(worldNormal), normalize(lightDirection)));
-    return CalculateShadow(worldPosition, LightViewProjections[cascadeIndex], shadowMaps, cascadeIndex, blockerSampler, pcssSmp, NoL, shadowMapSize);
+
+    // world size of one texel for this cascade
+    float4x4 lightVP = LightViewProjections[cascadeIndex];
+    float cascadeRadius = 1.0 / length(lightVP[0].xyz);
+    float texelWorld = cascadeTexelSizes[cascadeIndex];
+    float sinTheta = sqrt(saturate(1.0 - NoL * NoL));
+    float3 offsetPos = worldPosition + normalize(worldNormal) * texelWorld * 3.0 * sinTheta;
+
+    return CalculateShadow(offsetPos, LightViewProjections[cascadeIndex], shadowMaps, cascadeIndex, blockerSampler, pcssSmp, NoL, shadowMapSize, seed);
 }

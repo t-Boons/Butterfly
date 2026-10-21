@@ -281,7 +281,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
             GPUShadowMap shadowMap = shadowMaps[i];
             Texture2DArray<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
             
-            float shadow = CalculateCSMShadow(pixelInput.fragPos, pixelInput.normal, -lights[i].Direction, pixelInput.depth, shadowMap.CascadeSplits, shadowMap.LightViewProjections, shadowMapTexture, blockerSmp, pcssShadowSmp, shadowMap.Size);
+            float shadow = CalculateCSMShadow(pixelInput.fragPos, pixelInput.normal, -lights[i].Direction, pixelInput.depth, shadowMap.CascadeSplits, shadowMap.CascadeTexelSize, shadowMap.LightViewProjections, shadowMapTexture, blockerSmp, pcssShadowSmp, shadowMap.Size, pixelInput.position.xy);
             fragColor = lerp(ambient * diffuseColor, fragColor, shadow);
         }
     }

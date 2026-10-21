@@ -7,6 +7,19 @@ namespace Butterfly
 {
 	namespace Utils
 	{
+		BFTextureDesc ShadowMapTextureDesc(int size, const std::string& name)
+		{
+			BFTextureDesc desc;
+			desc.Width = size;
+			desc.Height = size;
+			desc.Format = DXGI_FORMAT_D32_FLOAT;
+			desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable | BFTextureDesc::ViewType::ShaderResource;
+			desc.DebugName = name;
+			desc.Type = BFTextureType::Texture2DArray;
+			desc.ArraySize = NUM_CASCADES;
+			return desc;
+		}
+
 		std::array<glm::vec3, 8> GetFrustumCorners(const glm::mat4& viewProjection)
 		{
 			const glm::mat4 inverseViewProjection = glm::inverse(viewProjection);
@@ -21,13 +34,13 @@ namespace Butterfly
 			return out;
 		}
 
-		std::array<glm::mat4, NUM_CASCADES> GetCascadeSplitDirectionalLight(const std::array<float, NUM_CASCADES>& cascadeSplits,
+		ShadowMap GetCascadeSplitDirectionalLight(const std::array<float, NUM_CASCADES>& cascadeSplits,
 			const std::array<glm::vec3, 8>& frustumCorners,
 			float cameraNear, float cameraFar,
 			const glm::vec3& lightDirection,
 			float shadowMapSize)
 		{
-			std::array<glm::mat4, NUM_CASCADES> out;
+			ShadowMap out;
 			float previousSplit = cameraNear;
 			const glm::vec3 direction = glm::normalize(lightDirection);
 
@@ -46,7 +59,6 @@ namespace Butterfly
 				const float nearT = (splitNear - cameraNear) / (cameraFar - cameraNear);
 				const float farT = (splitFar - cameraNear) / (cameraFar - cameraNear);
 
-				// Slice the camera frustum for this cascade
 				std::array<glm::vec3, 8> cascadeCorners;
 				for (uint32_t i = 0; i < 4; ++i)
 				{
@@ -54,7 +66,6 @@ namespace Butterfly
 					cascadeCorners[i + 4] = glm::mix(frustumCorners[i], frustumCorners[i + 4], farT);
 				}
 
-				// Center + bounding sphere radius (constant size, no shimmering on rotation)
 				glm::vec3 center(0.0f);
 				for (const glm::vec3& corner : cascadeCorners) center += corner;
 				center /= 8.0f;
@@ -66,24 +77,27 @@ namespace Butterfly
 				}
 				radius = glm::ceil(radius * 16.0f) / 16.0f;
 
-				// Pull the light back so casters outside the view still land in the map
-				const float casterExtend = radius * 2.0f; // or use your scene bounds
-				const glm::vec3 lightPosition = center - direction * (radius + casterExtend);
+				const float texelSize = (2.0f * radius) / shadowMapSize;
+				const glm::mat4 rotView = glm::lookAt(glm::vec3(0.0f), direction, up);
+
+				glm::vec3 centerLS = glm::vec3(rotView * glm::vec4(center, 1.0f));
+				centerLS.x = glm::floor(centerLS.x / texelSize) * texelSize;
+				centerLS.y = glm::floor(centerLS.y / texelSize) * texelSize;
+
+				center = glm::vec3(glm::inverse(rotView) * glm::vec4(centerLS, 1.0f));
+
+				float farLength = radius * 1.5f;
+				const glm::vec3 lightPosition = center - direction * farLength;
 				const glm::mat4 lightView = glm::lookAt(lightPosition, center, up);
 
-				glm::mat4 lightProjection = glm::ortho(-radius, radius, -radius, radius, 0.01f, 2.0f * radius + casterExtend);
-
-				// Texel snapping: shift the projection so the world origin lands on a texel boundary
-				const glm::mat4 shadowMatrix = lightProjection * lightView;
-				glm::vec4 origin = shadowMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-				origin *= shadowMapSize * 0.5f;
-				const glm::vec2 rounded = glm::round(glm::vec2(origin));
-				const glm::vec2 offset = (rounded - glm::vec2(origin)) * (2.0f / shadowMapSize);
-				lightProjection[3][0] += offset.x;
-				lightProjection[3][1] += offset.y;
-
-				out[cascade] = lightProjection * lightView;
+				const glm::mat4 lightProjection = glm::ortho(-radius, radius, -radius, radius, 0.1f, farLength * 2.0f);
+				out.LightViewProjections[cascade] = lightProjection * lightView;
+				out.CascadeTexelSize[cascade] = texelSize;
+				out.CascadeSplits[cascade] = splitFar;
 			}
+
+			out.NumCascades = NUM_CASCADES;
+			out.Size = shadowMapSize;
 
 			return out;
 		}
@@ -100,11 +114,13 @@ namespace Butterfly
 		{
 			8,
 			16,
-			32,
-			64,
+			20,
+			30,
 		};
 
-		std::vector<GPUShadowMap> gpuShadowMaps;
+
+		m_shadowMaps.clear();
+		m_gpuShadowMaps.clear();
 
 		for(uint32_t i = 0; i < viewport.Lights->GetLights().size(); ++i)
 		{
@@ -112,43 +128,25 @@ namespace Butterfly
 
 			if(Utils::GPULightTypeToLightType(light.Type) == LightType::Directional)
 			{
-				const std::array<glm::mat4, NUM_CASCADES> cascadeViewProjections = Utils::GetCascadeSplitDirectionalLight(cascadeSplits, frustumCorners, viewport.UniformCameraData.Near, viewport.UniformCameraData.Far, light.Direction, 512);
+				ShadowMap shadowMap = Utils::GetCascadeSplitDirectionalLight(cascadeSplits, frustumCorners, viewport.UniformCameraData.Near, viewport.UniformCameraData.Far, light.Direction, m_shadowResolution);
+					
 
-				m_shadowMaps.resize(1);
-				gpuShadowMaps.resize(1);
-				for (uint32_t j = 0; j < 1; ++j)
+				GPUShadowMap gpuShadowMap;
+				gpuShadowMap.NumCascades = shadowMap.NumCascades;
+				gpuShadowMap.Size = shadowMap.Size;
+				for (uint32_t j = 0; j < NUM_CASCADES; ++j)
 				{
-					ShadowMap& map = m_shadowMaps[j];
-					GPUShadowMap& gpuMap = gpuShadowMaps[j];
-
-					const std::string name = "ShadowMap LightIndex: " + std::to_string(i);
-
-					BFTextureDesc desc;
-					desc.Width = 1024;
-					desc.Height = 1024;
-					desc.Format = DXGI_FORMAT_D32_FLOAT;
-					desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable | BFTextureDesc::ViewType::ShaderResource;
-					desc.DebugName = name;
-					desc.Type = BFTextureType::Texture2DArray;
-					desc.ArraySize = NUM_CASCADES;
-
-					map.ShadowMapTexture = builder.CreateTransientTexture(name, desc);
-					map.NumCascades = NUM_CASCADES;
-
-					gpuMap.ShadowMapTextureIndex = map.ShadowMapTexture->SRV().View();
-					gpuMap.NumCascades = NUM_CASCADES;
-
-					map.Size = 1024;
-					gpuMap.Size = 1024;
-
-					for (uint32_t k = 0; k < NUM_CASCADES; k++)
-					{
-						gpuMap.LightViewProjections[k] = cascadeViewProjections[k];
-						gpuMap.CascadeSplits[k] = cascadeSplits[k];
-						map.LightViewProjections[k] = cascadeViewProjections[k];
-						map.CascadeSplits[k] = cascadeSplits[k];
-					}
+					gpuShadowMap.CascadeSplits[j] = shadowMap.CascadeSplits[j];
+					gpuShadowMap.CascadeTexelSize[j] = shadowMap.CascadeTexelSize[j];
+					gpuShadowMap.LightViewProjections[j] = shadowMap.LightViewProjections[j];
 				}
+
+				const std::string name = "ShadowMap LightIndex: " + std::to_string(i);
+				shadowMap.ShadowMapTexture = builder.CreateTransientTexture(name, Utils::ShadowMapTextureDesc(m_shadowResolution, name));
+				gpuShadowMap.ShadowMapTextureIndex = shadowMap.ShadowMapTexture->SRV().View();
+
+				m_shadowMaps.push_back(shadowMap);
+				m_gpuShadowMaps.push_back(gpuShadowMap);
 			}
 		}
 
@@ -158,11 +156,11 @@ namespace Butterfly
 		bufferDesc.Stride = sizeof(GPUShadowMap);
 		bufferDesc.NumElements = static_cast<uint32_t>(8);
 		BFStructuredBuffer* shadowMapBuffer = builder.CreateTransientStructuredBuffer("ShadowMapBuffer", bufferDesc);
-		shadowMapBuffer->Write(gpuShadowMaps.data(), sizeof(GPUShadowMap) * gpuShadowMaps.size());
+		shadowMapBuffer->Write(m_gpuShadowMaps.data(), sizeof(GPUShadowMap) * m_gpuShadowMaps.size());
 
 		ShadowMapPass* params = builder.AllocParameters<ShadowMapPass>();
 		params->ShadowMapBuffer = shadowMapBuffer;
-		params->NumShadowMaps = static_cast<uint32_t>(gpuShadowMaps.size());
+		params->NumShadowMaps = static_cast<uint32_t>(m_gpuShadowMaps.size());
 
 		builder.AddPass<ShadowMapPass>("ShadowMap",
 			[viewport, this](const ShadowMapPass& params, D3D12CommandList& list)

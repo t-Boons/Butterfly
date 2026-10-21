@@ -16,6 +16,7 @@ namespace Butterfly
 	{
 		glm::mat4 LightViewProjections[NUM_CASCADES];
 		float CascadeSplits[NUM_CASCADES];
+		float CascadeTexelSize[NUM_CASCADES];
 		int ShadowMapTextureIndex;
 		int NumCascades;
 		float Size;
@@ -26,6 +27,7 @@ namespace Butterfly
 	{
 		glm::mat4 LightViewProjections[NUM_CASCADES];
 		float CascadeSplits[NUM_CASCADES];
+		float CascadeTexelSize[NUM_CASCADES];
 		BFTexture* ShadowMapTexture;
 		int NumCascades;
 		float Size;
@@ -38,8 +40,11 @@ namespace Butterfly
 		virtual void OnRecordPass(const ViewportRenderEvent& ev) override;
 
 		const std::vector<ShadowMap>& GetShadowMaps() const { return m_shadowMaps; }
+		void SetShadowResolution(float resolution) { m_shadowResolution = resolution; }
 
 	private:
 		std::vector<ShadowMap> m_shadowMaps;
+		std::vector<GPUShadowMap> m_gpuShadowMaps;
+		float m_shadowResolution = 512.0f;
 	};
 }
