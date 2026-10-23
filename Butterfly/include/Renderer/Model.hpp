@@ -13,9 +13,10 @@ namespace Butterfly
 		glm::mat4 InverseModelMatrix;
 		glm::mat4 NormalMatrix;
 
-		glm::vec4 BoundsMin;
-		glm::vec4 BoundsSize;
+		glm::vec4 SDFBoundsMin;
+		glm::vec4 SDFBoundsSize;
 		glm::vec4 SDFResolution;
+
 		int SDFTextureIndex;
 	};
 
@@ -56,17 +57,16 @@ namespace Butterfly
 				model.ModelMatrix = transform.GetWorldMatrix();
 				model.InverseModelMatrix = glm::inverse(model.ModelMatrix);
 				model.NormalMatrix = glm::transpose(glm::inverse(model.ModelMatrix));
-				model.BoundsMin = glm::vec4(mesh->MeshBounds.Min, 0.0f);
-				model.BoundsSize = glm::vec4(mesh->MeshBounds.Size(), 0.0f);
 
-				if (mesh->SDF)
+				if (mesh->GetSDF())
 				{
-					model.SDFResolution = glm::vec4(mesh->SDFResolution, 0.0f);
-					model.SDFTextureIndex = mesh->SDF->SRV().View();
+					model.SDFResolution = glm::vec4(mesh->GetSDF()->GetSDFResolution(), 0.0f);
+					model.SDFTextureIndex = mesh->GetSDF()->GetSDFTexture()->SRV().View();
+					model.SDFBoundsMin = glm::vec4(mesh->GetSDF()->GetSDFBounds().Min, 0.0f);
+					model.SDFBoundsSize = glm::vec4(mesh->GetSDF()->GetSDFBounds().Size(), 0.0f);
 				}
 				else
 				{
-					model.SDFResolution = glm::vec4(0.0f);
 					model.SDFTextureIndex = -1;
 				}
 

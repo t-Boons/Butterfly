@@ -90,7 +90,7 @@ namespace Butterfly
 
 		mesh->SubMeshes.push_back({ 0, static_cast<uint32_t>(mesh->Indices.size()) });
 
-		mesh->GPULoad();
+		mesh->LoadToGPU();
 
 
 		manager.AddAssetEntry<MeshAsset>(AssetEntry{ meta.RootAssetID, MeshAsset::Type(), StaticCastRef<void>(mesh) });

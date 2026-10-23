@@ -59,10 +59,10 @@ namespace Butterfly
 					list.SetIndexBuffer(*mesh->GPUIndices);
 
 					int sdf = -1;
-					if (mesh->SDF)
+					if (mesh->GetSDF())
 					{
-						mesh->SDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-						sdf = mesh->SDF->SRV().View();
+						mesh->GetSDF()->GetSDFTexture()->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+						sdf = mesh->GetSDF()->GetSDFTexture()->SRV().View();
 					}
 
 					BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());

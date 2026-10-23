@@ -1,5 +1,5 @@
-#include "brdf.hlsli"
-#include "sdf.hlsli"
+#include "Brdf.hlsli"
+#include "Sdf.hlsli"
 #include "Shadow.hlsli"
 
 float3 MapNormal(float3 sampledNormal, float3 vertexNormal, float3 vertexTangent, float tangentSign)
@@ -46,31 +46,6 @@ struct BufferIndices
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
-
-struct MaterialData
-{
-    float4 BaseColor;
-    float4 EmissiveColor;
-    float Metallic;
-    float Roughness;
-    float NormalScale;
-    int ColorTexture;
-    int NormalTexture;
-    int MetallicRoughnessTexture;
-    int EmissionTexture;
-    int AmbientOcclusionTexture;
-};
-
-struct Light
-{
-    uint Type;
-    float3 Color;
-    float3 Position;
-    float3 Direction;
-    float Range;
-    float InnerConeAngleCos;
-    float OuterConeAngleCos;
-};
 
 struct V2P
 {
@@ -231,9 +206,9 @@ float4 main(V2P pixelInput) : SV_TARGET0
                 ModelData model = modelData[m];
                 if (model.SDFTextureIndex < 0)
                     continue;
-    2
-                float3 boundMin = model.BoundsMin.xyz;
-                float3 boundSize = model.BoundsSize.xyz;
+    
+                float3 boundMin = model.SDFBoundsMin.xyz;
+                float3 boundSize = model.SDFBoundsSize.xyz;
             
                 float3 originW = pixelInput.fragPos + pixelInput.normal * EPSILON;
                 float3 originM = mul(model.InverseModelMatrix, float4(originW, 1.0)).xyz;
@@ -266,7 +241,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
             }
         }
         
-        return float4(lerp(fragShadowColor, fragColor, shadow), 1.0);
+        return lerp(ambient * diffuseColor, fragColor, shadow);
     }
 #endif
 

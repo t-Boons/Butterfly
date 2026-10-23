@@ -399,7 +399,7 @@ namespace Butterfly
 				outMesh->SubMeshes.push_back(subMesh);
 			}
 
-			outMesh->GPULoad();
+			outMesh->LoadToGPU();
 
 			std::string name = mesh.name;
 			if (mesh.name.empty())

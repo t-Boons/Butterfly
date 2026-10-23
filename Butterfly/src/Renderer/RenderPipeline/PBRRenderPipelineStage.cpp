@@ -107,14 +107,16 @@ namespace Butterfly
 					}
 					AssetManager& as = Application::Get().GetAssetManager();
 					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-					if (mesh->SDF)
-						mesh->SDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					if (mesh->GetSDF())
+					{
+						mesh->GetSDF()->GetSDFTexture()->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					}
 				}
 
 				uint32_t entityIndex = 0;
 				for (const auto& [entity, transform, meshRenderer] : view.each())
 				{
-					if (!meshRenderer.GetMeshHandle())
+					if (!meshRenderer.GetMeshHandle())	
 					{
 						continue;
 					}

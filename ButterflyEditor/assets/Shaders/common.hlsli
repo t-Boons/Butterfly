@@ -17,8 +17,33 @@ struct ModelData
     float4x4 ModelMatrix;
     float4x4 InverseModelMatrix;
     float4x4 NormalMatrix;
-    float4 BoundsMin;
-    float4 BoundsSize;
+    float4 SDFBoundsMin;
+    float4 SDFBoundsSize;
     float4 SDFResolution;
     int SDFTextureIndex;
+};
+
+struct MaterialData
+{
+    float4 BaseColor;
+    float4 EmissiveColor;
+    float Metallic;
+    float Roughness;
+    float NormalScale;
+    int ColorTexture;
+    int NormalTexture;
+    int MetallicRoughnessTexture;
+    int EmissionTexture;
+    int AmbientOcclusionTexture;
+};
+
+struct Light
+{
+    uint Type;
+    float3 Color;
+    float3 Position;
+    float3 Direction;
+    float Range;
+    float InnerConeAngleCos;
+    float OuterConeAngleCos;
 };

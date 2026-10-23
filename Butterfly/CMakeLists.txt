@@ -30,6 +30,7 @@ add_library(Butterfly STATIC
     src/Asset/Asset.cpp
     src/Asset/AssetRegistry.cpp
     src/Asset/AssetManager.cpp
+    src/Asset/AssetTypes.cpp
     src/Asset/Importer/AssetImporter.cpp
     src/Asset/Importer/ImageImporter.cpp
     src/Asset/Importer/OBJImporter.cpp

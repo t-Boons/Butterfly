@@ -8,7 +8,8 @@
 namespace Butterfly
 {
 	struct MaterialAsset;
-
+	struct BFTexture;
+	struct SDF;
 
 	struct MeshAsset
 	{
@@ -29,9 +30,7 @@ namespace Butterfly
 		RefPtr<BFIndexBuffer> GPUIndices;
 
 
-		Bounds MeshBounds;
-		glm::vec3 SDFResolution = { 0.0f , 0.0f, 0.0f };
-		RefPtr<BFTexture> SDF;
+		Bounds m_meshBounds;
 
 		struct SubMesh
 		{
@@ -41,97 +40,30 @@ namespace Butterfly
 		};
 		std::vector<SubMesh> SubMeshes;
 
-		bool GPULoaded = false;
 
-		void GPULoad()
-		{
-			if (GPULoaded)
-			{
-				return;
-			}
+		Bounds GetBounds() const { return m_meshBounds; }
+		const RefPtr<SDF>& GetSDF() const { return m_sdf; }
 
-			GPUIndices = RefPtr<BFIndexBuffer>(new BFIndexBuffer(Indices.data(), static_cast<uint32_t>(Indices.size()), DXGI_FORMAT_R32_UINT, "Indices"));
+		void LoadToGPU();
 
+		bool m_gpuLoaded = false;
+		bool CreateSDF = false;
+		RefPtr<SDF> m_sdf;
+	};
 
-			BFStructuredBufferDesc desc;
-			desc.HeapType = BFHeapType::Default;
+	struct SDF
+	{
+	public:
+		void GenerateSDF(const std::vector<glm::vec3>& positions, const std::vector<uint32_t>& indices, const std::vector<MeshAsset::SubMesh>& subMeshes, const Bounds& meshBounds);
 
+		const RefPtr<BFTexture>& GetSDFTexture() const { return m_sdf; }
+		const glm::vec3& GetSDFResolution() const { return m_sdfResolution; }
+		const Bounds& GetSDFBounds() const { return m_sdfBounds; }
 
-			{
-				desc.Data = Positions.data();
-				desc.NumElements = static_cast<uint32_t>(Positions.size());
-				desc.Stride = sizeof(glm::vec3);
-				desc.DebugName = "Positions";
-
-				GPUPositions = MakeRef<BFStructuredBuffer>(desc);
-			}
-
-			{
-				desc.Data = Normals.data();
-				desc.NumElements = static_cast<uint32_t>(Normals.size());
-				desc.Stride = sizeof(glm::vec3);
-				desc.DebugName = "Normals";
-				GPUNormals = MakeRef<BFStructuredBuffer>(desc);
-			}
-			{
-				desc.Data = Tangents.data();
-				desc.NumElements = static_cast<uint32_t>(Tangents.size());
-				desc.Stride = sizeof(glm::vec4);
-				desc.DebugName = "Tangents";
-				GPUTangents = MakeRef<BFStructuredBuffer>(desc);
-			}
-			{
-				desc.Data = UVs.data();
-				desc.NumElements = static_cast<uint32_t>(UVs.size());
-				desc.Stride = sizeof(glm::vec2);
-				desc.DebugName = "UVs";
-				GPUUVs = MakeRef<BFStructuredBuffer>(desc);
-			}
-
-			GPULoaded = true;
-
-			for (auto& subMesh : SubMeshes)
-			{
-				for (uint32_t i = 0; i < subMesh.IndexCount; ++i)
-				{
-					uint32_t index = Indices[subMesh.IndexOffset + i];
-
-					const glm::vec3 position = Positions[index];
-					if (MeshBounds.Min.x > position.x) MeshBounds.Min.x = position.x;
-					if (MeshBounds.Min.y > position.y) MeshBounds.Min.y = position.y;
-					if (MeshBounds.Min.z > position.z) MeshBounds.Min.z = position.z;
-					if (MeshBounds.Max.x < position.x) MeshBounds.Max.x = position.x;
-					if (MeshBounds.Max.y < position.y) MeshBounds.Max.y = position.y;
-					if (MeshBounds.Max.z < position.z) MeshBounds.Max.z = position.z;
-				}
-			}
-			const glm::vec3 padding = MeshBounds.Size() * 0.5f * 0.2f; // 20% of the size;
-			MeshBounds.Min -= padding;
-			MeshBounds.Max += padding;
-
-
-			SDFResolution = glm::vec3(64.0f, 64.0f, 64.0f);
-
-			std::vector<SDFTriangle> triangles;
-			triangles.reserve(Indices.size() / 3);
-
-			for (auto& subMesh : SubMeshes)
-			{
-				for (uint32_t i = 0; i < subMesh.IndexCount; i += 3)
-				{
-					uint32_t index0 = Indices[subMesh.IndexOffset + i];
-					uint32_t index1 = Indices[subMesh.IndexOffset + i + 1];
-					uint32_t index2 = Indices[subMesh.IndexOffset + i + 2];
-					SDFTriangle triangle;
-					triangle.Vertex0 = Positions[index0];
-					triangle.Vertex1 = Positions[index1];
-					triangle.Vertex2 = Positions[index2];
-					triangles.push_back(triangle);
-				}
-			}
-
-			SDF = GraphicsCommands::CreateSDF(triangles, MeshBounds, SDFResolution);
-		}
+	private:
+		RefPtr<BFTexture> m_sdf;
+		glm::vec3 m_sdfResolution;
+		Bounds m_sdfBounds;
 	};
 
 
