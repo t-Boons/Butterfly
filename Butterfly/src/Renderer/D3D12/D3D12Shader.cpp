@@ -48,7 +48,7 @@ namespace Butterfly
 				LPCWSTR customArgs[] =
 			{
 				L"-all_resources_bound",
-				L"-Zi",
+				L"-I",
 				includeDirectory.c_str()
 			};
 
@@ -82,13 +82,11 @@ namespace Butterfly
 			ThrowIfFailed(result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr));
 			if (errors && errors->GetStringLength() > 0)
 			{
-#ifdef BUTTERFLY_DEBUG
 				std::stringstream ss;
 				ss << "Shader compilation errors:\n" << errors->GetStringPointer();
 				BF_CORE_LOG_ERROR("%s", ss.str().c_str());
 				MessageBoxA(GetActiveWindow(), "Retry shader compilation?", "Shader compilation failed.", MB_OK);
 				continue;
-#endif
 			}
 
 			success = true;

@@ -30,11 +30,18 @@
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
     },
     {
-      "name": "x64-release",
-      "displayName": "x64 Release",
+      "name": "x64-release-profile",
+      "displayName": "x64 RelWithProfiler",
       "description": "Target Windows (64-bit) with the profiler still active.",
       "inherits": "x64-debug",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithProfiling" }
+    },
+    {
+      "name": "x64-release-deb",
+      "displayName": "x64 RelWithDeb",
+      "description": "Target Windows (64-bit) with the profiler still active.",
+      "inherits": "x64-debug",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
     },
     {
       "name": "x64-shipping",
@@ -42,6 +49,6 @@
       "description": "Target Windows (64-bit) without any overhead.",
       "inherits": "x64-debug",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
-    },
+    }
   ]
 }
