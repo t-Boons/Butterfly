@@ -45,6 +45,6 @@ namespace Butterfly
 	private:
 		std::vector<ShadowMap> m_shadowMaps;
 		std::vector<GPUShadowMap> m_gpuShadowMaps;
-		float m_shadowResolution = 512.0f;
+		float m_shadowResolution = 1024.0f;
 	};
 }

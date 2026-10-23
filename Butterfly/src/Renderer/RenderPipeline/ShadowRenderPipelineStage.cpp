@@ -112,10 +112,10 @@ namespace Butterfly
 
 		const std::array<float, 4> cascadeSplits
 		{
-			8,
-			16,
-			20,
-			30,
+			6,
+			15,
+			25,
+			40,
 		};
 
 

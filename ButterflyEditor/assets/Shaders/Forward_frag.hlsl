@@ -136,7 +136,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
     float3 V = normalize(pixelInput.eye - pixelInput.fragPos);
     float NoV = saturate(dot(N, V));
 
-    float3 ambient = float3(0.0, 0.0, 0.02);
+    float3 ambient = float3(0.05, 0.05, 0.07);
    
     float3 lighting = ambient * diffuseColor;
     

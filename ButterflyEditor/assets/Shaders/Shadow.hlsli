@@ -1,29 +1,23 @@
 #define NUM_CASCADES 4
 
-#define BLOCKER_SEARCH_SAMPLES 16
-#define PCF_SAMPLES 32
+#define POISSON_SAMPLE_COUNT 16 
+#define PCSS_BLOCKER_SEARCH 0.03
+#define PCSS_LIGHT_SIZE 0.006
 
-#define LIGHT_SIZE_UV 0.04
-#define MAX_FILTER_RADIUS_UV 0.01
 
-static const float2 PoissonDisk[32] =
+#define PCSS_MIN_LIGHT_SIZE 0.001
+
+
+static const float2 PCSS_Poisson_Samples[POISSON_SAMPLE_COUNT] =
 {
-    float2(-0.613, 0.617), float2(0.170, -0.040),
-    float2(-0.299, -0.791), float2(0.645, 0.493),
-    float2(-0.651, -0.280), float2(0.421, -0.714),
-    float2(0.887, -0.155), float2(-0.105, 0.263),
-    float2(-0.914, 0.163), float2(0.284, 0.890),
-    float2(-0.388, 0.425), float2(0.697, -0.446),
-    float2(-0.024, -0.573), float2(0.515, 0.130),
-    float2(-0.746, -0.633), float2(0.057, 0.719),
-    float2(-0.474, -0.091), float2(0.370, 0.536),
-    float2(-0.182, -0.940), float2(0.940, 0.329),
-    float2(-0.833, 0.500), float2(0.230, -0.420),
-    float2(-0.530, 0.790), float2(0.770, -0.690),
-    float2(-0.120, 0.960), float2(0.040, -0.180),
-    float2(-0.960, -0.360), float2(0.600, 0.750),
-    float2(-0.340, -0.490), float2(0.480, -0.020),
-    float2(0.800, 0.100), float2(-0.700, 0.050)
+    float2(-0.352, -0.698), float2(0.602, 0.798),
+    float2(-0.794, 0.599), float2(0.887, -0.448),
+    float2(-0.032, 0.143), float2(-0.982, -0.171),
+    float2(-0.134, 0.970), float2(0.340, -0.907),
+    float2(0.948, 0.228), float2(0.328, -0.302),
+    float2(-0.466, -0.177), float2(0.444, 0.264),
+    float2(-0.321, 0.523), float2(0.165, 0.630),
+    float2(-0.777, -0.596), float2(-0.690, 0.182),
 };
 
 struct GPUShadowMap
@@ -36,60 +30,123 @@ struct GPUShadowMap
     float Size;
 };
 
+/// Implementations based on this article:
+/// https://gamedev.net/tutorials/programming/graphics/effect-area-light-shadows-part-1-pcss-r4971
 
-float CalculateShadow(float3 worldPosition, float4x4 lightViewProjection, Texture2DArray<float> shadowMapTexture, int slice, SamplerState blockerSampler, SamplerComparisonState pcssSampler, float NoL, float shadowMapSize, float2 seed)
+inline float2 PCSS_Rotate(float2 uv, float2 seed)
 {
-    float4 lightClip = mul(lightViewProjection, float4(worldPosition, 1.0));
-    float3 lightNDC = lightClip.xyz / lightClip.w;
-
-    float2 uv = float2(lightNDC.x * 0.5 + 0.5, -lightNDC.y * 0.5 + 0.5);
-
-    float receiverDepth = lightNDC.z;
-
-    if (any(uv < 0.0) || any(uv > 1.0) || receiverDepth < 0.0 || receiverDepth > 1.0) return 1.0;
-
-    float bias = 0.001;
-    float compareDepth = receiverDepth - bias;
-    float3 uvw = float3(uv, float(slice));
-    
-    float texel = 1.0 / shadowMapSize;
-    float radius = 2.5 * texel;
-
     float angle = 6.2831853 * frac(52.9829189 * frac(dot(seed.xy, float2(0.06711056, 0.00583715))));
-    float2 rot = float2(cos(angle), sin(angle));
-
-    float sum = 0;
-    [Unroll]
-    for (int i = 0; i < 16; i++)
-    {
-        float2 p = PoissonDisk[i];
-        p = float2(p.x * rot.x - p.y * rot.y, p.x * rot.y + p.y * rot.x);
-        sum += shadowMapTexture.SampleCmpLevelZero(pcssSampler, uvw + float3(p * radius, 0), compareDepth);
-    }
-    return sum / 16.0;
+    float s = sin(angle);
+    float c = cos(angle);
+    return float2(c * uv.x - s * uv.y, s * uv.x + c * uv.y);
 }
 
-float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3 lightDirection, float cameraDepth, float CascadeSplits[NUM_CASCADES], float cascadeTexelSizes[NUM_CASCADES], float4x4 LightViewProjections[NUM_CASCADES], Texture2DArray<float> shadowMaps, SamplerState blockerSampler, SamplerComparisonState pcssSmp, float shadowMapSize, float2 seed)
+inline float PCF_Poisson(Texture2DArray<float> tex, int slice, SamplerComparisonState cmp, float3 projCoord, float radiusUV, float2 rotationSeed)
+{
+    float sum = 0.0;
+    [Unroll]
+    for (int i = 0; i < POISSON_SAMPLE_COUNT; i++)
+    {
+        float2 offset = PCSS_Poisson_Samples[i] * radiusUV;
+        offset = PCSS_Rotate(offset, rotationSeed);
+        sum += tex.SampleCmpLevelZero(cmp, float3(projCoord.xy + offset, slice), projCoord.z);
+    }
+    return sum / POISSON_SAMPLE_COUNT;
+}
+
+inline float PCF_Grid(Texture2DArray<float> tex, int slice, SamplerComparisonState cmp, float3 projCoord, float radiusUV, int filterSize)
+{
+    float sum = 0.0;
+    
+    for (int i = -filterSize; i <= filterSize; i++)
+    {
+        for (int j = -filterSize; j <= filterSize; j++)
+        {
+            float2 offset = float2(i, j) * radiusUV;
+            sum += tex.SampleCmpLevelZero(cmp, float3(projCoord.xy + offset, slice), projCoord.z);
+        }
+    }
+    return sum / ((filterSize * 2 + 1) * (filterSize * 2 + 1));
+}
+
+inline float PCSS_BlockerDistance(Texture2DArray<float> tex, int slice, SamplerState smp, float3 projCoord, float searchUV, float2 rotationSeed)
+{
+    int blockers = 0;
+    float avgBlocker = 0.0;
+    float2 newSeed = rotationSeed + float2(37.0, 17.0);
+    
+    for (int i = 0; i < POISSON_SAMPLE_COUNT; i++)
+    {
+        float2 offset = PCSS_Poisson_Samples[i] * searchUV;
+        offset = PCSS_Rotate(offset, newSeed);
+        
+        float z = tex.SampleLevel(smp, float3(projCoord.xy + offset, float(slice)), 0);
+        if (z < projCoord.z)
+        {
+            blockers++;
+            avgBlocker += z;
+        }
+    }
+
+    if (blockers == 0)
+        return 0.0;
+    
+    avgBlocker /= blockers;
+    
+    return avgBlocker;
+}
+
+
+inline float PCSS_Shadow(Texture2DArray<float> map, int slice, SamplerState blockerSampler, SamplerComparisonState pcssSampler, float3 projCoords, float lightSize, float2 rotationSeed)
+{
+    float averageBlockerDistance = PCSS_BlockerDistance(map, slice, blockerSampler, projCoords, PCSS_BLOCKER_SEARCH, rotationSeed);
+
+	if (averageBlockerDistance == 0.0)
+	{
+		return 1.0;
+	}
+	else
+	{
+        float penumbraSize = lightSize * (projCoords.z - averageBlockerDistance);
+        penumbraSize = max(penumbraSize, PCSS_MIN_LIGHT_SIZE);
+        float shadow = PCF_Poisson(map, slice, pcssSampler, projCoords, penumbraSize, rotationSeed);
+        return shadow;
+    }
+}
+
+inline float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3 lightDirection, float cameraDepth, float cascadeSplits[NUM_CASCADES], float cascadeTexelSizes[NUM_CASCADES], float4x4 LightViewProjections[NUM_CASCADES], Texture2DArray<float> shadowMaps, SamplerState blockerSampler, SamplerComparisonState pcssSmp, float resolution, float2 rotationSeed)
 {
     uint cascadeIndex = 0;
     for (uint i = 0; i < NUM_CASCADES; ++i)
     {
-        if (cameraDepth <= CascadeSplits[i])
+        if (cameraDepth <= cascadeSplits[i])
         {
             cascadeIndex = i;
             break;
         }
         cascadeIndex = i;
     }
-
     float NoL = saturate(dot(normalize(worldNormal), normalize(lightDirection)));
 
-    // world size of one texel for this cascade
     float4x4 lightVP = LightViewProjections[cascadeIndex];
     float cascadeRadius = 1.0 / length(lightVP[0].xyz);
+    
     float texelWorld = cascadeTexelSizes[cascadeIndex];
+    
     float sinTheta = sqrt(saturate(1.0 - NoL * NoL));
+    
     float3 offsetPos = worldPosition + normalize(worldNormal) * texelWorld * 3.0 * sinTheta;
+    float4 lightClip = mul(lightVP, float4(offsetPos, 1.0));
+    float3 lightNDC = lightClip.xyz / lightClip.w;
+    float2 uv = float2(lightNDC.x * 0.5 + 0.5, -lightNDC.y * 0.5 + 0.5);
+    
+    // Early out if the fragment is outside the shadow map bounds
+    if (any(uv < 0.0) || any(uv > 1.0) || lightNDC.z < 0.0 || lightNDC.z > 1.0)
+    {
+        return 1.0;
+    }
+    
+    float3 projectedPos = float3(uv, lightNDC.z - 0.0001);
 
-    return CalculateShadow(offsetPos, LightViewProjections[cascadeIndex], shadowMaps, cascadeIndex, blockerSampler, pcssSmp, NoL, shadowMapSize, seed);
+    return PCSS_Shadow(shadowMaps, cascadeIndex, blockerSampler, pcssSmp, projectedPos, PCSS_LIGHT_SIZE, rotationSeed);
 }
