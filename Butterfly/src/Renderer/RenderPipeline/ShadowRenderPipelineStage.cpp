@@ -86,7 +86,7 @@ namespace Butterfly
 
 				center = glm::vec3(glm::inverse(rotView) * glm::vec4(centerLS, 1.0f));
 
-				float farLength = radius * 1.5f;
+				float farLength = radius * 2.5f;
 				const glm::vec3 lightPosition = center - direction * farLength;
 				const glm::mat4 lightView = glm::lookAt(lightPosition, center, up);
 

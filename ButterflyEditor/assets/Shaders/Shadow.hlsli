@@ -1,11 +1,11 @@
 #define NUM_CASCADES 4
 
 #define POISSON_SAMPLE_COUNT 16 
-#define PCSS_BLOCKER_SEARCH 0.03
-#define PCSS_LIGHT_SIZE 0.006
+#define PCSS_BLOCKER_SEARCH 0.075
+#define PCSS_LIGHT_SIZE 0.06
 
 
-#define PCSS_MIN_LIGHT_SIZE 0.001
+#define PCSS_MIN_PENUMBRA_SIZE 0.00075
 
 
 static const float2 PCSS_Poisson_Samples[POISSON_SAMPLE_COUNT] =
@@ -108,7 +108,7 @@ inline float PCSS_Shadow(Texture2DArray<float> map, int slice, SamplerState bloc
 	else
 	{
         float penumbraSize = lightSize * (projCoords.z - averageBlockerDistance);
-        penumbraSize = max(penumbraSize, PCSS_MIN_LIGHT_SIZE);
+        penumbraSize = max(penumbraSize, PCSS_MIN_PENUMBRA_SIZE);
         float shadow = PCF_Poisson(map, slice, pcssSampler, projCoords, penumbraSize, rotationSeed);
         return shadow;
     }
@@ -146,7 +146,7 @@ inline float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3
         return 1.0;
     }
     
-    float3 projectedPos = float3(uv, lightNDC.z - 0.0001);
+    float3 projectedPos = float3(uv, lightNDC.z - 0.005);
 
     return PCSS_Shadow(shadowMaps, cascadeIndex, blockerSampler, pcssSmp, projectedPos, PCSS_LIGHT_SIZE, rotationSeed);
 }
