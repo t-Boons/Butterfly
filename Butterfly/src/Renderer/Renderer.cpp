@@ -223,7 +223,10 @@ namespace Butterfly
 				delete graph;
 				m_frameData.GetCmdList().EndGPUMarker();
 
-				viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_GENERIC_READ);
+				if (viewport.HasRenderTarget())
+				{
+					viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_GENERIC_READ);
+				}
 			}
 		}
 
@@ -272,22 +275,39 @@ namespace Butterfly
 		ViewportHandle handle;
 		handle.m_index = m_viewportHandleIndex++;
 
+		Viewport viewport;
+		viewport.GraphResources.fill(MakeRef<GraphTransientResourceCache>());
+		viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Viewport " + std::to_string(handle.m_index) + " Uniforms");
+		viewport.Handle = handle;
+		viewport.Materials = MakeRef<MaterialLibrary>();
+		viewport.Lights = MakeRef<LightBuffer>();
+		viewport.Models = MakeRef<ModelBuffer>();
+		viewport.RenderPipeline = MakeRef<RenderPipeline>(*this);
+
 		for (uint32_t i = 0; i < NUM_RENDER_BUFFERS; ++i)
 		{
-			Viewport viewport;
-			viewport.GraphResources.fill(MakeRef<GraphTransientResourceCache>());
-			viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Frame " + std::to_string(i) + "Viewport " + std::to_string(handle.m_index) + " Uniforms");
-			viewport.Handle = handle;
+			{
+				BFTextureDesc desc;
+				desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
+				desc.Width = 1;
+				desc.Height = 1;
+				desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
+				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " RenderTarget";
 
+				viewport.RenderTarget[i] = MakeRef<BFTexture>(desc);
+			}
+			{
+				BFTextureDesc desc;
+				desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+				desc.Width = 1;
+				desc.Height = 1;
+				desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable;
+				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " DepthStencil";
 
-			viewport.Materials = MakeRef<MaterialLibrary>();
-			viewport.Lights = MakeRef<LightBuffer>();
-			viewport.Models = MakeRef<ModelBuffer>();
-
-			viewport.RenderPipeline = MakeRef<RenderPipeline>(*this);
-
-			m_frameData.Viewports[handle] = viewport;
+				viewport.DepthStencil[i] = MakeRef<BFTexture>(desc);
+			}
 		}
+		m_frameData.Viewports[handle] = viewport;
 
 		return handle;
 	}

@@ -34,11 +34,7 @@ namespace Butterfly
 			return out;
 		}
 
-		ShadowMap GetCascadeSplitDirectionalLight(const std::array<float, NUM_CASCADES>& cascadeSplits,
-			const std::array<glm::vec3, 8>& frustumCorners,
-			float cameraNear, float cameraFar,
-			const glm::vec3& lightDirection,
-			float shadowMapSize)
+		ShadowMap GetCascadeSplitDirectionalLight(const std::array<float, NUM_CASCADES>& cascadeSplits, const std::array<glm::vec3, 8>& frustumCorners, float cameraNear, float cameraFar, const glm::vec3& lightDirection, float shadowMapSize)
 		{
 			ShadowMap out;
 			float previousSplit = cameraNear;
@@ -86,7 +82,7 @@ namespace Butterfly
 
 				center = glm::vec3(glm::inverse(rotView) * glm::vec4(centerLS, 1.0f));
 
-				float farLength = radius * 2.5f;
+				float farLength = radius * 3.0f;
 				const glm::vec3 lightPosition = center - direction * farLength;
 				const glm::mat4 lightView = glm::lookAt(lightPosition, center, up);
 

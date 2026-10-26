@@ -138,14 +138,7 @@ inline float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3
     float NoL = saturate(dot(normalize(worldNormal), normalize(lightDirection)));
 
     float4x4 lightVP = LightViewProjections[cascadeIndex];
-    float cascadeRadius = 1.0 / length(lightVP[0].xyz);
-    
-    float texelWorld = cascadeTexelSizes[cascadeIndex];
-    
-    float sinTheta = sqrt(saturate(1.0 - NoL * NoL));
-    
-    float3 offsetPos = worldPosition + normalize(worldNormal) * texelWorld * 3.0 * sinTheta;
-    float4 lightClip = mul(lightVP, float4(offsetPos, 1.0));
+    float4 lightClip = mul(lightVP, float4(worldPosition, 1.0));
     float3 lightNDC = lightClip.xyz / lightClip.w;
     float2 uv = float2(lightNDC.x * 0.5 + 0.5, -lightNDC.y * 0.5 + 0.5);
     
@@ -155,7 +148,7 @@ inline float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3
         return 1.0;
     }
     
-    float3 projectedPos = float3(uv, lightNDC.z - 0.005);
+    float3 projectedPos = float3(uv, lightNDC.z - 0.008);
 
     return PCSS_Shadow(shadowMaps, cascadeIndex, blockerSampler, pcssSmp, projectedPos, PCSS_LIGHT_SIZE, rotationSeed);
 }
