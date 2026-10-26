@@ -115,12 +115,28 @@ float4 main(V2P pixelInput) : SV_TARGET0
    
     float3 lighting = ambient * diffuseColor;
     
+    SamplerComparisonState pcssShadowSmp = SamplerDescriptorHeap[resources.pcssShadowSamplerIndex];
+    SamplerState blockerSmp = SamplerDescriptorHeap[resources.blockerSamplerIndex];
+    
     for (int i = 0; i < resources.numLights; i++)
     {
         Light light = lights[i];
         
         if (light.Type == 0) // Directional Light
         {
+            StructuredBuffer<GPUShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
+    
+            GPUShadowMap shadowMap = shadowMaps[i];
+            Texture2DArray<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
+            
+            float shadow = CalculateCSMShadow(pixelInput.fragPos, pixelInput.normal, -light.Direction, pixelInput.depth, shadowMap.CascadeSplits, shadowMap.CascadeTexelSize, shadowMap.LightViewProjections, shadowMapTexture, blockerSmp, pcssShadowSmp, shadowMap.Size, pixelInput.position.xy);
+
+            
+            if (shadow <= 0.0)
+            {
+                continue;
+            }
+            
             float3 L = normalize(-light.Direction);
             float3 H = normalize(L + V);
             float NoL = saturate(dot(N, L));
@@ -135,7 +151,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
             float3 specularBRDF = F * Vis * D;
             float3 diffuseBRDF = diffuseColor / PI;
 
-            lighting += (diffuseBRDF + specularBRDF) * NoL * light.Color;
+            lighting += (diffuseBRDF + specularBRDF) * NoL * light.Color * shadow;
             
             continue;
         }
@@ -244,22 +260,6 @@ float4 main(V2P pixelInput) : SV_TARGET0
         return lerp(ambient * diffuseColor, fragColor, shadow);
     }
 #endif
-
-    SamplerComparisonState pcssShadowSmp = SamplerDescriptorHeap[resources.pcssShadowSamplerIndex];
-    SamplerState blockerSmp = SamplerDescriptorHeap[resources.blockerSamplerIndex];
-    if (resources.shadowMapBufferIndex >= 0)
-    {
-        StructuredBuffer<GPUShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
-    
-        for (int i = 0; i < resources.numShadowMaps; i++)
-        {
-            GPUShadowMap shadowMap = shadowMaps[i];
-            Texture2DArray<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
-            
-            float shadow = CalculateCSMShadow(pixelInput.fragPos, pixelInput.normal, -lights[i].Direction, pixelInput.depth, shadowMap.CascadeSplits, shadowMap.CascadeTexelSize, shadowMap.LightViewProjections, shadowMapTexture, blockerSmp, pcssShadowSmp, shadowMap.Size, pixelInput.position.xy);
-            fragColor = lerp(ambient * diffuseColor, fragColor, shadow);
-        }
-    }
     
     return float4(fragColor, 1.0);
 }

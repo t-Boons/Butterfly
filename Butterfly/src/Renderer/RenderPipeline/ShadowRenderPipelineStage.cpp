@@ -148,6 +148,31 @@ namespace Butterfly
 				m_shadowMaps.push_back(shadowMap);
 				m_gpuShadowMaps.push_back(gpuShadowMap);
 			}
+
+			if (Utils::GPULightTypeToLightType(light.Type) == LightType::Point)
+			{
+				ShadowMap shadowMap;
+				shadowMap.NumCascades = 1;
+				shadowMap.LightViewProjections[0] = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, light.Range);
+
+
+				GPUShadowMap gpuShadowMap;
+				gpuShadowMap.NumCascades = shadowMap.NumCascades;
+				gpuShadowMap.Size = shadowMap.Size;
+				for (uint32_t j = 0; j < NUM_CASCADES; ++j)
+				{
+					gpuShadowMap.CascadeSplits[j] = shadowMap.CascadeSplits[j];
+					gpuShadowMap.CascadeTexelSize[j] = shadowMap.CascadeTexelSize[j];
+					gpuShadowMap.LightViewProjections[j] = shadowMap.LightViewProjections[j];
+				}
+
+				const std::string name = "ShadowMap LightIndex: " + std::to_string(i);
+				shadowMap.ShadowMapTexture = builder.CreateTransientTexture(name, Utils::ShadowMapTextureDesc(m_shadowResolution, name));
+				gpuShadowMap.ShadowMapTextureIndex = shadowMap.ShadowMapTexture->SRV().View();
+
+				m_shadowMaps.push_back(shadowMap);
+				m_gpuShadowMaps.push_back(gpuShadowMap);
+			}
 		}
 
 		BFStructuredBufferDesc bufferDesc;
