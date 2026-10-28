@@ -75,8 +75,8 @@ namespace Butterfly
 					list.SetViewport(RenderViewport::FromTexture(*data.RenderTarget));
 
 					BFGraphicsPSOInfo psoInfo;
-					psoInfo.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/ObjectPicker_vert.hlsl", ShaderType::Vertex);
-					psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/ObjectPicker_frag.hlsl", ShaderType::Pixel);
+					psoInfo.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/ObjectPicker_vert.hlsl");
+					psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/ObjectPicker_frag.hlsl");
 					list.SetGraphicsPSO(psoInfo);
 
 					uint32_t entityRenderIndex = 0;
@@ -182,9 +182,9 @@ namespace Butterfly
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
 
-		event.Viewport.Lights->Update();
+		event.Viewport.Lights->Update(event.Viewport);
 		event.Viewport.Materials->Validate();
-		event.Viewport.Models->Update();
+		event.Viewport.Models->Validate();
 
 
 		if (SkyboxRenderPipelineStage* srps = event.Viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>())

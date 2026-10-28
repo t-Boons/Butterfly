@@ -1,4 +1,4 @@
-#include "common.hlsli"
+#include "Common.hlsli"
 
 struct BufferIndices
 {
@@ -17,8 +17,7 @@ struct BufferIndices
     int skyboxTextureIndex;
     int numModels;
     int sdfSamplerIndex;
-    int shadowMapBufferIndex;
-    int numShadowMaps;
+    int blockerSamplerIndex;
     int pcssShadowSamplerIndex;
 };
 

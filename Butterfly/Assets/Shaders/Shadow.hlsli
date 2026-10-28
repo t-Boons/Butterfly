@@ -1,4 +1,5 @@
-#define NUM_CASCADES 4
+#pragma once
+#include "Common.hlsli"
 
 #define POISSON_SAMPLE_COUNT 16 
 #define PCSS_BLOCKER_SEARCH 0.075
@@ -27,16 +28,6 @@ static const float2 PCSS_Poisson_Samples[POISSON_SAMPLE_COUNT] =
     float2(-0.81409955, 0.91437590),
     float2(0.19984126, 0.78641367),
     float2(0.14383161, -0.14100790)
-};
-
-struct GPUShadowMap
-{
-    float4x4 LightViewProjections[NUM_CASCADES];
-    float CascadeSplits[NUM_CASCADES];
-    float CascadeTexelSize[NUM_CASCADES];
-    int ShadowMapTextureIndex;
-    int NumCascades;
-    float Size;
 };
 
 /// Implementations based on this article:
@@ -123,10 +114,10 @@ inline float PCSS_Shadow(Texture2DArray<float> map, int slice, SamplerState bloc
     }
 }
 
-inline float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3 lightDirection, float cameraDepth, float cascadeSplits[NUM_CASCADES], float cascadeTexelSizes[NUM_CASCADES], float4x4 LightViewProjections[NUM_CASCADES], Texture2DArray<float> shadowMaps, SamplerState blockerSampler, SamplerComparisonState pcssSmp, float resolution, float2 rotationSeed)
+inline float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3 lightDirection, float cameraDepth, float cascadeSplits[MAX_CASCADES], float cascadeTexelSizes[MAX_CASCADES], float4x4 LightViewProjections[MAX_CASCADES], Texture2DArray<float> shadowMaps, SamplerState blockerSampler, SamplerComparisonState pcssSmp, float resolution, float2 rotationSeed)
 {
     uint cascadeIndex = 0;
-    for (uint i = 0; i < NUM_CASCADES; ++i)
+    for (uint i = 0; i < MAX_CASCADES; ++i)
     {
         if (cameraDepth <= cascadeSplits[i])
         {

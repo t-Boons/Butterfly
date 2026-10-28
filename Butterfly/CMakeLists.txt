@@ -26,6 +26,7 @@ add_library(Butterfly STATIC
     src/Scene/Entity.cpp
     src/Scene/Registry/TransformComponent.cpp
     src/Scene/Registry/SkyboxComponent.cpp
+    src/Scene/Registry/LightComponent.cpp
 
     src/Asset/Asset.cpp
     src/Asset/AssetRegistry.cpp

@@ -3,23 +3,44 @@
 
 namespace Butterfly
 {
-	inline const wchar_t* ShaderTypeToTargetProfile(ShaderType type)
+	namespace Utils
 	{
-		BF_PROFILE_EVENT();
-
-		switch (type)
+		inline const wchar_t* ShaderTypeToTargetProfile(ShaderType type)
 		{
-		case ShaderType::Pixel: return L"ps_6_6";
-		case ShaderType::Vertex: return L"vs_6_6";
-		case ShaderType::Compute: return L"cs_6_6";
+			BF_PROFILE_EVENT();
+
+			switch (type)
+			{
+			case ShaderType::Pixel: return L"ps_6_6";
+			case ShaderType::Vertex: return L"vs_6_6";
+			case ShaderType::Compute: return L"cs_6_6";
+			}
+
+			BF_CORE_LOG_CRITICAL("Invalid ShaderType given.");
+			return nullptr;
 		}
 
-		BF_CORE_LOG_CRITICAL("Invalid ShaderType given.");
-		return nullptr;
+		inline ShaderType ShaderTypeFromFilePath(const std::string& filePath)
+		{
+			BF_PROFILE_EVENT();
+			const std::filesystem::path path(filePath);
+			const std::string extension = path.extension().string();
+			if (extension == ".hlsl")
+			{
+				if (filePath.find("_vert") != std::string::npos)
+					return ShaderType::Vertex;
+				else if (filePath.find("_frag") != std::string::npos)
+					return ShaderType::Pixel;
+				else if (filePath.find("_cs") != std::string::npos)
+					return ShaderType::Compute;
+			}
+			BF_CORE_LOG_CRITICAL("Invalid shader file path: %s", filePath.c_str());
+			return ShaderType::Vertex;
+		}
 	}
 
-	BFShader::BFShader(const std::string& filePath, ShaderType type, const std::vector<std::string>& macros)
-		: m_type(type)
+	BFShader::BFShader(const std::string& filePath, const std::vector<BFShaderMacro>& macros)
+		: m_type(Utils::ShaderTypeFromFilePath(filePath))
 	{
 		BF_PROFILE_EVENT();
 
@@ -52,27 +73,28 @@ namespace Butterfly
 				includeDirectory.c_str()
 			};
 
-#endif
-			std::vector<DxcDefine> defines;
-			std::vector<std::wstring> wmacros;
-			for (const std::string& macro : macros)
+#endif	
+			std::vector<DxcDefine> defines(macros.size());
+			std::vector<std::wstring> macroNames(macros.size());
+			std::vector<std::wstring> macroValues(macros.size());
+			for (uint32_t i = 0; i < macros.size(); ++i)
 			{
-				DxcDefine define;
-				wmacros.push_back(Utils::StringToWString(macro));
+				macroNames[i] = Utils::StringToWString(macros[i].Name);
+				macroValues[i] = Utils::StringToWString(macros[i].Value);
 			}
 
-			for (const std::wstring& wmacro : wmacros)
+			for (uint32_t i = 0; i < macros.size(); ++i)
 			{
 				DxcDefine define;
-				define.Name = wmacro.c_str();
-				define.Value = L"1";
-				defines.push_back(define);
+				define.Name = macroNames[i].c_str();
+				define.Value = macroValues[i].c_str();
+				defines[i] = define;
 			}
 				
 			ThrowIfFailed(D3D12API()->ShaderUtils()->BuildArguments(
 				Utils::StringToWString(filePath).c_str(),
 				L"main",
-				ShaderTypeToTargetProfile(type),
+				Utils::ShaderTypeToTargetProfile(m_type),
 				customArgs,
 				_countof(customArgs),
 				defines.data(),
@@ -106,24 +128,25 @@ namespace Butterfly
 	}
 
 
-	BFShader* BFShaderCache::GetOrCreate(const std::string& filePath, ShaderType type, const std::vector<std::string>& macros)
+	BFShader* BFShaderCache::GetOrCreate(const std::string& filePath, const std::vector<BFShaderMacro>& macros)
 	{
 		BF_PROFILE_EVENT();
 
 		uint64_t hash = std::hash<std::string>()(filePath);
 		for (auto& c : macros)
 		{
-			Utils::SumHash(hash, std::hash<std::string>()(c));
+			Utils::SumHash(hash, std::hash<std::string>()(c.Name));
+			Utils::SumHash(hash, std::hash<std::string>()(c.Value));
 		}
 
 		auto shader = m_map.find(hash);
 		if (shader == m_map.end())
 		{
-			BF_CORE_LOG_INFO("Created New Shader with filePath: %ls", filePath.c_str());
-			m_map[hash] = ScopePtr<BFShader>(new BFShader(filePath, type, macros));
+			BF_CORE_LOG_INFO("Created New Shader with filePath: %s", filePath.c_str());
+			m_map[hash] = ScopePtr<BFShader>(new BFShader(filePath, macros));
+			shader = m_map.find(hash);
 		}
 
-		BF_CORE_ASSERT(m_map[hash]->Type() == type, "Shader type mismatch for filePath: %ls", filePath.c_str());
-		return m_map[hash].get();
+		return shader->second.get();
 	}
 }

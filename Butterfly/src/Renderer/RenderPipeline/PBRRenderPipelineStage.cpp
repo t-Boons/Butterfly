@@ -43,22 +43,10 @@ namespace Butterfly
 			}
 		}
 
-		int shadowMapBufferViewIndex = -1;
-		int numShadowMaps = 0;
-		if (ShadowMapPass* shadowPass = builder.GetPassData<ForwardRenderer, ShadowMapPass>())
-		{
-			if (shadowPass->ShadowMapBuffer)
-			{
-				shadowMapBufferViewIndex = shadowPass->ShadowMapBuffer->SRV().View();
-				numShadowMaps = shadowPass->NumShadowMaps;
-			}
-		}
-		
-
 		params->Comp = &viewport.GetRenderTarget();
 
 		builder.AddPass<ForwardRenderer>("Forward Model",
-			[this, viewport, shadowMapBufferViewIndex, numShadowMaps, skyboxTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
+			[this, viewport, skyboxTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
 
@@ -75,8 +63,8 @@ namespace Butterfly
 				BFGraphicsPSOInfo psoInfo;
 				psoInfo.DepthStencil.EnableDepth = true;
 				psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
-				psoInfo.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/Forward_vert.hlsl", ShaderType::Vertex);
-				psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/Forward_frag.hlsl", ShaderType::Pixel, {"USE_PCSS_SHADOWS"});
+				psoInfo.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/Forward_vert.hlsl");
+				psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/Forward_frag.hlsl", {{"USE_PCSS_SHADOWS"}});
 
 				list.SetGraphicsPSO(psoInfo);
 
@@ -144,8 +132,6 @@ namespace Butterfly
 							.Add(skyboxTextureViewIndex)
 							.Add(viewport.Models->GetNumModels())
 							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()).View())
-							.Add(shadowMapBufferViewIndex)
-							.Add(numShadowMaps)
 							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearBorder()).View())
 							.Add(pcssShadowMapSampler.View())
 							.Submit(list);

@@ -14,6 +14,8 @@ namespace Butterfly
 		void UpdateLifetimes();
 		void Flush();
 
+		void FlushValue(const std::string& key);
+
 		bool HasValue(const std::string& key) const;
 
 		uint32_t NumResources() const { return static_cast<uint32_t>(m_resources.size()); }
@@ -58,6 +60,23 @@ namespace Butterfly
 		m_resources.clear();
 
 		BF_CORE_LOG_TRACE("Deallocated/Flushed all transient resources.");
+	}
+
+	inline void GraphTransientResourceCache::FlushValue(const std::string& key)
+	{
+		BF_PROFILE_EVENT();
+		auto it = m_resources.find(key);
+		if (it != m_resources.end())
+		{
+			it->second.reset();
+			m_lifetimes.erase(key);
+			m_resources.erase(it);
+			BF_CORE_LOG_TRACE("Deallocated/Flushed transient resource: %s", key.c_str());
+		}
+		else
+		{
+			BF_CORE_LOG_WARN("GraphTransientResourceCache::FlushValue: Resource with key '%s' not found.", key.c_str());
+		}
 	}
 
 	inline void GraphTransientResourceCache::UpdateLifetimes()

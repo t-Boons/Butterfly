@@ -1,3 +1,5 @@
+#pragma once
+
 float SampleSDF(int sdf, int smp, float3 position, float3 boundsMin, float3 boundsSize)
 {
     float3 boundsMax = boundsMin + boundsSize;

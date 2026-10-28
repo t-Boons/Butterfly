@@ -10,6 +10,24 @@ namespace Butterfly
 		Compute,
 	};
 
+	struct BFShaderMacro
+	{
+		BFShaderMacro(const std::string& name, const std::string& value)
+			: Name(name), Value(value)
+		{}
+
+		BFShaderMacro(const std::string& name)
+			: Name(name), Value("1")
+		{}
+
+		BFShaderMacro()
+			: Name(""), Value("1")
+		{}
+
+		std::string Name;
+		std::string Value;
+	};
+
 	class BFShader : private NonCopyable
 	{
 	public:
@@ -19,7 +37,7 @@ namespace Butterfly
 		uint32_t NumBytes() const { return m_numBytes; }
 
 	private:
-		BFShader(const std::string& filePath, ShaderType type, const std::vector<std::string>& macros = {});
+		BFShader(const std::string& filePath, const std::vector<BFShaderMacro>& macros = {});
 
 		friend class BFShaderCache;
 		friend class BFPipelineCache;
@@ -31,7 +49,7 @@ namespace Butterfly
 	class BFShaderCache
 	{
 	public:
-		static BFShader* GetOrCreate(const std::string& filePath, ShaderType type, const std::vector<std::string>& macros = {});
+		static BFShader* GetOrCreate(const std::string& filePath, const std::vector<BFShaderMacro>& macros = {});
 
 	private:
 		inline static std::unordered_map<uint64_t, ScopePtr<BFShader>> m_map;

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Common.hlsli"
 
 float3 F_Schlick(float3 F0, float VoH)

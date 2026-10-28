@@ -2,6 +2,8 @@
 #include "Core/Common.hpp"
 #include "Scene/Entity.hpp"
 
+#define MAX_CASCADES 4
+
 namespace Butterfly
 {
 	enum class LightType : uint32_t
@@ -14,10 +16,7 @@ namespace Butterfly
 	class LightComponent
 	{
 	public:
-		LightComponent(const Entity& entity)
-		{
-
-		}
+		LightComponent(const Entity& entity);
 
 		LightType GetType() const
 		{
@@ -67,7 +66,6 @@ namespace Butterfly
 		{
 			m_color = color;
 			m_dirty = true;
-
 		}
 
 		void SetRange(float range)
@@ -79,6 +77,26 @@ namespace Butterfly
 		void ClearDirty()
 		{
 			m_dirty = false;
+		}
+
+		bool CastsShadows() const
+		{
+			return m_castsShadows;
+		}
+
+		int GetNumCascades() const
+		{
+			return m_numCascades;
+		}
+
+		uint32_t GetShadowMapSize() const
+		{
+			return m_shadowResolution;
+		}
+
+		std::array<float, MAX_CASCADES> GetCascadeSplits() const
+		{
+			return CascadeSplits;
 		}
 
 	private:
@@ -100,5 +118,11 @@ namespace Butterfly
 		float m_innerConeAngle = 30.0f;
 		float m_outerConeAngle = 45.0f;
 		bool m_dirty = true;
+
+		bool m_castsShadows = true;
+
+		std::array<float, MAX_CASCADES> CascadeSplits = { 8, 15, 25, 45 };
+		int m_numCascades = 4;
+		uint32_t m_shadowResolution = 1024;
 	};
 }

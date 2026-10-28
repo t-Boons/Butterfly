@@ -36,7 +36,7 @@ namespace Butterfly
 			m_modelBuffer = MakeRef<BFStructuredBuffer>(desc);
 		}
 
-		void Update()
+		void Validate()
 		{
 			m_models.clear();
 

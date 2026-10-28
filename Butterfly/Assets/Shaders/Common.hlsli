@@ -1,6 +1,9 @@
+#pragma once
+
 #define PI 3.14159265359
 #define EPSILON 0.0001
 #define FLT_MAX 3.402823466e+38F
+#define MAX_CASCADES 4
 
 struct CameraData
 {
@@ -37,6 +40,17 @@ struct MaterialData
     int AmbientOcclusionTexture;
 };
 
+
+struct ShadowMap
+{
+    float4x4 LightViewProjections[MAX_CASCADES];
+    float CascadeSplits[MAX_CASCADES];
+    float CascadeTexelSize[MAX_CASCADES];
+    int ShadowMapTextureIndex;
+    int NumCascades;
+    float Size;
+};
+
 struct Light
 {
     uint Type;
@@ -46,4 +60,5 @@ struct Light
     float Range;
     float InnerConeAngleCos;
     float OuterConeAngleCos;
+    ShadowMap Shadow;
 };
