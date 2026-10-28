@@ -78,9 +78,9 @@ namespace Butterfly
 			m_modelBuffer->Write(m_models.data(), sizeof(GPUModel) * GetNumModels(), 0);
 		}
 
-		uint32_t GetModelViewIndex(uint32_t entityIndex)
+		int GetModelViewIndex(uint32_t entityIndex) const
 		{
-			return entityIndex;
+			return static_cast<int>(entityIndex);
 		}
 
 		uint32_t GetNumModels() const

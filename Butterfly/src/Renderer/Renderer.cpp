@@ -279,9 +279,6 @@ namespace Butterfly
 		viewport.GraphResources.fill(MakeRef<GraphTransientResourceCache>());
 		viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Viewport " + std::to_string(handle.m_index) + " Uniforms");
 		viewport.Handle = handle;
-		viewport.Materials = MakeRef<MaterialLibrary>();
-		viewport.Lights = MakeRef<LightBuffer>();
-		viewport.Models = MakeRef<ModelBuffer>();
 		viewport.RenderPipeline = MakeRef<RenderPipeline>(*this);
 
 		for (uint32_t i = 0; i < NUM_RENDER_BUFFERS; ++i)

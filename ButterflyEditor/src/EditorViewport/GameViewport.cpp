@@ -78,9 +78,9 @@ namespace Butterfly
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
 		event.Viewport.UniformCameraData = cameraData;
 
-		event.Viewport.Lights->Update(event.Viewport);
-		event.Viewport.Materials->Validate();
-		event.Viewport.Models->Validate();
+		event.Viewport.Lights.Update(event.Viewport);
+		event.Viewport.Materials.Validate();
+		event.Viewport.Models.Validate();
 
 		if (SkyboxRenderPipelineStage* srps = event.Viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>())
 		{

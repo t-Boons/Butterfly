@@ -15,7 +15,7 @@ namespace Butterfly
 		builder.AddPass<ShadowMapPass>("ShadowMap",
 			[viewport, this](const ShadowMapPass& params, D3D12CommandList& list)
 			{
-				const std::vector<Light>& lights = viewport.Lights->GetLights();
+				const std::vector<Light>& lights = viewport.Lights.GetLights();
 				const auto& firstShadowLight = std::find_if(lights.begin(), lights.end(), [](const Light& l) { return l.ShadowMap.ShadowMapTexture != nullptr; });
 				if (firstShadowLight == lights.end())
 				{
@@ -72,10 +72,10 @@ namespace Butterfly
 								ShaderVariables()
 									.Add(mesh->GPUPositions->SRV().View())
 									.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-									.Add(viewport.Lights->SRV().View())
+									.Add(viewport.Lights.SRV().View())
 									.Add(lightIndex)
-									.Add(viewport.Models->SRV().View())
-									.Add(viewport.Models->GetModelViewIndex(entityIndex))
+									.Add(viewport.Models.SRV().View())
+									.Add(viewport.Models.GetModelViewIndex(entityIndex))
 									.Add(cascadeIndex)
 									.Submit(list);
 

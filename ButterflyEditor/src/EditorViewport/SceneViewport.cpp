@@ -93,8 +93,8 @@ namespace Butterfly
 						ShaderVariables()
 							.Add(mesh->GPUPositions->SRV().View())
 							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-							.Add(viewport.Models->SRV().View())
-							.Add(viewport.Models->GetModelViewIndex(entityRenderIndex))
+							.Add(viewport.Models.SRV().View())
+							.Add(viewport.Models.GetModelViewIndex(entityRenderIndex))
 							.Add(static_cast<int>(entity)) // uint32_t Entity ID in registry.
 							.Submit(list);
 
@@ -182,9 +182,9 @@ namespace Butterfly
 		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
 
-		event.Viewport.Lights->Update(event.Viewport);
-		event.Viewport.Materials->Validate();
-		event.Viewport.Models->Validate();
+		event.Viewport.Lights.Update(event.Viewport);
+		event.Viewport.Materials.Validate();
+		event.Viewport.Models.Validate();
 
 
 		if (SkyboxRenderPipelineStage* srps = event.Viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>())

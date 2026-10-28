@@ -4,6 +4,9 @@
 
 #include "Renderer/D3D12Texture.hpp"
 
+#include "Renderer/Light.hpp"
+#include "Renderer/Material.hpp"
+#include "Renderer/Model.hpp"
 
 #define NUM_RENDER_BUFFERS 3
 
@@ -70,10 +73,7 @@ namespace Butterfly
 	class BFUniformBuffer;
 	class BFStructuredBuffer;
 	class GraphTransientResourceCache;
-	class LightBuffer;
-	class MaterialLibrary;
 	class RenderPipeline;
-	class ModelBuffer;
 	struct Viewport
 	{
 	public:
@@ -86,9 +86,9 @@ namespace Butterfly
 
 		CameraData UniformCameraData;
 		RefPtr<BFUniformBuffer> Uniforms;
-		RefPtr<MaterialLibrary> Materials;
-		RefPtr<LightBuffer> Lights;
-		RefPtr<ModelBuffer> Models;
+		MaterialLibrary Materials;
+		LightBuffer Lights;
+		ModelBuffer Models;
 		RefPtr<RenderPipeline> RenderPipeline;
 
 		ViewportEvents Events;
