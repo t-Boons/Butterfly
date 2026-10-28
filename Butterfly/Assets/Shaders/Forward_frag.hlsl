@@ -124,6 +124,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
         
         if (light.Type == 0) // Directional Light
         {
+#if USE_PCSS_SHADOWS
             StructuredBuffer<GPUShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
     
             GPUShadowMap shadowMap = shadowMaps[i];
@@ -136,6 +137,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
             {
                 continue;
             }
+#endif
             
             float3 L = normalize(-light.Direction);
             float3 H = normalize(L + V);
@@ -151,8 +153,11 @@ float4 main(V2P pixelInput) : SV_TARGET0
             float3 specularBRDF = F * Vis * D;
             float3 diffuseBRDF = diffuseColor / PI;
 
+#if USE_PCSS_SHADOWS
             lighting += (diffuseBRDF + specularBRDF) * NoL * light.Color * shadow;
-            
+#else
+            lighting += (diffuseBRDF + specularBRDF) * NoL * light.Color;
+#endif
             continue;
         }
         
@@ -216,7 +221,6 @@ float4 main(V2P pixelInput) : SV_TARGET0
             Light light = lights[i];
 
             float NoL = saturate(dot(normalize(pixelInput.normal), -light.Direction));
-        
             for (int m = 0; m < resources.numModels; m++)
             {
                 ModelData model = modelData[m];
@@ -257,7 +261,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
             }
         }
         
-        return lerp(ambient * diffuseColor, fragColor, shadow);
+        fragColor = lerp(ambient * diffuseColor, fragColor, shadow);
     }
 #endif
     

@@ -76,7 +76,7 @@ namespace Butterfly
 				psoInfo.DepthStencil.EnableDepth = true;
 				psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
 				psoInfo.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/Forward_vert.hlsl", ShaderType::Vertex);
-				psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/Forward_frag.hlsl", ShaderType::Pixel);
+				psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/Forward_frag.hlsl", ShaderType::Pixel, {"USE_PCSS_SHADOWS"});
 
 				list.SetGraphicsPSO(psoInfo);
 

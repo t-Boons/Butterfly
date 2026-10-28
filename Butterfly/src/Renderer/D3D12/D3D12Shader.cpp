@@ -54,10 +54,18 @@ namespace Butterfly
 
 #endif
 			std::vector<DxcDefine> defines;
-			for (const auto& macro : macros)
+			std::vector<std::wstring> wmacros;
+			for (const std::string& macro : macros)
 			{
 				DxcDefine define;
-				define.Name = Utils::StringToWString(macro).c_str();
+				wmacros.push_back(Utils::StringToWString(macro));
+			}
+
+			for (const std::wstring& wmacro : wmacros)
+			{
+				DxcDefine define;
+				define.Name = wmacro.c_str();
+				define.Value = L"1";
 				defines.push_back(define);
 			}
 				
