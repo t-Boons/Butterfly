@@ -118,9 +118,9 @@ namespace Butterfly
 					{
 						ShaderVariables()
 							.Add(mesh->GPUPositions->SRV().View())
-							.Add(mesh->GPUNormals->SRV().View())
-							.Add(mesh->GPUTangents->SRV().View())
-							.Add(mesh->GPUUVs->SRV().View())
+							.Add(mesh->GPUNormals ? mesh->GPUNormals->SRV().View() : -1)
+							.Add(mesh->GPUTangents ? mesh->GPUTangents->SRV().View() : -1)
+							.Add(mesh->GPUUVs ? mesh->GPUUVs->SRV().View() : -1)
 							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
 							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap()).View())
 							.Add(viewport.Models.SRV().View())

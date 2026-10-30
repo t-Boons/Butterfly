@@ -2,8 +2,6 @@
 #include "Core/Common.hpp"
 #include "Scene/Registry/LightComponent.hpp"
 
-#define MAX_CASCADES 4
-
 namespace Butterfly
 {
 	class BFStructuredBuffer;
@@ -11,12 +9,12 @@ namespace Butterfly
 
 	struct GPUShadowMap
 	{
-		std::array<glm::mat4, MAX_CASCADES> LightViewProjections;
+		std::array<glm::mat4, CUBEMAP_SLICES> LightViewProjections;
 		std::array<float, MAX_CASCADES> CascadeSplits;
-		std::array<float, MAX_CASCADES> CascadeTexelSize;
+		std::array<float, MAX_CASCADES> TexelSizes;
 		int ShadowMapTextureIndex = -1;
-		int NumCascades;
-		float Size;
+		int NumSlices = -1;
+		float Resolution = 0.0f;
 	};
 
 	struct GPULight
@@ -33,12 +31,12 @@ namespace Butterfly
 
 	struct ShadowMap
 	{
-		std::array<glm::mat4, MAX_CASCADES> LightViewProjections;
+		std::array<glm::mat4, CUBEMAP_SLICES> LightViewProjections;
 		std::array<float, MAX_CASCADES> CascadeSplits;
-		std::array<float, MAX_CASCADES> CascadeTexelSize;
+		std::array<float, MAX_CASCADES> TexelSizes;
 		BFTexture* ShadowMapTexture;
-		int NumCascades;
-		float Size;
+		int NumSlices = -1;
+		float Resolution = 0.0f;
 	};
 
 	struct Light
@@ -74,5 +72,7 @@ namespace Butterfly
 
 		std::unordered_map<entt::entity, RefPtr<BFTexture>> m_shadowMaps;
 		std::unordered_set<entt::entity> m_aliveMaps;
+
+		uint32_t m_version = 0;
 	};
 }

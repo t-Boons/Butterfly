@@ -4,6 +4,7 @@
 #define EPSILON 0.0001
 #define FLT_MAX 3.402823466e+38F
 #define MAX_CASCADES 4
+#define CUBEMAP_SLICES 6
 
 struct CameraData
 {
@@ -43,12 +44,12 @@ struct MaterialData
 
 struct ShadowMap
 {
-    float4x4 LightViewProjections[MAX_CASCADES];
+    float4x4 LightViewProjections[CUBEMAP_SLICES];
     float CascadeSplits[MAX_CASCADES];
-    float CascadeTexelSize[MAX_CASCADES];
+    float TexelSizes[MAX_CASCADES];
     int ShadowMapTextureIndex;
-    int NumCascades;
-    float Size;
+    int NumSlices;
+    float Resolution;
 };
 
 struct Light

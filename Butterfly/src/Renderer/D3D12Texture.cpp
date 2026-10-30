@@ -180,7 +180,7 @@ namespace Butterfly
 				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 			}
 
-			if (desc.Type == BFTextureType::Texture2DArray)
+			if (desc.Type == BFTextureType::Texture2DArray || desc.Type == BFTextureType::Cubemap)
 			{
 				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
@@ -309,8 +309,6 @@ namespace Butterfly
 		}
 		else if (m_desc.ViewTypes & BFTextureDesc::ViewType::DepthStencilable)
 		{
-			BF_CORE_ASSERT(m_desc.Type != BFTextureType::Cubemap, "DepthStencilable textures cannot be Cubemaps.");
-
 			float col[] = { 0,0,0,0 };
 			m_resource = DX12ResourceBuilder()
 				.HeapType(D3D12_HEAP_TYPE_DEFAULT)

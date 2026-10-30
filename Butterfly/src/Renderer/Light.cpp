@@ -16,8 +16,25 @@ namespace Butterfly
 			desc.Format = DXGI_FORMAT_D32_FLOAT;
 			desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable | BFTextureDesc::ViewType::ShaderResource;
 			desc.DebugName = name;
-			desc.Type = BFTextureType::Texture2DArray;
-			desc.ArraySize = MAX_CASCADES;
+
+			if (type == LightType::Directional)
+			{
+				desc.Type = BFTextureType::Texture2DArray;
+				desc.ArraySize = MAX_CASCADES;
+			}
+
+			if (type == LightType::Point)
+			{
+				desc.Type = BFTextureType::Cubemap;
+				desc.ArraySize = CUBEMAP_SLICES;
+			}
+
+			if (type == LightType::Spot)
+			{
+				desc.Type = BFTextureType::Texture2D;
+				desc.ArraySize = 1;
+			}
+
 			return desc;
 		}
 
@@ -35,7 +52,7 @@ namespace Butterfly
 			return out;
 		}
 
-		void GetCascadeSplitDirectionalLight(const std::array<float, MAX_CASCADES>& cascadeSplits, const std::array<glm::vec3, 8>& frustumCorners, float cameraNear, float cameraFar, const glm::vec3& lightDirection, float shadowMapSize, std::array<glm::mat4, MAX_CASCADES>& lightProjections, std::array<float, MAX_CASCADES>& texelSizes)
+		void GetCascadeSplitDirectionalLight(const std::array<float, MAX_CASCADES>& cascadeSplits, const std::array<glm::vec3, 8>& frustumCorners, float cameraNear, float cameraFar, const glm::vec3& lightDirection, float shadowMapSize, std::array<glm::mat4, CUBEMAP_SLICES>& lightProjections, std::array<float, MAX_CASCADES>& texelSizes)
 		{
 			float previousSplit = cameraNear;
 			const glm::vec3 direction = glm::normalize(lightDirection);
@@ -129,11 +146,11 @@ namespace Butterfly
 		if (ShadowMap.ShadowMapTexture)
 		{
 			gpuLight.ShadowMap.ShadowMapTextureIndex = ShadowMap.ShadowMapTexture->SRV().View();
-			gpuLight.ShadowMap.NumCascades = ShadowMap.NumCascades;
-			gpuLight.ShadowMap.Size = ShadowMap.Size;
+			gpuLight.ShadowMap.NumSlices = ShadowMap.NumSlices;
+			gpuLight.ShadowMap.Resolution = ShadowMap.Resolution;
 			gpuLight.ShadowMap.CascadeSplits = ShadowMap.CascadeSplits;
 			gpuLight.ShadowMap.LightViewProjections = ShadowMap.LightViewProjections;
-			gpuLight.ShadowMap.CascadeTexelSize = ShadowMap.CascadeTexelSize;
+			gpuLight.ShadowMap.TexelSizes = ShadowMap.TexelSizes;
 		}
 		return gpuLight;
 	}
@@ -166,25 +183,48 @@ namespace Butterfly
 			light.Position = transform.GetPosition();
 			light.Direction = transform.GetForward();
 
+			light.ShadowMap.Resolution = static_cast<float>(lightComponent.GetShadowMapResolution());
+
 			if (lightComponent.CastsShadows())
 			{
-				if (light.Type != LightType::Directional)
+				if (light.Type == LightType::Directional)
 				{
-					continue;
+					light.ShadowMap.NumSlices = lightComponent.GetNumCascades();
+					light.ShadowMap.CascadeSplits = lightComponent.GetCascadeSplits();
+
+					const auto corners = Utils::GetFrustumCorners(viewport.UniformCameraData.ViewProjection);
+					Utils::GetCascadeSplitDirectionalLight(lightComponent.GetCascadeSplits(), corners, viewport.UniformCameraData.Near, viewport.UniformCameraData.Far, light.Direction, lightComponent.GetShadowMapResolution(),
+						light.ShadowMap.LightViewProjections, light.ShadowMap.TexelSizes);
+
+				}
+				else if (light.Type == LightType::Point)
+				{
+					light.ShadowMap.NumSlices = CUBEMAP_SLICES;
+
+					glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 25.0f);
+
+					const glm::vec3& p = light.Position;
+					light.ShadowMap.LightViewProjections[0] = shadowProj * glm::lookAt(p, p + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+					light.ShadowMap.LightViewProjections[1] = shadowProj * glm::lookAt(p, p + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+					light.ShadowMap.LightViewProjections[2] = shadowProj * glm::lookAt(p, p + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
+					light.ShadowMap.LightViewProjections[3] = shadowProj * glm::lookAt(p, p + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
+					light.ShadowMap.LightViewProjections[4] = shadowProj * glm::lookAt(p, p + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0));
+					light.ShadowMap.LightViewProjections[5] = shadowProj * glm::lookAt(p, p + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0));
+					light.ShadowMap.TexelSizes[0] = (2.0f * 25.0f) / light.ShadowMap.Resolution;
+				}
+				else if (light.Type == LightType::Spot)
+				{
+					light.ShadowMap.NumSlices = 1;
+					light.ShadowMap.LightViewProjections[0] = glm::perspective(glm::radians(lightComponent.GetOuterConeAngle() * 2.0f), 1.0f, 0.1f, lightComponent.GetRange()) * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3(0.0f, 1.0f, 0.0f));
 				}
 
-				light.ShadowMap.NumCascades = lightComponent.GetNumCascades();
-				light.ShadowMap.Size = static_cast<float>(lightComponent.GetShadowMapSize());
-				light.ShadowMap.CascadeSplits = lightComponent.GetCascadeSplits();
-
-				const auto corners = Utils::GetFrustumCorners(viewport.UniformCameraData.ViewProjection);
-				Utils::GetCascadeSplitDirectionalLight(lightComponent.GetCascadeSplits(), corners, viewport.UniformCameraData.Near, viewport.UniformCameraData.Far, light.Direction, lightComponent.GetShadowMapSize(),
-					light.ShadowMap.LightViewProjections, light.ShadowMap.CascadeTexelSize);
-
 				auto it = m_shadowMaps.find(entity);
-				if (it == m_shadowMaps.end())
-				{
-					BFTextureDesc desc = Utils::ShadowMapTextureDesc(lightComponent.GetShadowMapSize(), "ShadowMap_" + std::to_string(static_cast<uint32_t>(entity)), lightComponent.GetType());
+
+				if (it == m_shadowMaps.end() || m_version != lightComponent.GetVersion())
+				{	 
+					m_version = lightComponent.GetVersion();
+
+					BFTextureDesc desc = Utils::ShadowMapTextureDesc(lightComponent.GetShadowMapResolution(), "ShadowMap_" + std::to_string(static_cast<uint32_t>(entity)), lightComponent.GetType());
 					RefPtr<BFTexture> shadowMapTexture = MakeRef<BFTexture>(desc);
 					m_shadowMaps[entity] = shadowMapTexture;
 					it = m_shadowMaps.find(entity);

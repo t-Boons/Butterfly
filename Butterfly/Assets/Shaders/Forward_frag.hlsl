@@ -128,7 +128,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
                 Texture2DArray<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
             
                 float2 seed = pixelInput.position.xy;
-                shadow = CalculateCSMShadow(pixelInput.fragPos, pixelInput.normal, -light.Direction, pixelInput.depth, shadowMap.CascadeSplits, shadowMap.CascadeTexelSize, shadowMap.LightViewProjections, shadowMapTexture, blockerSmp, pcssShadowSmp, shadowMap.Size, seed);
+                shadow = CalculateCSMShadow(pixelInput.fragPos, pixelInput.normal, -light.Direction, pixelInput.depth, shadowMap.CascadeSplits, shadowMap.TexelSizes, shadowMap.LightViewProjections, shadowMapTexture, blockerSmp, pcssShadowSmp, shadowMap.Resolution, seed);
             }
 
             

@@ -37,22 +37,42 @@ struct V2P
 
 V2P main(uint vertexID : SV_VertexID)
 {
-    StructuredBuffer<float3> position = ResourceDescriptorHeap[resources.positionBuffer];
-    StructuredBuffer<float3> normals = ResourceDescriptorHeap[resources.normalBuffer];
-    StructuredBuffer<float4> tangents = ResourceDescriptorHeap[resources.tangentBuffer];
-    StructuredBuffer<float2> texcoords = ResourceDescriptorHeap[resources.texcoordBuffer];
+    StructuredBuffer<float3> positions = ResourceDescriptorHeap[resources.positionBuffer];
+    float3 position = positions[vertexID];
+    
+    float3 normal = float3(0.0, 0.0, 1.0);
+    if (resources.normalBuffer >= 0)
+    {
+        StructuredBuffer<float3> normals = ResourceDescriptorHeap[resources.normalBuffer];
+        normal = normals[vertexID];
+    }
+    
+    float4 tangent = float4(0.0, 0.0, 0.0, 1.0);
+    if (resources.tangentBuffer >= 0)
+    {
+        StructuredBuffer<float4> tangents = ResourceDescriptorHeap[resources.tangentBuffer];
+        tangent = tangents[vertexID];
+    }
+    
+    float2 texCoord = float2(0.0, 0.0);
+    if(resources.texcoordBuffer >= 0)
+    {
+        StructuredBuffer<float2> texcoords = ResourceDescriptorHeap[resources.texcoordBuffer];
+        texCoord = texcoords[vertexID];
+    }
+    
     ConstantBuffer<CameraData> uniforms = ResourceDescriptorHeap[resources.uniformIndex];
     StructuredBuffer<ModelData> modelMatrices = ResourceDescriptorHeap[resources.modelIndex];
     
     float4x4 MVP = mul(uniforms.ViewProj, modelMatrices[resources.entityIndex].ModelMatrix);
     
     V2P output;
-    output.position = mul(MVP, float4(position[vertexID], 1.0));
-    output.normal = mul((float3x3) modelMatrices[resources.entityIndex].NormalMatrix, normals[vertexID]);
-    output.tangent.xyz = mul((float3x3) modelMatrices[resources.entityIndex].NormalMatrix, tangents[vertexID].xyz);
-    output.tangentW = tangents[vertexID].w;
-    output.texCoord = texcoords[vertexID];
-    output.fragPos = mul(modelMatrices[resources.entityIndex].ModelMatrix, float4(position[vertexID], 1.0)).xyz;
+    output.position = mul(MVP, float4(position, 1.0));
+    output.normal = mul((float3x3) modelMatrices[resources.entityIndex].NormalMatrix, normal);
+    output.tangent.xyz = mul((float3x3) modelMatrices[resources.entityIndex].NormalMatrix, tangent.xyz);
+    output.tangentW = tangent.w;
+    output.texCoord = texCoord;
+    output.fragPos = mul(modelMatrices[resources.entityIndex].ModelMatrix, float4(position, 1.0)).xyz;
     output.eye = uniforms.Position;
     output.depth = mul(uniforms.ViewProj, float4(output.fragPos, 1.0)).z;
     return output;

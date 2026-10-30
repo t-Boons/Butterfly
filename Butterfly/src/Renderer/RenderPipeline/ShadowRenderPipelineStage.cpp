@@ -42,16 +42,17 @@ namespace Butterfly
 				for (uint32_t lightIndex = 0; lightIndex < lights.size(); lightIndex++)
 				{
 					const ShadowMap& shadowMap = lights[lightIndex].ShadowMap;
+					const Light& light = lights[lightIndex];
 
 					if (!shadowMap.ShadowMapTexture)
 					{
 						continue;
 					}
 
-					for (uint32_t cascadeIndex = 0; cascadeIndex < shadowMap.NumCascades; cascadeIndex++)
+					for (uint32_t slice = 0; slice < shadowMap.NumSlices; slice++)
 					{
-						list.SetDepthStencilTarget(*shadowMap.ShadowMapTexture, cascadeIndex);
-						list.ClearDepthStencilTarget(*shadowMap.ShadowMapTexture, 1.0f, 0, cascadeIndex);
+						list.SetDepthStencilTarget(*shadowMap.ShadowMapTexture, slice);
+						list.ClearDepthStencilTarget(*shadowMap.ShadowMapTexture, 1.0f, 0, slice);
 
 						uint32_t entityIndex = 0;
 						auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
@@ -76,7 +77,7 @@ namespace Butterfly
 									.Add(lightIndex)
 									.Add(viewport.Models.SRV().View())
 									.Add(viewport.Models.GetModelViewIndex(entityIndex))
-									.Add(cascadeIndex)
+									.Add(slice)
 									.Submit(list);
 
 								list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);
@@ -95,7 +96,7 @@ namespace Butterfly
 					{
 						continue;
 					}
-					for (uint32_t cascadeIndex = 0; cascadeIndex < shadowMap.NumCascades; cascadeIndex++)
+					for (uint32_t cascadeIndex = 0; cascadeIndex < shadowMap.NumSlices; cascadeIndex++)
 					{
 						shadowMap.ShadowMapTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 					}

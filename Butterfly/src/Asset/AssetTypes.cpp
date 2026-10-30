@@ -49,7 +49,6 @@ namespace Butterfly
 		BFStructuredBufferDesc desc;
 		desc.HeapType = BFHeapType::Default;
 
-
 		{
 			desc.Data = Positions.data();
 			desc.NumElements = static_cast<uint32_t>(Positions.size());
@@ -59,6 +58,7 @@ namespace Butterfly
 			GPUPositions = MakeRef<BFStructuredBuffer>(desc);
 		}
 
+		if(!Normals.empty())
 		{
 			desc.Data = Normals.data();
 			desc.NumElements = static_cast<uint32_t>(Normals.size());
@@ -66,6 +66,8 @@ namespace Butterfly
 			desc.DebugName = "Normals";
 			GPUNormals = MakeRef<BFStructuredBuffer>(desc);
 		}
+
+		if (!Tangents.empty())
 		{
 			desc.Data = Tangents.data();
 			desc.NumElements = static_cast<uint32_t>(Tangents.size());
@@ -73,6 +75,8 @@ namespace Butterfly
 			desc.DebugName = "Tangents";
 			GPUTangents = MakeRef<BFStructuredBuffer>(desc);
 		}
+
+		if (!UVs.empty())
 		{
 			desc.Data = UVs.data();
 			desc.NumElements = static_cast<uint32_t>(UVs.size());

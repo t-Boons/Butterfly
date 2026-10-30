@@ -4,8 +4,6 @@
 #define POISSON_SAMPLE_COUNT 16 
 #define PCSS_BLOCKER_SEARCH 0.075
 #define PCSS_LIGHT_SIZE 0.06
-
-
 #define PCSS_MIN_PENUMBRA_SIZE 0.00075
 
 // Samples taken from:
@@ -114,7 +112,7 @@ inline float PCSS_Shadow(Texture2DArray<float> map, int slice, SamplerState bloc
     }
 }
 
-inline float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3 lightDirection, float cameraDepth, float cascadeSplits[MAX_CASCADES], float cascadeTexelSizes[MAX_CASCADES], float4x4 LightViewProjections[MAX_CASCADES], Texture2DArray<float> shadowMaps, SamplerState blockerSampler, SamplerComparisonState pcssSmp, float resolution, float2 rotationSeed)
+inline float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3 lightDirection, float cameraDepth, float cascadeSplits[MAX_CASCADES], float cascadeTexelSizes[MAX_CASCADES], float4x4 LightViewProjections[CUBEMAP_SLICES], Texture2DArray<float> shadowMaps, SamplerState blockerSampler, SamplerComparisonState pcssSmp, float resolution, float2 rotationSeed)
 {
     uint cascadeIndex = 0;
     for (uint i = 0; i < MAX_CASCADES; ++i)

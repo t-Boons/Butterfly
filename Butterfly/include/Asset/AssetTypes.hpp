@@ -46,6 +46,7 @@ namespace Butterfly
 
 		void LoadToGPU();
 
+	private:
 		bool m_gpuLoaded = false;
 		bool CreateSDF = false;
 		RefPtr<SDF> m_sdf;
