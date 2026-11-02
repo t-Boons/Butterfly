@@ -75,13 +75,13 @@ namespace Butterfly
 			m_version++;
 		}
 
-		void SetCastsShadows(bool castsShadows)
+		void SetCastShadows(bool castsShadows)
 		{
 			m_castsShadows = castsShadows;
 			m_version++;
 		}
 
-		bool GetCastsShadows() const
+		bool GetCastShadows() const
 		{
 			return m_castsShadows;
 		}
@@ -124,7 +124,7 @@ namespace Butterfly
 		glm::vec3 m_color = { 1.0f, 1.0f, 1.0f };
 		float m_range = 40.0f;
 		float m_innerConeAngle = 30.0f;
-		float m_outerConeAngle = 45.0f;
+		float m_outerConeAngle = 75.0f;
 
 		bool m_castsShadows = true;
 

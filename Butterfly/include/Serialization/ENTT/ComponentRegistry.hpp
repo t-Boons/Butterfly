@@ -216,7 +216,8 @@ namespace Butterfly
 				.data<&LightComponent::SetColor, &LightComponent::GetColor>("Color").custom<ComponentProperties>(Serializable{}, InspectProperty{}, AsColor{})
 				.data<&LightComponent::SetRange, &LightComponent::GetRange>("Range").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Point || component.GetType() == LightType::Spot; }})
 				.data<&LightComponent::SetInnerConeAngle, &LightComponent::GetInnerConeAngle>("InnerConeAngle").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Spot; }}, AsSlider{0.0f, 180.0f})
-				.data<&LightComponent::SetOuterConeAngle, &LightComponent::GetOuterConeAngle>("OuterConeAngle").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Spot; }}, AsSlider{0.0f, 180.0f});
+				.data<&LightComponent::SetOuterConeAngle, &LightComponent::GetOuterConeAngle>("OuterConeAngle").custom<ComponentProperties>(Serializable{}, InspectPropertyWithCondition<LightComponent>{[](const LightComponent& component) { return component.GetType() == LightType::Spot; }}, AsSlider{0.0f, 180.0f})
+				.data<&LightComponent::SetCastShadows, &LightComponent::GetCastShadows>("CastShadows").custom<ComponentProperties>(Serializable{}, InspectProperty{});
 
 			entt::meta_factory<CameraComponent>{}
 			.type("Camera").custom<ComponentProperties>(Serializable{}, InspectComponent{})

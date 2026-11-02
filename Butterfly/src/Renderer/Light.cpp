@@ -185,7 +185,7 @@ namespace Butterfly
 
 			light.ShadowMap.Resolution = static_cast<float>(lightComponent.GetShadowMapResolution());
 
-			if (lightComponent.GetCastsShadows())
+			if (lightComponent.GetCastShadows())
 			{
 				if (light.Type == LightType::Directional)
 				{
@@ -234,6 +234,12 @@ namespace Butterfly
 
 				light.ShadowMap.ShadowMapTexture = it->second.get();
 				m_aliveMaps.insert(entity);
+			}
+			else
+			{
+				light.ShadowMap.ShadowMapTexture = nullptr;
+				light.ShadowMap.NumSlices = -1;
+				light.ShadowMap.Resolution = 0.0f;
 			}
 
 			m_lights.push_back(light);
