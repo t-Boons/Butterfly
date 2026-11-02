@@ -134,13 +134,29 @@ float4 main(V2P pixelInput) : SV_TARGET0
             if (shadowMap.ShadowMapTextureIndex >= 0)
             {
                 Texture2DArray<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
-            
-                float2 seed = pixelInput.position.xy;
-                shadow = PCSS_CSM_Shadow(pixelInput.fragPos, pixelInput.normal, -light.Direction, pixelInput.depth, shadowMap.CascadeSplits, shadowMap.TexelSizes, shadowMap.LightViewProjections, shadowMapTexture, blockerSmp, pcssShadowSmp, shadowMap.Resolution, seed);
-            
-                if (shadow <= 0.0)
+
+                uint cascadeIndex = 0;
+                for (uint i = 0; i < MAX_CASCADES; ++i)
                 {
-                    continue;
+                    if (pixelInput.depth <= shadowMap.CascadeSplits[i])
+                    {
+                        cascadeIndex = i;
+                        break;
+                    }
+                    cascadeIndex = i;
+                }
+
+                float4x4 lightVP = shadowMap.LightViewProjections[cascadeIndex];
+                float4 lightClip = mul(lightVP, float4(pixelInput.fragPos, 1.0));
+                float3 lightNDC = lightClip.xyz / lightClip.w;
+                float2 uv = float2(lightNDC.x * 0.5 + 0.5, -lightNDC.y * 0.5 + 0.5);
+    
+                if (!(any(uv < 0.0) || any(uv > 1.0) || lightNDC.z < 0.0 || lightNDC.z > 1.0))
+                {
+                    float bias = 0.0005f + 0.01f * (1.0f - NoL);
+                    float3 projectedPos = float3(uv, lightNDC.z - bias);
+
+                    shadow = PCSS_Shadow(shadowMapTexture, cascadeIndex, blockerSmp, pcssShadowSmp, projectedPos, PCSS_LIGHT_SIZE, pixelInput.position.xy);
                 }
             }
             
@@ -251,8 +267,6 @@ float4 main(V2P pixelInput) : SV_TARGET0
     
                 if (!(any(uv < 0.0) || any(uv > 1.0) || lightNDC.z < 0.0 || lightNDC.z > 1.0))
                 {
-                    
-                    
                     float3 projectedPos = float3(uv, lightNDC.z - bias);
                 
                     shadow = PCSS_Shadow(shadowMapTexture, blockerSmp, pcssShadowSmp, projectedPos, PCSS_LIGHT_SIZE, pixelInput.fragPos.xy);

@@ -169,6 +169,9 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
+		// Erase old unused shadowmaps.
+		std::erase_if(m_shadowMaps, [&](const auto& pair) { return !m_aliveMaps.contains(pair.first); });
+
 		m_lights.clear();
 		m_gpuLightsVector.clear();
 		m_aliveMaps.clear();
@@ -257,7 +260,6 @@ namespace Butterfly
 		}
 
 		m_gpuLights->Write(m_gpuLightsVector.data(), static_cast<uint32_t>(m_gpuLightsVector.size() * sizeof(GPULight)));
-		std::erase_if(m_shadowMaps, [&](const auto& pair) { return !m_aliveMaps.contains(pair.first); });
 	}
 
 	const std::vector<Light>& LightBuffer::GetLights() const

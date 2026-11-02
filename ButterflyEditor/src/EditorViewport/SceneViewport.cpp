@@ -124,7 +124,6 @@ namespace Butterfly
 		Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugRendererPipelineStage>();
 		Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ObjectPickerRenderPipelineStage>();
 
-
 		m_viewportResizeReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).Events.OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
 		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).Events.OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
 	}
