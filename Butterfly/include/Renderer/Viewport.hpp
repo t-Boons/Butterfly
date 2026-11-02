@@ -8,7 +8,7 @@
 #include "Renderer/Material.hpp"
 #include "Renderer/Model.hpp"
 
-#define NUM_RENDER_BUFFERS 3
+#define NUM_RENDER_BUFFERS 2
 
 namespace Butterfly
 {
