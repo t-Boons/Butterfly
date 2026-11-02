@@ -178,14 +178,14 @@ namespace Butterfly
 			light.Type = lightComponent.GetType();
 			light.Color = lightComponent.GetColor();
 			light.Range = lightComponent.GetRange();
-			light.InnerConeAngleCos = glm::cos(glm::radians(lightComponent.GetInnerConeAngle()));
-			light.OuterConeAngleCos = glm::cos(glm::radians(lightComponent.GetOuterConeAngle()));
+			light.InnerConeAngleCos = glm::cos(glm::radians(lightComponent.GetInnerConeAngle() * 0.5f));
+			light.OuterConeAngleCos = glm::cos(glm::radians(lightComponent.GetOuterConeAngle() * 0.5f));
 			light.Position = transform.GetPosition();
 			light.Direction = transform.GetForward();
 
 			light.ShadowMap.Resolution = static_cast<float>(lightComponent.GetShadowMapResolution());
 
-			if (lightComponent.CastsShadows())
+			if (lightComponent.GetCastsShadows())
 			{
 				if (light.Type == LightType::Directional)
 				{
@@ -201,21 +201,23 @@ namespace Butterfly
 				{
 					light.ShadowMap.NumSlices = CUBEMAP_SLICES;
 
-					glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 25.0f);
+					const glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, lightComponent.GetRange());
 
 					const glm::vec3& p = light.Position;
-					light.ShadowMap.LightViewProjections[0] = shadowProj * glm::lookAt(p, p + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
-					light.ShadowMap.LightViewProjections[1] = shadowProj * glm::lookAt(p, p + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
-					light.ShadowMap.LightViewProjections[2] = shadowProj * glm::lookAt(p, p + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
-					light.ShadowMap.LightViewProjections[3] = shadowProj * glm::lookAt(p, p + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
-					light.ShadowMap.LightViewProjections[4] = shadowProj * glm::lookAt(p, p + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0));
-					light.ShadowMap.LightViewProjections[5] = shadowProj * glm::lookAt(p, p + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0));
-					light.ShadowMap.TexelSizes[0] = (2.0f * 25.0f) / light.ShadowMap.Resolution;
+					light.ShadowMap.LightViewProjections[0] = shadowProj * glm::lookAt(p, p + glm::vec3(1, 0, 0), glm::vec3(0, 1, 0));
+					light.ShadowMap.LightViewProjections[1] = shadowProj * glm::lookAt(p, p + glm::vec3(-1, 0, 0), glm::vec3(0, 1, 0));
+					light.ShadowMap.LightViewProjections[2] = shadowProj * glm::lookAt(p, p + glm::vec3(0, 1, 0), glm::vec3(0, 0, -1));
+					light.ShadowMap.LightViewProjections[3] = shadowProj * glm::lookAt(p, p + glm::vec3(0, -1, 0), glm::vec3(0, 0, 1));
+					light.ShadowMap.LightViewProjections[4] = shadowProj * glm::lookAt(p, p + glm::vec3(0, 0, 1), glm::vec3(0, 1, 0));
+					light.ShadowMap.LightViewProjections[5] = shadowProj * glm::lookAt(p, p + glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
 				}
 				else if (light.Type == LightType::Spot)
 				{
 					light.ShadowMap.NumSlices = 1;
-					light.ShadowMap.LightViewProjections[0] = glm::perspective(glm::radians(lightComponent.GetOuterConeAngle() * 2.0f), 1.0f, 0.1f, lightComponent.GetRange()) * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3(0.0f, 1.0f, 0.0f));
+
+					float deg = glm::min(lightComponent.GetOuterConeAngle(), 175.0f);
+					const glm::mat4 shadowProj = glm::perspective(glm::radians(deg), 1.0f, 0.1f, lightComponent.GetRange());
+					light.ShadowMap.LightViewProjections[0] = shadowProj * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3(0.0f, 1.0f, 0.0f));
 				}
 
 				auto it = m_shadowMaps.find(entity);
@@ -233,7 +235,6 @@ namespace Butterfly
 				light.ShadowMap.ShadowMapTexture = it->second.get();
 				m_aliveMaps.insert(entity);
 			}
-
 
 			m_lights.push_back(light);
 			m_gpuLightsVector.push_back(light.ToGPULight());

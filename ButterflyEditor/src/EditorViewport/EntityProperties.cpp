@@ -119,6 +119,11 @@ namespace Butterfly
 
 			if (const AsEnumSelector* enumSelectorProps = props.TryGetProperty<AsEnumSelector>())
 			{
+				if (v >= enumSelectorProps->GetEnumNames().size())
+				{
+					v = 0;
+				}
+
 				if (ImGUIHelpers::EnumSelector(name, enumSelectorProps->GetEnumNames(), v))
 				{
 					value = v;

@@ -119,7 +119,15 @@ float4 main(V2P pixelInput) : SV_TARGET0
         
         if (light.Type == 0) // Directional Light
         {
-//#if USE_PCSS_SHADOWS
+            float3 L = normalize(-light.Direction);
+            float3 H = normalize(L + V);
+            float NoL = saturate(dot(N, L));
+            
+            if (NoL < 0.001)
+            {
+                continue;
+            }
+            
             ShadowMap shadowMap = light.Shadow;
             
             float shadow = 1.0f;
@@ -128,19 +136,14 @@ float4 main(V2P pixelInput) : SV_TARGET0
                 Texture2DArray<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
             
                 float2 seed = pixelInput.position.xy;
-                shadow = CalculateCSMShadow(pixelInput.fragPos, pixelInput.normal, -light.Direction, pixelInput.depth, shadowMap.CascadeSplits, shadowMap.TexelSizes, shadowMap.LightViewProjections, shadowMapTexture, blockerSmp, pcssShadowSmp, shadowMap.Resolution, seed);
-            }
-
+                shadow = PCSS_CSM_Shadow(pixelInput.fragPos, pixelInput.normal, -light.Direction, pixelInput.depth, shadowMap.CascadeSplits, shadowMap.TexelSizes, shadowMap.LightViewProjections, shadowMapTexture, blockerSmp, pcssShadowSmp, shadowMap.Resolution, seed);
             
-            if (shadow <= 0.0)
-            {
-                continue;
+                if (shadow <= 0.0)
+                {
+                    continue;
+                }
             }
-//#endif
             
-            float3 L = normalize(-light.Direction);
-            float3 H = normalize(L + V);
-            float NoL = saturate(dot(N, L));
             float NoH = saturate(dot(N, H));
             float VoH = saturate(dot(V, H));
             
@@ -152,11 +155,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
             float3 specularBRDF = F * Vis * D;
             float3 diffuseBRDF = diffuseColor / PI;
 
-#if 1
             lighting += (diffuseBRDF + specularBRDF) * NoL * light.Color * shadow;
-#else
-            lighting += (diffuseBRDF + specularBRDF) * NoL * light.Color;
-#endif
             continue;
         }
         
@@ -169,35 +168,117 @@ float4 main(V2P pixelInput) : SV_TARGET0
         float inverseSquare = 1.0 / max(distance * distance, EPSILON);
         float rangeFade = 1.0 - saturate(distance / light.Range);
         rangeFade *= rangeFade;
-        
-        
-        float3 L = normalize(light.Position - pixelInput.fragPos);
-        float3 H = normalize(L + V);
-        float NoL = saturate(dot(N, L));
-        float NoH = saturate(dot(N, H));
-        float VoH = saturate(dot(V, H));
-
-        float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
-        float3 F = F_Schlick(F0, VoH);
-        float D = D_GGX(alphaRoughness, NoH);
-        float Vis = V_GGX(alphaRoughness, NoV, NoL);
-
-        float3 specularBRDF = F * Vis * D;
-        float3 diffuseBRDF = diffuseColor / PI;
 
         if (light.Type == 1) // Point Light
         {
-            float attenuation = inverseSquare * rangeFade;
-            lighting += (diffuseBRDF + specularBRDF) * NoL * attenuation * light.Color;
+            ShadowMap shadowMap = light.Shadow;
+            float shadow = 1.0f;
+
+            float3 L = normalize(light.Position - pixelInput.fragPos);
+            float NoL = saturate(dot(N, L));
             
+            if (NoL < 0.001)
+            {
+                continue;
+            }
+            
+            if (shadowMap.ShadowMapTextureIndex >= 0)
+            {
+                TextureCube<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
+
+                float3 direction = pixelInput.fragPos - light.Position;
+                float3 absDirection = abs(direction);
+                uint faceIndex;
+                if (absDirection.x >= absDirection.y && absDirection.x >= absDirection.z)
+                    faceIndex = direction.x >= 0.0f ? 0 : 1;
+                else if (absDirection.y >= absDirection.x && absDirection.y >= absDirection.z)
+                    faceIndex = direction.y >= 0.0f ? 2 : 3;
+                else
+                    faceIndex = direction.z >= 0.0f ? 4 : 5;
+                
+                float bias = 0.0008f + 0.01f * (1.0f - NoL);
+                float4 lightClip = mul(shadowMap.LightViewProjections[faceIndex], float4(pixelInput.fragPos, 1.0));
+                float receiverDepth = lightClip.z / lightClip.w - bias;
+
+                shadow = PCSS_Shadow(shadowMapTexture, direction, blockerSmp, pcssShadowSmp, receiverDepth, PCSS_LIGHT_SIZE, pixelInput.position.xy);
+                
+                if (shadow <= 0.0)
+                {
+                    continue;
+                }
+            }
+            
+            float3 H = normalize(L + V);
+            float NoH = saturate(dot(N, H));
+            float VoH = saturate(dot(V, H));
+
+            float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
+            float3 F = F_Schlick(F0, VoH);
+            float D = D_GGX(alphaRoughness, NoH);
+            float Vis = V_GGX(alphaRoughness, NoV, NoL);
+
+            float3 specularBRDF = F * Vis * D;
+            float3 diffuseBRDF = diffuseColor / PI;
+
+            float attenuation = inverseSquare * rangeFade;
+            lighting += (diffuseBRDF + specularBRDF) * NoL * attenuation * light.Color * shadow;
+
             continue;
         }
         
         if (light.Type == 2) // Spot light
         {
+            ShadowMap shadowMap = light.Shadow;
+            float shadow = 1.0f;
+
+            float3 L = normalize(light.Position - pixelInput.fragPos);
+            float NoL = saturate(dot(N, L));
+            
+            if (NoL < 0.001)
+            {
+                continue;
+            }
+            
+            if (shadowMap.ShadowMapTextureIndex >= 0)
+            {
+                Texture2D<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
+                float bias = 0.0008f + 0.01f * (1.0f - NoL);
+
+                float4x4 lightVP = shadowMap.LightViewProjections[0];
+                float4 lightClip = mul(lightVP, float4(pixelInput.fragPos, 1.0));
+                float3 lightNDC = lightClip.xyz / lightClip.w;
+                float2 uv = float2(lightNDC.x * 0.5 + 0.5, -lightNDC.y * 0.5 + 0.5);
+    
+                if (!(any(uv < 0.0) || any(uv > 1.0) || lightNDC.z < 0.0 || lightNDC.z > 1.0))
+                {
+                    
+                    
+                    float3 projectedPos = float3(uv, lightNDC.z - bias);
+                
+                    shadow = PCSS_Shadow(shadowMapTexture, blockerSmp, pcssShadowSmp, projectedPos, PCSS_LIGHT_SIZE, pixelInput.fragPos.xy);
+                
+                    if (shadow <= 0.0)
+                    {
+                        continue;
+                    }
+                }
+            }
+            
+            float3 H = normalize(L + V);
+            float NoH = saturate(dot(N, H));
+            float VoH = saturate(dot(V, H));
+
+            float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
+            float3 F = F_Schlick(F0, VoH);
+            float D = D_GGX(alphaRoughness, NoH);
+            float Vis = V_GGX(alphaRoughness, NoV, NoL);
+            
+            float3 specularBRDF = F * Vis * D;
+            float3 diffuseBRDF = diffuseColor / PI;
+            
             float cone = smoothstep(light.OuterConeAngleCos, light.InnerConeAngleCos, dot(-L, normalize(light.Direction)));
             float attenuation = inverseSquare * rangeFade * cone;
-            lighting += (diffuseBRDF + specularBRDF) * NoL * attenuation * light.Color;
+            lighting += (diffuseBRDF + specularBRDF) * NoL * attenuation * light.Color * shadow;
             continue;
         }
     }

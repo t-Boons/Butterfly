@@ -39,6 +39,8 @@ inline float2 PCSS_Rotate(float2 uv, float2 seed)
     return float2(c * uv.x - s * uv.y, s * uv.x + c * uv.y);
 }
 
+// Texture2DArray Variants.
+
 inline float PCF_Poisson(Texture2DArray<float> tex, int slice, SamplerComparisonState cmp, float3 projCoord, float radiusUV, float2 rotationSeed)
 {
     float sum = 0.0;
@@ -112,7 +114,7 @@ inline float PCSS_Shadow(Texture2DArray<float> map, int slice, SamplerState bloc
     }
 }
 
-inline float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3 lightDirection, float cameraDepth, float cascadeSplits[MAX_CASCADES], float cascadeTexelSizes[MAX_CASCADES], float4x4 LightViewProjections[CUBEMAP_SLICES], Texture2DArray<float> shadowMaps, SamplerState blockerSampler, SamplerComparisonState pcssSmp, float resolution, float2 rotationSeed)
+inline float PCSS_CSM_Shadow(float3 worldPosition, float3 worldNormal, float3 lightDirection, float cameraDepth, float cascadeSplits[MAX_CASCADES], float cascadeTexelSizes[MAX_CASCADES], float4x4 LightViewProjections[CUBEMAP_SLICES], Texture2DArray<float> shadowMaps, SamplerState blockerSampler, SamplerComparisonState pcssSmp, float resolution, float2 rotationSeed)
 {
     uint cascadeIndex = 0;
     for (uint i = 0; i < MAX_CASCADES; ++i)
@@ -140,4 +142,137 @@ inline float CalculateCSMShadow(float3 worldPosition, float3 worldNormal, float3
     float3 projectedPos = float3(uv, lightNDC.z - 0.008);
 
     return PCSS_Shadow(shadowMaps, cascadeIndex, blockerSampler, pcssSmp, projectedPos, PCSS_LIGHT_SIZE, rotationSeed);
+}
+
+
+// Texture2D Variants.
+
+inline float PCF_Poisson(Texture2D<float> tex, SamplerComparisonState cmp, float3 projCoord, float radiusUV, float2 rotationSeed)
+{
+    float sum = 0.0;
+    [unroll]
+    for (int i = 0; i < POISSON_SAMPLE_COUNT; i++)
+    {
+        float2 offset = PCSS_Rotate(PCSS_Poisson_Samples[i] * radiusUV, rotationSeed);
+        sum += tex.SampleCmpLevelZero(cmp, projCoord.xy + offset, projCoord.z);
+    }
+    return sum / POISSON_SAMPLE_COUNT;
+}
+
+inline float PCF_Grid(Texture2D<float> tex, SamplerComparisonState cmp, float3 projCoord, float radiusUV, int filterSize)
+{
+    float sum = 0.0;
+    for (int i = -filterSize; i <= filterSize; i++)
+        for (int j = -filterSize; j <= filterSize; j++)
+            sum += tex.SampleCmpLevelZero(cmp, projCoord.xy + float2(i, j) * radiusUV, projCoord.z);
+
+    return sum / ((filterSize * 2 + 1) * (filterSize * 2 + 1));
+}
+
+inline float PCSS_BlockerDistance(Texture2D<float> tex, SamplerState smp, float3 projCoord, float searchUV, float2 rotationSeed)
+{
+    int blockers = 0;
+    float avgBlocker = 0.0;
+    float2 newSeed = rotationSeed + float2(37.0, 17.0);
+
+    for (int i = 0; i < POISSON_SAMPLE_COUNT; i++)
+    {
+        float2 offset = PCSS_Rotate(PCSS_Poisson_Samples[i] * searchUV, newSeed);
+        float z = tex.SampleLevel(smp, projCoord.xy + offset, 0);
+        if (z < projCoord.z)
+        {
+            blockers++;
+            avgBlocker += z;
+        }
+    }
+
+    return blockers == 0 ? 0.0 : avgBlocker / blockers;
+}
+
+inline float PCSS_Shadow(Texture2D<float> map, SamplerState blockerSampler, SamplerComparisonState pcssSampler, float3 projCoords, float lightSize, float2 rotationSeed)
+{
+    float blocker = PCSS_BlockerDistance(map, blockerSampler, projCoords, PCSS_BLOCKER_SEARCH, rotationSeed);
+    if (blocker == 0.0)
+        return 1.0;
+
+    float penumbra = max(lightSize * (projCoords.z - blocker), PCSS_MIN_PENUMBRA_SIZE);
+    return PCF_Poisson(map, pcssSampler, projCoords, penumbra, rotationSeed);
+}
+
+
+// TextureCube variants
+
+inline void CubeBasis(float3 dir, out float3 t, out float3 b)
+{
+    float3 up = abs(dir.y) < 0.99 ? float3(0, 1, 0) : float3(1, 0, 0);
+    t = normalize(cross(up, dir));
+    b = cross(dir, t);
+}
+
+inline float3 CubeOffset(float3 dir, float3 t, float3 b, float2 offsetUV)
+{
+    float3 a = abs(dir);
+    float major = max(a.x, max(a.y, a.z));
+    return dir + (t * offsetUV.x + b * offsetUV.y) * major * 2.0;
+}
+
+inline float PCF_Poisson(TextureCube<float> tex, float3 dir, SamplerComparisonState cmp, float depth, float radiusUV, float2 rotationSeed)
+{
+    float3 t, b;
+    CubeBasis(dir, t, b);
+
+    float sum = 0.0;
+    [unroll]
+    for (int i = 0; i < POISSON_SAMPLE_COUNT; i++)
+    {
+        float2 offset = PCSS_Rotate(PCSS_Poisson_Samples[i] * radiusUV, rotationSeed);
+        sum += tex.SampleCmpLevelZero(cmp, CubeOffset(dir, t, b, offset), depth);
+    }
+    return sum / POISSON_SAMPLE_COUNT;
+}
+
+inline float PCF_Grid(TextureCube<float> tex, float3 dir, SamplerComparisonState cmp, float depth, float radiusUV, int filterSize)
+{
+    float3 t, b;
+    CubeBasis(dir, t, b);
+
+    float sum = 0.0;
+    for (int i = -filterSize; i <= filterSize; i++)
+        for (int j = -filterSize; j <= filterSize; j++)
+            sum += tex.SampleCmpLevelZero(cmp, CubeOffset(dir, t, b, float2(i, j) * radiusUV), depth);
+
+    return sum / ((filterSize * 2 + 1) * (filterSize * 2 + 1));
+}
+
+inline float PCSS_BlockerDistance(TextureCube<float> tex, float3 dir, SamplerState smp, float depth, float searchUV, float2 rotationSeed)
+{
+    float3 t, b;
+    CubeBasis(dir, t, b);
+
+    int blockers = 0;
+    float avgBlocker = 0.0;
+    float2 newSeed = rotationSeed + float2(37.0, 17.0);
+
+    for (int i = 0; i < POISSON_SAMPLE_COUNT; i++)
+    {
+        float2 offset = PCSS_Rotate(PCSS_Poisson_Samples[i] * searchUV, newSeed);
+        float z = tex.SampleLevel(smp, CubeOffset(dir, t, b, offset), 0);
+        if (z < depth)
+        {
+            blockers++;
+            avgBlocker += z;
+        }
+    }
+
+    return blockers == 0 ? 0.0 : avgBlocker / blockers;
+}
+
+inline float PCSS_Shadow(TextureCube<float> map, float3 dir, SamplerState blockerSampler, SamplerComparisonState pcssSampler, float depth, float lightSize, float2 rotationSeed)
+{
+    float blocker = PCSS_BlockerDistance(map, dir, blockerSampler, depth, PCSS_BLOCKER_SEARCH, rotationSeed);
+    if (blocker == 0.0)
+        return 1.0;
+
+    float penumbra = max(lightSize * (depth - blocker), PCSS_MIN_PENUMBRA_SIZE);
+    return PCF_Poisson(map, dir, pcssSampler, depth, penumbra, rotationSeed);
 }
