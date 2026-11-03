@@ -71,6 +71,7 @@ namespace Butterfly
 				}
 
 				m_models.push_back(model);
+				m_entityToModelIndex[entityIndex] = static_cast<uint32_t>(m_models.size() - 1);
 
 				entityIndex++;
 			}
@@ -80,7 +81,12 @@ namespace Butterfly
 
 		int GetModelViewIndex(uint32_t entityIndex) const
 		{
-			return static_cast<int>(entityIndex);
+			auto it = m_entityToModelIndex.find(entityIndex);
+			if (it != m_entityToModelIndex.end())
+			{
+				return static_cast<int>(it->second);
+			}
+			return -1;
 		}
 
 		uint32_t GetNumModels() const
@@ -96,5 +102,6 @@ namespace Butterfly
 	private:
 		RefPtr<BFStructuredBuffer> m_modelBuffer;
 		std::vector<GPUModel> m_models;
+		std::unordered_map<uint32_t, uint32_t> m_entityToModelIndex;
 	};
 }

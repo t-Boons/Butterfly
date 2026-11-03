@@ -139,22 +139,41 @@ namespace Butterfly
 
 		m_spectatorCam.Tick(Application::Get().GetInput(), Application::Get().GetTime().DeltaTime());
 
-		glm::vec3 position = m_spectatorCam.GetCamera()->Position();
-		position.x = std::round(position.x);
-		position.y = std::round(position.y);
-		position.z = std::round(position.z);
 
-		const uint32_t gridLineCount = 64;
-		const glm::vec4 color(0.3f, 0.3f, 0.3f, 0.1f);
-
-		for (int i = position.x - gridLineCount; i <= position.x + gridLineCount; ++i)
+		if (m_gridVisible)
 		{
-			EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(i, 0, position.z - gridLineCount), glm::vec3(i, 0, position.z + gridLineCount), color);
+			glm::vec3 position = m_spectatorCam.GetCamera()->Position();
+			position.x = std::round(position.x);
+			position.y = std::round(position.y);
+			position.z = std::round(position.z);
+
+			const uint32_t gridLineCount = 64;
+			const glm::vec4 color(0.3f, 0.3f, 0.3f, 0.1f);
+
+			for (int i = position.x - gridLineCount; i <= position.x + gridLineCount; ++i)
+			{
+				EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(i, 0, position.z - gridLineCount), glm::vec3(i, 0, position.z + gridLineCount), color);
+			}
+
+			for (int i = position.z - gridLineCount; i <= position.z + gridLineCount; ++i)
+			{
+				EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(position.x - gridLineCount, 0, i), glm::vec3(position.x + gridLineCount, 0, i), color);
+			}
 		}
 
-		for (int i = position.z - gridLineCount; i <= position.z + gridLineCount; ++i)
+		if (m_boundingBoxesVisible)
 		{
-			EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(position.x - gridLineCount, 0, i), glm::vec3(position.x + gridLineCount, 0, i), color);
+			auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+			for (auto [entity, transform, meshRenderer] : view.each())
+			{
+				if (!meshRenderer.GetMeshHandle())
+				{
+					continue;
+				}
+
+				MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+				EditorApplication::Get().GetDebugRenderer().DrawBox(transform.GetPosition() + mesh->GetBounds().Min * transform.GetScale(), transform.GetPosition() + mesh->GetBounds().Max * transform.GetScale(), glm::vec4(1.0f, 0.5f, 1.0f, 1.0f));
+			}
 		}
 	}
 
@@ -358,50 +377,54 @@ namespace Butterfly
 			}
 		}
 
-		// Draw icons.
-		const glm::ivec2 viewportOffset = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
-		float iconSize = 24.0f;
-		ImFont* font = ImGui::GetIO().Fonts->Fonts[2];
 
-		ImGui::PushFont(font, iconSize);
-
-		for (const auto& [entity, camera, transform] : Application::Get().GetScene().GetEntityRegistry().view<CameraComponent, TransformComponent>().each())
+		if (m_objectHelpersVisible)
 		{
-			glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), Application::Get().GetRenderer().GetViewport(m_viewportHandle).Size());
-			screenPos += viewportOffset;
+			// Draw icons.
+			const glm::ivec2 viewportOffset = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
+			float iconSize = 24.0f;
+			ImFont* font = ImGui::GetIO().Fonts->Fonts[2];
 
-			const char* icon = FontAwesome::VideoCamera;
-			ImVec2 textSize = ImGui::CalcTextSize(icon);
+			ImGui::PushFont(font, iconSize);
 
-			const ImVec2 iconPos = ImVec2(screenPos.x - textSize.x * 0.5f, screenPos.y - textSize.y * 0.5f);
-
-			ImGui::GetWindowDrawList()->AddText(iconPos, IM_COL32(255, 255, 255, 180), icon);
-		}
-
-		for (const auto& [entity, light, transform] : Application::Get().GetScene().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
-		{
-			glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), Application::Get().GetRenderer().GetViewport(m_viewportHandle).Size());
-			screenPos += viewportOffset;
-
-			const char* icon = FontAwesome::Lightbulb;
-			ImVec2 textSize = ImGui::CalcTextSize(icon);
-
-			const ImVec2 iconPos = ImVec2(screenPos.x - textSize.x * 0.5f, screenPos.y - textSize.y * 0.5f);
-
-			ImGui::GetWindowDrawList()->AddText(iconPos, IM_COL32(255, 255, 255, 180), icon);
-
-			EditorApplication::Get().GetDebugRenderer().DrawLine(transform.GetPosition(), transform.GetPosition() + transform.GetForward() * 2.0f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));	
-		}
-
-		ImGui::PopFont();
-
-		// Draw selected entity primtives.
-		if (EditorApplication::Get().GetEditorViewport().m_selectedEntity)
-		{
-			if (CameraComponent* camera = EditorApplication::Get().GetEditorViewport().m_selectedEntity.TryGetComponent<CameraComponent>())
+			for (const auto& [entity, camera, transform] : Application::Get().GetScene().GetEntityRegistry().view<CameraComponent, TransformComponent>().each())
 			{
-				TransformComponent& transform = EditorApplication::Get().GetEditorViewport().m_selectedEntity.GetComponent<TransformComponent>();
-				EditorApplication::Get().GetDebugRenderer().DrawFrustum(camera->GetViewprojectionMatrrix(transform.GetPosition(), transform.GetRotation()), glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+				glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), Application::Get().GetRenderer().GetViewport(m_viewportHandle).Size());
+				screenPos += viewportOffset;
+
+				const char* icon = FontAwesome::VideoCamera;
+				ImVec2 textSize = ImGui::CalcTextSize(icon);
+
+				const ImVec2 iconPos = ImVec2(screenPos.x - textSize.x * 0.5f, screenPos.y - textSize.y * 0.5f);
+
+				ImGui::GetWindowDrawList()->AddText(iconPos, IM_COL32(255, 255, 255, 180), icon);
+			}
+
+			for (const auto& [entity, light, transform] : Application::Get().GetScene().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
+			{
+				glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), Application::Get().GetRenderer().GetViewport(m_viewportHandle).Size());
+				screenPos += viewportOffset;
+
+				const char* icon = FontAwesome::Lightbulb;
+				ImVec2 textSize = ImGui::CalcTextSize(icon);
+
+				const ImVec2 iconPos = ImVec2(screenPos.x - textSize.x * 0.5f, screenPos.y - textSize.y * 0.5f);
+
+				ImGui::GetWindowDrawList()->AddText(iconPos, IM_COL32(255, 255, 255, 180), icon);
+
+				EditorApplication::Get().GetDebugRenderer().DrawLine(transform.GetPosition(), transform.GetPosition() + transform.GetForward() * 2.0f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+			}
+
+			ImGui::PopFont();
+
+			// Draw selected entity primtives.
+			if (EditorApplication::Get().GetEditorViewport().m_selectedEntity)
+			{
+				if (CameraComponent* camera = EditorApplication::Get().GetEditorViewport().m_selectedEntity.TryGetComponent<CameraComponent>())
+				{
+					TransformComponent& transform = EditorApplication::Get().GetEditorViewport().m_selectedEntity.GetComponent<TransformComponent>();
+					EditorApplication::Get().GetDebugRenderer().DrawFrustum(camera->GetViewprojectionMatrrix(transform.GetPosition(), transform.GetRotation()), glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+				}
 			}
 		}
 

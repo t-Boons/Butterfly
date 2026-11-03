@@ -36,5 +36,9 @@ namespace Butterfly
 		ImGuizmo::OPERATION m_currentOperation = ImGuizmo::OPERATION::TRANSLATE;
 		uint32_t m_selectedViewType = 0;
 		EventReceiver<Scene*> m_sceneChangedReceiver;
+
+		bool m_boundingBoxesVisible = true;
+		bool m_gridVisible = true;
+		bool m_objectHelpersVisible = true;
 	};
 }

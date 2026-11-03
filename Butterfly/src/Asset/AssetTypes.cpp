@@ -102,9 +102,6 @@ namespace Butterfly
 				if (m_meshBounds.Max.z < position.z) m_meshBounds.Max.z = position.z;
 			}
 		}
-		const glm::vec3 padding = m_meshBounds.Size() * 0.5f * 0.2f; // 20% of the size;
-		m_meshBounds.Min -= padding;
-		m_meshBounds.Max += padding;
 
 		if (CreateSDF)
 		{
