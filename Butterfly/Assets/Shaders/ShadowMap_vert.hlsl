@@ -5,8 +5,8 @@ struct BufferIndices
 {
     int positionBuffer;
     int cameraDataIndex;
-    int lightMapBufferIndex;
-    int lightIndex;
+    int shadowMapBufferIndex;
+    int shadowMapIndex;
     int modelDataBufferIndex;
     int entityIndex;
     int cascadeIndex;
@@ -22,11 +22,11 @@ struct V2P
 V2P main(uint vertexID : SV_VertexID)
 {
     ConstantBuffer<CameraData> cameraData = ResourceDescriptorHeap[resources.cameraDataIndex];
-    StructuredBuffer<Light> lights = ResourceDescriptorHeap[resources.lightMapBufferIndex];
+    StructuredBuffer<ShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
     StructuredBuffer<ModelData> modelMatrices = ResourceDescriptorHeap[resources.modelDataBufferIndex];
     StructuredBuffer<float3> position = ResourceDescriptorHeap[resources.positionBuffer];
     
-    float4x4 MVP = mul(lights[resources.lightIndex].Shadow.LightViewProjections[resources.cascadeIndex], modelMatrices[resources.entityIndex].ModelMatrix);
+    float4x4 MVP = mul(shadowMaps[resources.shadowMapIndex].LightViewProjections[resources.cascadeIndex], modelMatrices[resources.entityIndex].ModelMatrix);
     
     V2P output;
     output.position = mul(MVP, float4(position[vertexID], 1.0f));

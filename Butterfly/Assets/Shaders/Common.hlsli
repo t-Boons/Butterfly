@@ -41,17 +41,6 @@ struct MaterialData
     int AmbientOcclusionTexture;
 };
 
-
-struct ShadowMap
-{
-    float4x4 LightViewProjections[CUBEMAP_SLICES];
-    float CascadeSplits[MAX_CASCADES];
-    float TexelSizes[MAX_CASCADES];
-    int ShadowMapTextureIndex;
-    int NumSlices;
-    float Resolution;
-};
-
 struct Light
 {
     uint Type;
@@ -61,5 +50,14 @@ struct Light
     float Range;
     float InnerConeAngleCos;
     float OuterConeAngleCos;
-    ShadowMap Shadow;
+};
+
+struct ShadowMap
+{
+    float4x4 LightViewProjections[CUBEMAP_SLICES];
+    float CascadeSplits[MAX_CASCADES];
+    float TexelSizes[MAX_CASCADES];
+    int ShadowMapTextureIndex;
+    int NumSlices;
+    float Resolution;
 };

@@ -12,6 +12,7 @@ struct BufferIndices
     int entityIndex;
     int lightBuffer;
     int numLights;
+    int shadowMapBufferIndex;
     int materialBuffer;
     int materialIndex;
     int skyboxTextureIndex;

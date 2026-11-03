@@ -396,7 +396,7 @@ namespace Butterfly
 					subMesh.Material = materials[prim.material];
 				}
 
-				outMesh->SubMeshes.push_back(subMesh);
+				outMesh->AddSubMesh(subMesh);
 			}
 
 			outMesh->LoadToGPU();

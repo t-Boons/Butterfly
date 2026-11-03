@@ -32,9 +32,26 @@ namespace Butterfly
 
 		m_sdf = GraphicsCommands::CreateSDF(triangles, meshBounds, m_sdfResolution);
 	}
-
-
-
+	
+	void MeshAsset::GenerateSubMeshBounds()
+	{
+		m_meshBounds = Bounds();
+		for (auto& subMesh : m_subMeshes)
+		{
+			subMesh.SubBounds = Bounds();
+			for (uint32_t i = 0; i < subMesh.IndexCount; ++i)
+			{
+				uint32_t index = Indices[subMesh.IndexOffset + i];
+				const glm::vec3 position = Positions[index];
+				if (subMesh.SubBounds.Min.x > position.x) subMesh.SubBounds.Min.x = position.x;
+				if (subMesh.SubBounds.Min.y > position.y) subMesh.SubBounds.Min.y = position.y;
+				if (subMesh.SubBounds.Min.z > position.z) subMesh.SubBounds.Min.z = position.z;
+				if (subMesh.SubBounds.Max.x < position.x) subMesh.SubBounds.Max.x = position.x;
+				if (subMesh.SubBounds.Max.y < position.y) subMesh.SubBounds.Max.y = position.y;
+				if (subMesh.SubBounds.Max.z < position.z) subMesh.SubBounds.Max.z = position.z;
+			}
+		}
+	}
 
 	void MeshAsset::LoadToGPU()
 	{
@@ -42,6 +59,8 @@ namespace Butterfly
 		{
 			return;
 		}
+
+		GenerateSubMeshBounds();
 
 		GPUIndices = RefPtr<BFIndexBuffer>(new BFIndexBuffer(Indices.data(), static_cast<uint32_t>(Indices.size()), DXGI_FORMAT_R32_UINT, "Indices"));
 
@@ -87,7 +106,7 @@ namespace Butterfly
 
 		m_gpuLoaded = true;
 
-		for (auto& subMesh : SubMeshes)
+		for (auto& subMesh : m_subMeshes)
 		{
 			for (uint32_t i = 0; i < subMesh.IndexCount; ++i)
 			{
@@ -103,10 +122,10 @@ namespace Butterfly
 			}
 		}
 
-		if (CreateSDF)
+		if (m_createSDF)
 		{
 			m_sdf = MakeRef<SDF>();
-			m_sdf->GenerateSDF(Positions, Indices, SubMeshes, m_meshBounds);
+			m_sdf->GenerateSDF(Positions, Indices, m_subMeshes, m_meshBounds);
 		}
 	}
 }

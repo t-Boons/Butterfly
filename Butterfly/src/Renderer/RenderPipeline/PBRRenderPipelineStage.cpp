@@ -114,7 +114,7 @@ namespace Butterfly
 
 					list.SetIndexBuffer(*mesh->GPUIndices);
 
-					for (auto& subMesh : mesh->SubMeshes)
+					for (const auto& subMesh : mesh->GetSubMeshes())
 					{
 						ShaderVariables()
 							.Add(mesh->GPUPositions->SRV().View())
@@ -126,7 +126,8 @@ namespace Butterfly
 							.Add(viewport.Models.SRV().View())
 							.Add(viewport.Models.GetModelViewIndex(entityIndex))
 							.Add(viewport.Lights.SRV().View())
-							.Add(static_cast<uint32_t>(viewport.Lights.GetLights().size()))
+							.Add(static_cast<uint32_t>(viewport.Lights.GetNumLights()))
+							.Add(viewport.ShadowMaps.SRV().View())
 							.Add(viewport.Materials.GetMaterialBuffer().SRV().View())
 							.Add(viewport.Materials.GetMaterialIndex(subMesh.Material.GetID()))
 							.Add(skyboxTextureViewIndex)

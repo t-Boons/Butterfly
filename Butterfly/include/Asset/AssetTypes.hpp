@@ -30,16 +30,23 @@ namespace Butterfly
 		RefPtr<BFIndexBuffer> GPUIndices;
 
 
-		Bounds m_meshBounds;
 
-		struct SubMesh
+		class SubMesh
 		{
+		public:
 			uint32_t IndexOffset;
 			uint32_t IndexCount;
 			AssetHandle<MaterialAsset> Material;
+			Bounds SubBounds;
 		};
-		std::vector<SubMesh> SubMeshes;
 
+
+
+
+		void GenerateSubMeshBounds();
+
+		const std::vector<SubMesh>& GetSubMeshes() const { return m_subMeshes; }
+		void AddSubMesh(const SubMesh& subMesh) { m_subMeshes.push_back(subMesh); }
 
 		Bounds GetBounds() const { return m_meshBounds; }
 		const RefPtr<SDF>& GetSDF() const { return m_sdf; }
@@ -47,8 +54,11 @@ namespace Butterfly
 		void LoadToGPU();
 
 	private:
+		std::vector<SubMesh> m_subMeshes;
+		Bounds m_meshBounds;
+
 		bool m_gpuLoaded = false;
-		bool CreateSDF = false;
+		bool m_createSDF = false;
 		RefPtr<SDF> m_sdf;
 	};
 

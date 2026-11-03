@@ -38,6 +38,7 @@ namespace Butterfly
 		EventReceiver<Scene*> m_sceneChangedReceiver;
 
 		bool m_boundingBoxesVisible = true;
+		bool m_subMeshBoundingBoxesVisible = true;
 		bool m_gridVisible = true;
 		bool m_objectHelpersVisible = true;
 	};

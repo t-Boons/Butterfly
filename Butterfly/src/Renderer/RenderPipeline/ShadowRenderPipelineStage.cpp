@@ -15,21 +15,21 @@ namespace Butterfly
 		builder.AddPass<ShadowMapPass>("ShadowMap",
 			[viewport, this](const ShadowMapPass& params, D3D12CommandList& list)
 			{
-				const std::vector<Light>& lights = viewport.Lights.GetLights();
-				const auto& firstShadowLight = std::find_if(lights.begin(), lights.end(), [](const Light& l) { return l.ShadowMap.ShadowMapTexture != nullptr; });
-				if (firstShadowLight == lights.end())
+				const std::array<ShadowMap, MAX_SHADOW_MAPS>& shadowMaps = viewport.ShadowMaps.GetShadowMaps();
+				const auto& firstValidShadow = std::find_if(shadowMaps.begin(), shadowMaps.end(), [](const ShadowMap& l) { return l.ShadowMapTexture != nullptr; });
+				if (firstValidShadow == shadowMaps.end())
 				{
 					return;
 				}
 
 
 				RasterPassStartInfo info;
-				info.DepthStencil = firstShadowLight->ShadowMap.ShadowMapTexture;
+				info.DepthStencil = firstValidShadow->ShadowMapTexture.get();
 				info.DepthStencilLoadOp = LoadOP::Clear;
 				info.DepthValue = 1.0f;
 				list.StartRenderPass(info, "ShadowMap Pass");
 
-				list.SetViewport(RenderViewport::FromTexture(*firstShadowLight->ShadowMap.ShadowMapTexture));
+				list.SetViewport(RenderViewport::FromTexture(*firstValidShadow->ShadowMapTexture));
 
 				BFGraphicsPSOInfo pso;
 				pso.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
@@ -39,10 +39,9 @@ namespace Butterfly
 				pso.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/ShadowMap_vert.hlsl");
 				list.SetGraphicsPSO(pso);
 
-				for (uint32_t lightIndex = 0; lightIndex < lights.size(); lightIndex++)
+				for (uint32_t shadowMapIndex = 0; shadowMapIndex < MAX_SHADOW_MAPS; shadowMapIndex++)
 				{
-					const ShadowMap& shadowMap = lights[lightIndex].ShadowMap;
-					const Light& light = lights[lightIndex];
+					const ShadowMap& shadowMap = shadowMaps[shadowMapIndex];
 
 					if (!shadowMap.ShadowMapTexture)
 					{
@@ -68,13 +67,13 @@ namespace Butterfly
 
 							list.SetIndexBuffer(*mesh->GPUIndices);
 
-							for (auto& subMesh : mesh->SubMeshes)
+							for (const auto& subMesh : mesh->GetSubMeshes())
 							{
 								ShaderVariables()
 									.Add(mesh->GPUPositions->SRV().View())
 									.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-									.Add(viewport.Lights.SRV().View())
-									.Add(lightIndex)
+									.Add(viewport.ShadowMaps.SRV().View())
+									.Add(shadowMapIndex)
 									.Add(viewport.Models.SRV().View())
 									.Add(viewport.Models.GetModelViewIndex(entityIndex))
 									.Add(slice)
@@ -89,9 +88,9 @@ namespace Butterfly
 				}
 
 				// Transition the resources so they can be used for shadowmapping.
-				for (uint32_t lightIndex = 0; lightIndex < lights.size(); lightIndex++)
+				for (uint32_t lightIndex = 0; lightIndex < MAX_SHADOW_MAPS; lightIndex++)
 				{
-					const ShadowMap& shadowMap = lights[lightIndex].ShadowMap;
+					const ShadowMap& shadowMap = shadowMaps[lightIndex];
 					if (!shadowMap.ShadowMapTexture)
 					{
 						continue;

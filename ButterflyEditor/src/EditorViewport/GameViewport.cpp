@@ -79,6 +79,7 @@ namespace Butterfly
 		event.Viewport.UniformCameraData = cameraData;
 
 		event.Viewport.Lights.Update(event.Viewport);
+		event.Viewport.ShadowMaps.Update(event.Viewport);
 		event.Viewport.Materials.Validate();
 		event.Viewport.Models.Validate();
 

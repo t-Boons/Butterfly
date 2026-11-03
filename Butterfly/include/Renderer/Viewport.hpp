@@ -7,6 +7,7 @@
 #include "Renderer/Light.hpp"
 #include "Renderer/Material.hpp"
 #include "Renderer/Model.hpp"
+#include "Renderer/ShadowMap.hpp"
 
 #define NUM_RENDER_BUFFERS 2
 
@@ -89,6 +90,7 @@ namespace Butterfly
 		MaterialLibrary Materials;
 		LightBuffer Lights;
 		ModelBuffer Models;
+		ShadowMapBuffer ShadowMaps;
 		RefPtr<RenderPipeline> RenderPipeline;
 
 		ViewportEvents Events;

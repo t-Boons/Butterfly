@@ -59,6 +59,7 @@ add_library(Butterfly STATIC
     src/Renderer/Camera.cpp
     src/Renderer/Material.cpp
     src/Renderer/Light.cpp
+    src/Renderer/ShadowMap.cpp
 
     src/Renderer/RenderPipeline/RenderPipeline.cpp
     src/Renderer/RenderPipeline/PBRRenderPipelineStage.cpp

@@ -32,6 +32,7 @@ struct BufferIndices
     int entityIndex;
     int lightBuffer;
     int numLights;
+    int shadowMapBufferIndex;
     int materialBuffer;
     int materialIndex;
     int skyboxTextureIndex;
@@ -128,7 +129,8 @@ float4 main(V2P pixelInput) : SV_TARGET0
                 continue;
             }
             
-            ShadowMap shadowMap = light.Shadow;
+            StructuredBuffer<ShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
+            ShadowMap shadowMap = shadowMaps[i];
             
             float shadow = 1.0f;
             if (shadowMap.ShadowMapTextureIndex >= 0)
@@ -187,7 +189,9 @@ float4 main(V2P pixelInput) : SV_TARGET0
 
         if (light.Type == 1) // Point Light
         {
-            ShadowMap shadowMap = light.Shadow;
+            StructuredBuffer<ShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
+            ShadowMap shadowMap = shadowMaps[i];
+            
             float shadow = 1.0f;
 
             float3 L = normalize(light.Position - pixelInput.fragPos);
@@ -244,7 +248,9 @@ float4 main(V2P pixelInput) : SV_TARGET0
         
         if (light.Type == 2) // Spot light
         {
-            ShadowMap shadowMap = light.Shadow;
+            StructuredBuffer<ShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
+            ShadowMap shadowMap = shadowMaps[i];
+            
             float shadow = 1.0f;
 
             float3 L = normalize(light.Position - pixelInput.fragPos);

@@ -171,8 +171,30 @@ namespace Butterfly
 					continue;
 				}
 
-				MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-				EditorApplication::Get().GetDebugRenderer().DrawBox(transform.GetPosition() + mesh->GetBounds().Min * transform.GetScale(), transform.GetPosition() + mesh->GetBounds().Max * transform.GetScale(), glm::vec4(1.0f, 0.5f, 1.0f, 1.0f));
+				const MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+				const glm::mat4 modelMatrix = transform.GetWorldMatrix();
+				EditorApplication::Get().GetDebugRenderer().DrawBox(modelMatrix * glm::vec4(mesh->GetBounds().Min, 1.0f), modelMatrix * glm::vec4(mesh->GetBounds().Max, 1.0f), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
+			}
+		}
+
+		if (m_subMeshBoundingBoxesVisible)
+		{
+			auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+			for (auto [entity, transform, meshRenderer] : view.each())
+			{
+				if (!meshRenderer.GetMeshHandle())
+				{
+					continue;
+				}
+
+				const MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+				const glm::mat4 modelMatrix = transform.GetWorldMatrix();
+
+				for (const auto& subMesh : mesh->GetSubMeshes())
+				{
+					EditorApplication::Get().GetDebugRenderer().DrawBox(modelMatrix * glm::vec4(subMesh.SubBounds.Min, 1.0f), modelMatrix * glm::vec4(subMesh.SubBounds.Max, 1.0f), glm::vec4(1.0f, 0.5f, 1.0f, 1.0f));
+				}
+
 			}
 		}
 	}
@@ -201,6 +223,7 @@ namespace Butterfly
 		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
 
 		event.Viewport.Lights.Update(event.Viewport);
+		event.Viewport.ShadowMaps.Update(event.Viewport);
 		event.Viewport.Materials.Validate();
 		event.Viewport.Models.Validate();
 

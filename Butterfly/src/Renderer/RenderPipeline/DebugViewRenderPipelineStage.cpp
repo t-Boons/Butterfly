@@ -66,7 +66,7 @@ namespace Butterfly
 					}
 
 					BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
-					for (auto& subMesh : mesh->SubMeshes)
+					for (const auto& subMesh : mesh->GetSubMeshes())
 					{
 						ShaderVariables()
 							.Add(mesh->GPUPositions->SRV().View())

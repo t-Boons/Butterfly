@@ -88,7 +88,7 @@ namespace Butterfly
 			MikkTSpaceTangent::GetTangents(m, mesh->Tangents);
 		}
 
-		mesh->SubMeshes.push_back({ 0, static_cast<uint32_t>(mesh->Indices.size()) });
+		mesh->AddSubMesh({ 0, static_cast<uint32_t>(mesh->Indices.size()) });
 
 		mesh->LoadToGPU();
 
