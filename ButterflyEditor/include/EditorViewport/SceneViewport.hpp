@@ -17,7 +17,6 @@ namespace Butterfly
 		};
 
 		SceneViewport();
-		~SceneViewport();
 
 		virtual void OnTick() override;
 		virtual void OnRenderImGUI() override;
@@ -27,7 +26,7 @@ namespace Butterfly
 		void RenderObjectPicker(const ViewportRenderEvent& event);
 
 	private:
-		ViewportHandle m_viewportHandle;
+		RefPtr<Viewport> m_viewport;
 		SpectatorCamera m_spectatorCam;
 
 		EventReceiver<ViewportResizeEvent> m_viewportResizeReceiver;

@@ -1,7 +1,7 @@
 #include "Asset/Importer/OBJImporter.hpp"
 #include "Asset/AssetTypes.hpp"
 #include "tinyobj/tiny_obj_loader.h"
-#include "Renderer/ModelLoading/MikkTSpaceWrapper.hpp"
+#include "Asset/Importer/MikkTSpaceWrapper.hpp"
 
 namespace Butterfly
 {

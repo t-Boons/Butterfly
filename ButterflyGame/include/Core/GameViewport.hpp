@@ -7,16 +7,14 @@ namespace Butterfly::Game
 	{
 	public:
 		GameViewport();
-		~GameViewport();
 
-		void OnTick();
 		void OnRenderImGUI();
 
 		void OnPrerender(const ViewportPrerenderEvent& event);
 		void RenderObjectPicker(const ViewportRenderEvent& event);
 
 	private:
-		ViewportHandle m_viewportHandle;
+		RefPtr<Viewport> m_viewport;
 		uint32_t m_mainCameraIndex = 0;
 
 		EventReceiver<ViewportResizeEvent> m_viewportResizeReceiver;

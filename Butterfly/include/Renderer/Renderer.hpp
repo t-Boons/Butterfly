@@ -16,23 +16,6 @@ namespace Butterfly
 	class RenderPipeline;
 	class BFRenderData;
 
-	class ViewportHandle
-	{
-	public:
-		bool Valid() const { return m_index != 0; }
-
-		bool operator==(const ViewportHandle& other) const
-		{
-			return m_index == other.m_index;
-		}
-
-		uint32_t Index() const { return m_index; }
-	private:
-		friend class Renderer;
-		friend struct std::hash<Butterfly::ViewportHandle>;
-		uint32_t m_index = 0;
-	};
-
 	struct ViewportResizeEvent
 	{
 		glm::ivec2 Size;
@@ -56,22 +39,7 @@ namespace Butterfly
 		EventDispatcher<> OnPostRender;
 		EventDispatcher<ViewportRenderEvent> OnRender;
 	};
-}
 
-namespace std
-{
-	template<>
-	struct hash<Butterfly::ViewportHandle>
-	{
-		size_t operator()(const Butterfly::ViewportHandle& handle) const
-		{
-			return std::hash<uint32_t>()(handle.m_index);
-		}
-	};
-}
-
-namespace Butterfly
-{
 	struct Viewport
 	{
 	public:
@@ -86,6 +54,7 @@ namespace Butterfly
 		const RenderPipeline& GetRenderPipeline() const { return *m_renderPipeline; }
 		BFRenderData& GetRenderData() { return *m_renderData; }
 		const BFRenderData& GetRenderData() const { return *m_renderData; }
+		const std::string& GetName() const { return m_viewportName; }
 	private:
 		friend class Renderer;
 
@@ -96,8 +65,8 @@ namespace Butterfly
 		std::array<RefPtr<BFTexture>, NUM_RENDER_BUFFERS> m_depthStencil;
 		std::array<RefPtr<GraphTransientResourceCache>, NUM_RENDER_BUFFERS> m_graphResources;
 
-		ViewportHandle m_handle;
 		uint32_t m_frameIndex;
+		std::string m_viewportName;
 	};
 
 	struct FrameData
@@ -106,7 +75,7 @@ namespace Butterfly
 		D3D12CommandList& GetCmdList() const { return *CmdList[FrameIndex]; }
 		D3D12Fence& GetFence() const { return *Fence[FrameIndex]; }
 
-		std::unordered_map<ViewportHandle, Viewport> Viewports;
+		std::unordered_set<RefPtr<Viewport>> Viewports;
 	private:
 		friend class Renderer;
 		uint32_t FrameIndex;
@@ -123,21 +92,17 @@ namespace Butterfly
 
 		void Render();
 
-		// Viewport functions.
-		ViewportHandle AddViewport();
-		void RemoveViewport(const ViewportHandle& handle);
+		RefPtr<Viewport> CreateViewport(const std::string& name);
 
 		FrameData& GetFrameData() { return m_frameData; }
 		const FrameData& GetFrameData() const { return m_frameData; }
-		const Viewport& GetViewport(const ViewportHandle& handle) const;
-		Viewport& GetViewport(const ViewportHandle& handle);
-
-		const std::unordered_map<ViewportHandle, Viewport>& GetViewports() const { return m_frameData.Viewports; }
-		std::unordered_map<ViewportHandle, Viewport>& GetViewports() { return m_frameData.Viewports; }
 
 		// ImGui Helper functions.
 		EventDispatcher<>& GetImGUIRenderEvent() { return m_ImGuiRenderEvent; }
-		void ImGUIImage(const ViewportHandle& handle);
+		void ImGUIImage(const RefPtr<Viewport>& viewport);
+
+		const std::unordered_set<RefPtr<Viewport>>& GetAllViewports() const { return m_frameData.Viewports; }
+		std::unordered_set<RefPtr<Viewport>>& GetAllViewports() { return m_frameData.Viewports; }
 
 	private:
 		void WaitForInflightFrames();
@@ -153,8 +118,6 @@ namespace Butterfly
 
 		bool m_resizePending = false;
 		glm::ivec2 m_resizeSize;
-
-		uint32_t m_viewportHandleIndex = 1;
 
 		EventDispatcher<> m_ImGuiRenderEvent;
 

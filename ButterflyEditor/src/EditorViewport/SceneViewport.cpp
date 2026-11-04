@@ -119,18 +119,13 @@ namespace Butterfly
 
 	SceneViewport::SceneViewport()
 	{
-		m_viewportHandle = Application::Get().GetRenderer().AddViewport();
+		m_viewport = Application::Get().GetRenderer().CreateViewport("SceneViewport");
 
-		Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
-		Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
+		m_viewport->GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
+		m_viewport->GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
 
-		m_viewportResizeReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetEvents().OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
-		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetEvents().OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
-	}
-	
-	SceneViewport::~SceneViewport()
-	{
-		Application::Get().GetRenderer().RemoveViewport(m_viewportHandle);
+		m_viewportResizeReceiver.Subscribe(m_viewport->GetEvents().OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
+		m_viewportPrerenderReceiver.Subscribe(m_viewport->GetEvents().OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
 	}
 		
 	void SceneViewport::OnTick()
@@ -238,10 +233,7 @@ namespace Butterfly
 		}
 
 		// Viewport rendering.
-		if (m_viewportHandle.Valid())
-		{
-			Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);
-		}
+		Application::Get().GetRenderer().ImGUIImage(m_viewport);
 
 		if (ImGui::IsKeyPressed(ImGuiKey_W) && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		{
@@ -356,18 +348,18 @@ namespace Butterfly
 		{
 			if (m_selectedViewType == 0)
 			{
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().SetDefaultStages();
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
+				m_viewport->GetRenderPipeline().SetDefaultStages();
+				m_viewport->GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
+				m_viewport->GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
 			}
 			else
 			{
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().ClearStages();
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<DebugViewRenderPipelineStage>().SetDebugViewType(m_debugTypes[m_selectedViewType]);
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
+				m_viewport->GetRenderPipeline().ClearStages();
+				m_viewport->GetRenderPipeline().RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+				m_viewport->GetRenderPipeline().RegisterStage<DebugViewRenderPipelineStage>().SetDebugViewType(m_debugTypes[m_selectedViewType]);
+				m_viewport->GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
+				m_viewport->GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
+				m_viewport->GetRenderPipeline().RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
 			}
 		}
 
@@ -383,7 +375,7 @@ namespace Butterfly
 
 			for (const auto& [entity, camera, transform] : Application::Get().GetScene().GetEntityRegistry().view<CameraComponent, TransformComponent>().each())
 			{
-				glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), Application::Get().GetRenderer().GetViewport(m_viewportHandle).Size());
+				glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), m_viewport->Size());
 				screenPos += viewportOffset;
 
 				const char* icon = FontAwesome::VideoCamera;
@@ -396,7 +388,7 @@ namespace Butterfly
 
 			for (const auto& [entity, light, transform] : Application::Get().GetScene().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
 			{
-				glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), Application::Get().GetRenderer().GetViewport(m_viewportHandle).Size());
+				glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), m_viewport->Size());
 				screenPos += viewportOffset;
 
 				const char* icon = FontAwesome::Lightbulb;
@@ -429,7 +421,7 @@ namespace Butterfly
 		const glm::ivec2 relativePos = mousePos - contentPos;
 		uint32_t readbackID = 0;
 
-		ObjectPickerRenderPipelineStage* objectPickerStage = Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().TryGetStage<ObjectPickerRenderPipelineStage>();
+		ObjectPickerRenderPipelineStage* objectPickerStage = m_viewport->GetRenderPipeline().TryGetStage<ObjectPickerRenderPipelineStage>();
 
 		if (objectPickerStage &&
 			objectPickerStage->m_objectPickerReadback->ReadPixel(relativePos, readbackID) &&

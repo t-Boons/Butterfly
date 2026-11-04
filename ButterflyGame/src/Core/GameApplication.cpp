@@ -16,8 +16,6 @@ namespace Butterfly::Game
 	void GameApplication::OnTick()
 	{
 		BF_PROFILE_EVENT()
-
-			m_viewport->OnTick();
 	}
 
 	void GameApplication::OnShutdown()

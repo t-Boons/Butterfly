@@ -85,23 +85,7 @@ namespace Butterfly
 		ImGui_ImplDX12_Init(&init_info);
 	}
 
-	const Viewport& Renderer::GetViewport(const ViewportHandle& handle) const
-	{
-		BF_CORE_ASSERT(handle.Valid(), "Renderer::GetViewport: ViewportHandle is invalid.");
-		const auto it = GetFrameData().Viewports.find(handle);
-		BF_CORE_ASSERT(it != GetFrameData().Viewports.end(), "Renderer::GetViewport: handle is not found in viewports.");
-		return it->second;
-	}
-
-	Viewport& Renderer::GetViewport(const ViewportHandle& handle)
-	{
-		BF_CORE_ASSERT(handle.Valid(), "Renderer::GetViewport: ViewportHandle is invalid.");
-		auto it = GetFrameData().Viewports.find(handle);
-		BF_CORE_ASSERT(it != GetFrameData().Viewports.end(), "Renderer::GetViewport: handle is not found in viewports.");
-		return it->second;
-	}
-
-	void Renderer::ImGUIImage(const ViewportHandle& handle)
+	void Renderer::ImGUIImage(const RefPtr<Viewport>& viewport)
 	{
 		BF_PROFILE_EVENT()
 
@@ -109,24 +93,20 @@ namespace Butterfly
 		if (size.x < 1.0f) size.x = 1.0f;
 		if (size.y < 1.0f) size.y = 1.0f;
 
-		BF_CORE_ASSERT(handle.Valid(), "Renderer::ImGUIImage: ViewportHandle is invalid.");
-
 		if (GetFrameData().Viewports.empty())
 		{
 			BF_CORE_LOG_WARN("Renderer::ImGUIImage: No viewports found.");
 			return;
 		}
 
-		auto it = GetFrameData().Viewports.find(handle);
-
 		// When one of the viewports gets resized.
-		if (!it->second.HasRenderTarget() || it->second.GetRenderTarget().Width() != size.x || it->second.GetRenderTarget().Height() != size.y)
+		if (!viewport->HasRenderTarget() || viewport->GetRenderTarget().Width() != size.x || viewport->GetRenderTarget().Height() != size.y)
 		{
 			WaitForInflightFrames();
 
-			it->second.m_renderTarget[it->second.m_frameIndex].reset();
-			it->second.m_depthStencil[it->second.m_frameIndex].reset();
-			it->second.GetGraphResources().Flush();
+			viewport->m_renderTarget[viewport->m_frameIndex].reset();
+			viewport->m_depthStencil[viewport->m_frameIndex].reset();
+			viewport->GetGraphResources().Flush();
 
 			{
 				BFTextureDesc desc;
@@ -134,9 +114,9 @@ namespace Butterfly
 				desc.Width = size.x;
 				desc.Height = size.y;
 				desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
-				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " RenderTarget";
+				desc.DebugName = "Viewport " + viewport->GetName() + " RenderTarget";
 
-				it->second.m_renderTarget[it->second.m_frameIndex] = MakeRef<BFTexture>(desc);
+				viewport->m_renderTarget[viewport->m_frameIndex] = MakeRef<BFTexture>(desc);
 			}
 			{
 				BFTextureDesc desc;
@@ -144,17 +124,17 @@ namespace Butterfly
 				desc.Width = size.x;
 				desc.Height = size.y;
 				desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable;
-				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " DepthStencil";
+				desc.DebugName = "Viewport " + viewport->GetName() + " DepthStencil";
 
-				it->second.m_depthStencil[it->second.m_frameIndex] = MakeRef<BFTexture>(desc);
+				viewport->m_depthStencil[viewport->m_frameIndex] = MakeRef<BFTexture>(desc);
 			}
 			
 
-			it->second.GetEvents().OnResize.Broadcast(ViewportResizeEvent({size.x, size.y}));
+			viewport->GetEvents().OnResize.Broadcast(ViewportResizeEvent({size.x, size.y}));
 		}
 
 
-		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(it->second.GetRenderTarget().SRV().View()).ptr;
+		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(viewport->GetRenderTarget().SRV().View()).ptr;
 		ImGui::Image(textureID, { size.x, size.y });
 	}
 
@@ -162,20 +142,30 @@ namespace Butterfly
 	{
 		BF_PROFILE_FRAME("Renderer::Render");
 
-		if (m_resizePending)
-		{
-			ApplyResize();
-		}
-
 		m_frameData.FrameIndex = m_frameIndex;
 		for (auto& it : m_frameData.Viewports)
 		{
-			Viewport& viewport = it.second;
+			Viewport& viewport = *it;
 			viewport.m_frameIndex = m_frameIndex;
 		}
 
 		m_frameData.GetFence().Wait();
 		m_frameData.GetCmdList().Reset();
+
+		if (m_resizePending)
+		{
+			ApplyResize();
+		}
+
+		// Remove viewports that are no longer referenced by any other part of the application.
+		auto isDeadFunc = [](const RefPtr<Viewport>& vp) { return vp.use_count() == 1; };
+		if (std::any_of(m_frameData.Viewports.begin(), m_frameData.Viewports.end(), isDeadFunc))
+		{
+			WaitForInflightFrames();
+			std::erase_if(m_frameData.Viewports, isDeadFunc);
+		}
+
+
 
 		// Clear composite render target.
 		{
@@ -200,23 +190,28 @@ namespace Butterfly
 		}
 
 		{
-			BF_PROFILE_EVENT("Renderer::Render: Viewports");
+			BF_PROFILE_EVENT("Renderer::Render Viewports PreRender");
 
+			// Pre-render all viewports.
 			for (auto& it : m_frameData.Viewports)
 			{
-				Viewport& viewport = it.second;
+				Viewport& viewport = *it;
 				viewport.GetRenderPipeline().PreRender(ViewportPrerenderEvent{ viewport });
 				viewport.GetEvents().OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
 			}
+		}
+
+		{
+			BF_PROFILE_EVENT("Renderer::Render Viewports Render");
 
 			// Record all commands to render all viewports.
 			for (auto& it : m_frameData.Viewports)
 			{
-				Viewport& viewport = it.second;
+				Viewport& viewport = *it;
 
 				GraphBuilder builder(viewport.GetGraphResources());
 
-				m_frameData.GetCmdList().BeginGPUMarker("Viewport " + std::to_string(viewport.m_handle.m_index));
+				m_frameData.GetCmdList().BeginGPUMarker("Viewport " + viewport.GetName());
 
 				viewport.GetRenderPipeline().RecordPasses(ViewportRenderEvent{ builder, viewport });
 				viewport.GetEvents().OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
@@ -234,6 +229,7 @@ namespace Butterfly
 		}
 
 		{
+			// Submit all ImGUI and viewport render commands to the GPU.
 			BF_PROFILE_EVENT("Renderer::Render: Render Submit");
 			ImGui::Render();
 
@@ -253,32 +249,40 @@ namespace Butterfly
 			m_frameData.GetFence().Signal(*D3D12API()->Queue(QueueType::Direct));
 		}
 
-		for (auto& it : m_frameData.Viewports)
 		{
-			Viewport& viewport = it.second;
-			viewport.GetRenderPipeline().PostRender();
-			viewport.GetEvents().OnPostRender.Broadcast();
-		}
+			BF_PROFILE_EVENT("Renderer::Render Viewports PostRender");
 
+			// Post render all viewports.
+			for (auto& it : m_frameData.Viewports)
+			{
+				Viewport& viewport = *it;
+				viewport.GetRenderPipeline().PostRender();
+				viewport.GetEvents().OnPostRender.Broadcast();
+			}
+		}
+		
+		// Present the final image to the screen.
 		Application::Get().GetWindow().Context().Present();
 
+		// Update ImGUI viewports outside of the screen.
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
 		}
 
+		// Update the frame index for the next frame.
 		m_previousFrame = m_frameIndex;
 		m_frameIndex++;
 		m_frameIndex = m_frameIndex % NUM_RENDER_BUFFERS;
 	}
 
-	ViewportHandle Renderer::AddViewport()
+	RefPtr<Viewport> Renderer::CreateViewport(const std::string& name)
 	{
-		ViewportHandle handle;
-		handle.m_index = m_viewportHandleIndex++;
+		RefPtr<Viewport> viewport = MakeRef<Viewport>();
+		m_frameData.Viewports.insert(viewport);
 
-		Viewport viewport{};
+		viewport->m_viewportName = name;
 
 		for (uint32_t i = 0; i < NUM_RENDER_BUFFERS; ++i)
 		{
@@ -288,9 +292,9 @@ namespace Butterfly
 				desc.Width = 1;
 				desc.Height = 1;
 				desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
-				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " RenderTarget";
+				desc.DebugName = "Viewport " + viewport->GetName() + " RenderTarget";
 
-				viewport.m_renderTarget[i] = MakeRef<BFTexture>(desc);
+				viewport->m_renderTarget[i] = MakeRef<BFTexture>(desc);
 			}
 			{
 				BFTextureDesc desc;
@@ -298,42 +302,18 @@ namespace Butterfly
 				desc.Width = 1;
 				desc.Height = 1;
 				desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable;
-				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " DepthStencil";
+				desc.DebugName = "Viewport " + viewport->GetName() + " DepthStencil";
 
-				viewport.m_depthStencil[i] = MakeRef<BFTexture>(desc);
+				viewport->m_depthStencil[i] = MakeRef<BFTexture>(desc);
 			}
 
-			viewport.m_graphResources[i] = MakeRef<GraphTransientResourceCache>();
+			viewport->m_graphResources[i] = MakeRef<GraphTransientResourceCache>();
 		}
 
-		viewport.m_renderData = MakeRef<BFRenderData>();
-		viewport.m_renderPipeline = MakeRef<RenderPipeline>(*this);
-		viewport.m_handle = handle;
+		viewport->m_renderData = MakeRef<BFRenderData>();
+		viewport->m_renderPipeline = MakeRef<RenderPipeline>(*this);
 
-		m_frameData.Viewports[handle] = viewport;
-
-		return handle;
-	}
-
-
-	void Renderer::RemoveViewport(const ViewportHandle& handle)
-	{
-		bool found = false;
-		for (auto& it : m_frameData.Viewports)
-		{
-			if (it.first == handle)
-			{
-				m_frameData.Viewports.erase(it.first);
-				found = true;
-				break;
-			}
-		}
-
-		if (!found)
-		{
-			BF_CORE_LOG_WARN("Renderer::RemoveViewport: ViewportHandle does not exist. Index: %u", handle.m_index);
-
-		}
+		return viewport;
 	}
 
 	void Renderer::WaitForInflightFrames()

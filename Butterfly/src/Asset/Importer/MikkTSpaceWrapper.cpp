@@ -1,4 +1,4 @@
-#include "Renderer/ModelLoading/MikkTSpaceWrapper.hpp"
+#include "Asset/Importer/MikkTSpaceWrapper.hpp"
 
 namespace Butterfly
 {

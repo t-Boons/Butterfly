@@ -1,8 +1,9 @@
 #include "Asset/Importer/GLTFImporter.hpp"
+
+#include "Asset/Importer/MikkTSpaceWrapper.hpp"
 #include "Asset/Importer/ImageImporter.hpp"
 #include "Asset/AssetTypes.hpp"
 #include "Renderer/D3D12Texture.hpp"
-#include "Renderer/ModelLoading/MikkTSpaceWrapper.hpp"
 #include "tinygltf/tiny_gltf.h"
 #include "Core/Application.hpp"
 

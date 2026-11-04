@@ -193,6 +193,8 @@ namespace Butterfly
 
 	void BFGraphicsContext::Present()
 	{
+		BF_PROFILE_EVENT();
+
 		uint32_t flags = DXGI_PRESENT_ALLOW_TEARING;
 		uint32_t syncInterval = 0;
 

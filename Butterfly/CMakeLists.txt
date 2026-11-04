@@ -36,7 +36,8 @@ add_library(Butterfly STATIC
     src/Asset/Importer/ImageImporter.cpp
     src/Asset/Importer/OBJImporter.cpp
     src/Asset/Importer/GLTFImporter.cpp
-
+    src/Asset/Importer/MikkTSpaceWrapper.cpp
+    
     src/Serialization/ENTT/ComponentRegistry.cpp
 
     src/Renderer/Renderer.cpp
@@ -71,7 +72,6 @@ add_library(Butterfly STATIC
 
     src/Renderer/Graph/Graph.cpp
     src/Renderer/Graph/GraphTypes.cpp
-    src/Renderer/ModelLoading/MikkTSpaceWrapper.cpp
 )
 
 target_compile_definitions(Butterfly PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)

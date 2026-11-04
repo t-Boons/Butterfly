@@ -52,9 +52,9 @@ namespace Butterfly
 				{
 					if (ImGui::MenuItem("SRGB"))
 					{
-						for (auto& viewport : Application::Get().GetRenderer().GetViewports())
+						for (auto& viewport : Application::Get().GetRenderer().GetAllViewports())
 						{
-							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.GetRenderPipeline().TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
+							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport->GetRenderPipeline().TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
 							{
 								stage->SetColorSpace(ColorspaceCorrectionRenderPipelineStage::ColorSpace::SRGB);
 							}
@@ -63,9 +63,9 @@ namespace Butterfly
 
 					if (ImGui::MenuItem("GammaApproximation"))
 					{
-						for (auto& viewport : Application::Get().GetRenderer().GetViewports())
+						for (auto& viewport : Application::Get().GetRenderer().GetAllViewports())
 						{
-							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.GetRenderPipeline().TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
+							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport->GetRenderPipeline().TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
 							{
 								stage->SetColorSpace(ColorspaceCorrectionRenderPipelineStage::ColorSpace::GammaApprox);
 							}
@@ -74,9 +74,9 @@ namespace Butterfly
 
 					if (ImGui::MenuItem("Linear"))
 					{
-						for (auto& viewport : Application::Get().GetRenderer().GetViewports())
+						for (auto& viewport : Application::Get().GetRenderer().GetAllViewports())
 						{
-							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.GetRenderPipeline().TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
+							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport->GetRenderPipeline().TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
 							{
 								stage->SetColorSpace(ColorspaceCorrectionRenderPipelineStage::ColorSpace::Linear);
 							}

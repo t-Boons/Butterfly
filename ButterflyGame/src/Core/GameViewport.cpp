@@ -7,18 +7,9 @@ namespace Butterfly::Game
 {
 	GameViewport::GameViewport()
 	{
-		m_viewportHandle = Application::Get().GetRenderer().AddViewport();
+		m_viewport = Application::Get().GetRenderer().CreateViewport("GameViewport");
 		m_imGUIRenderReceiver.Subscribe(Application::Get().GetRenderer().GetImGUIRenderEvent(), BF_BIND_FUNC(&GameViewport::OnRenderImGUI));
-		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetEvents().OnPreRender, BF_BIND_FUNC_PARAM(&GameViewport::OnPrerender));
-	}
-
-	GameViewport::~GameViewport()
-	{
-		Application::Get().GetRenderer().RemoveViewport(m_viewportHandle);
-	}
-
-	void GameViewport::OnTick()
-	{
+		m_viewportPrerenderReceiver.Subscribe(m_viewport->GetEvents().OnPreRender, BF_BIND_FUNC_PARAM(&GameViewport::OnPrerender));
 	}
 
 	void GameViewport::OnPrerender(const ViewportPrerenderEvent& event)
@@ -56,14 +47,14 @@ namespace Butterfly::Game
 
 		if (cameraFound && m_shouldUpdateRenderPipeline)
 		{
-			Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().SetDefaultStages();
+			event.Viewport.GetRenderPipeline().SetDefaultStages();
 			m_shouldUpdateRenderPipeline = false;
 		}
 
 		if (!cameraFound && m_shouldUpdateRenderPipeline)
 		{
-			Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().ClearStages();
-			Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+			event.Viewport.GetRenderPipeline().ClearStages();
+			event.Viewport.GetRenderPipeline().RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
 			m_shouldUpdateRenderPipeline = false;
 		}
 
@@ -97,7 +88,7 @@ namespace Butterfly::Game
 	{
 		BF_PROFILE_EVENT()
 
-		const std::string windowName = "Game Viewport##" + std::to_string(m_viewportHandle.Index());
+		const std::string windowName = "Game Viewport";
 
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowPos(viewport->Pos);
@@ -108,11 +99,7 @@ namespace Butterfly::Game
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::Begin(windowName.c_str(), nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
-		// Viewport rendering.
-		if (m_viewportHandle.Valid())
-		{
-			Application::Get().GetRenderer().ImGUIImage(m_viewportHandle);
-		}
+		Application::Get().GetRenderer().ImGUIImage(m_viewport);
 
 		if (!m_oldCameraFound)
 		{
