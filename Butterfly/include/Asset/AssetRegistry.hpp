@@ -19,6 +19,8 @@ namespace Butterfly
 		bool FindFile(const UUID& id, AssetFileMetadata& fileMeta) const;
 		const std::unordered_map<UUID, AssetFileMetadata>& GetAll() const { return m_registeredFiles; }
 
+		std::filesystem::path GetRootDirectory() const { return m_assetPath; }
+
 	private:
 		AssetFileMetadata WriteNewMetaForFile(const std::filesystem::path& file) const;
 		AssetFileMetadata ReadMetaFromFile(const std::filesystem::path& file) const;

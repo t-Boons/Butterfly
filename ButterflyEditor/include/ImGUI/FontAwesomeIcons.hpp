@@ -19,4 +19,5 @@ namespace FontAwesome
 	inline const char* LeftRight = reinterpret_cast<const char*>(u8"\uf337");
 	inline const char* Expand = reinterpret_cast<const char*>(u8"\uf065");
 	inline const char* Globe = reinterpret_cast<const char*>(u8"\uf0ac");
+	inline const char* Folder = reinterpret_cast<const char*>(u8"\uf07b");
 }

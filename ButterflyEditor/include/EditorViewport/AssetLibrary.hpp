@@ -12,5 +12,8 @@ namespace Butterfly
 
 		virtual void OnTick() override;
 		virtual void OnRenderImGUI() override;
+
+	private:
+		std::filesystem::path m_currentDir;
 	};
 }
