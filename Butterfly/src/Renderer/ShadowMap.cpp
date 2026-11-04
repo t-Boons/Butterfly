@@ -3,6 +3,7 @@
 #include "Scene/Registry/TransformComponent.hpp"
 #include "Renderer/RenderIncludes.hpp"
 #include "Renderer/Renderer.hpp"
+#include "Renderer/RenderData.hpp"
 
 namespace Butterfly
 {
@@ -150,8 +151,9 @@ namespace Butterfly
 					shadow.NumSlices = lightComponent.GetNumCascades();
 					shadow.CascadeSplits = lightComponent.GetCascadeSplits();
 
-					const auto corners = Utils::GetFrustumCorners(viewport.UniformCameraData.ViewProjection);
-					Utils::GetCascadeSplitDirectionalLight(lightComponent.GetCascadeSplits(), corners, viewport.UniformCameraData.Near, viewport.UniformCameraData.Far, transform.GetForward(), lightComponent.GetShadowMapResolution(),
+					const auto& cam = viewport.GetRenderData().UniformCameraData;
+					const auto corners = Utils::GetFrustumCorners(cam.ViewProjection);
+					Utils::GetCascadeSplitDirectionalLight(lightComponent.GetCascadeSplits(), corners, cam.Near, cam.Far, transform.GetForward(), lightComponent.GetShadowMapResolution(),
 						shadow.LightViewProjections, shadow.TexelSizes);
 
 				}

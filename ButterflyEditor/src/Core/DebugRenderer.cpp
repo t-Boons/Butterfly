@@ -58,7 +58,7 @@ namespace Butterfly
 				list.SetGraphicsPSO(psoInfo);
 
 				ShaderVariables()
-					.Add(event.Viewport.Uniforms->GetView(HASH("CameraData"))->View())
+					.Add(event.Viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
 					.Add(data.VertexBuffer->SRV().View())
 					.Submit(list);
 
@@ -68,7 +68,7 @@ namespace Butterfly
 			});
 	}
 
-	void DebugRendererPipelineStage::OnPostRender(const ViewportPostRenderEvent& event)
+	void DebugRendererPipelineStage::OnPostRender()
 	{
 		EditorApplication::Get().GetDebugRenderer().OnPostRender();
 	}

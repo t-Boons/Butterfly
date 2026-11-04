@@ -29,6 +29,7 @@
 #include "Scene/Registry/SkyboxComponent.hpp"
 #include "Scene/Registry/CameraComponent.hpp"
 
+#include "Renderer/RenderData.hpp"
 #include "Renderer/Renderer.hpp" 
 #include "Renderer/Camera.hpp"
 #include "Renderer/D3D12/D3D12DescriptorAllocator.hpp"

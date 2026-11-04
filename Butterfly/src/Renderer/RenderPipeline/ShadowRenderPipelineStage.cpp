@@ -2,6 +2,7 @@
 #include "Renderer/RenderPipeline/ShadowRenderPipelineStage.hpp"
 #include "Renderer/RenderIncludes.hpp"
 #include "Renderer/Renderer.hpp"
+#include "Renderer/RenderData.hpp"
 
 namespace Butterfly
 {
@@ -15,7 +16,7 @@ namespace Butterfly
 		builder.AddPass<ShadowMapPass>("ShadowMap",
 			[viewport, this](const ShadowMapPass& params, D3D12CommandList& list)
 			{
-				const std::array<ShadowMap, MAX_SHADOW_MAPS>& shadowMaps = viewport.ShadowMaps.GetShadowMaps();
+				const std::array<ShadowMap, MAX_SHADOW_MAPS>& shadowMaps = viewport.GetRenderData().ShadowMaps.GetShadowMaps();
 				const auto& firstValidShadow = std::find_if(shadowMaps.begin(), shadowMaps.end(), [](const ShadowMap& l) { return l.ShadowMapTexture != nullptr; });
 				if (firstValidShadow == shadowMaps.end())
 				{
@@ -71,11 +72,11 @@ namespace Butterfly
 							{
 								ShaderVariables()
 									.Add(mesh->GPUPositions->SRV().View())
-									.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-									.Add(viewport.ShadowMaps.SRV().View())
+									.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
+									.Add(viewport.GetRenderData().ShadowMaps.SRV().View())
 									.Add(shadowMapIndex)
-									.Add(viewport.Models.SRV().View())
-									.Add(viewport.Models.GetModelViewIndex(entityIndex))
+									.Add(viewport.GetRenderData().Models.SRV().View())
+									.Add(viewport.GetRenderData().Models.GetModelViewIndex(entityIndex))
 									.Add(slice)
 									.Submit(list);
 

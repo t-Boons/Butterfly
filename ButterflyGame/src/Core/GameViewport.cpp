@@ -9,7 +9,7 @@ namespace Butterfly::Game
 	{
 		m_viewportHandle = Application::Get().GetRenderer().AddViewport();
 		m_imGUIRenderReceiver.Subscribe(Application::Get().GetRenderer().GetImGUIRenderEvent(), BF_BIND_FUNC(&GameViewport::OnRenderImGUI));
-		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).Events.OnPreRender, BF_BIND_FUNC_PARAM(&GameViewport::OnPrerender));
+		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetEvents().OnPreRender, BF_BIND_FUNC_PARAM(&GameViewport::OnPrerender));
 	}
 
 	GameViewport::~GameViewport()
@@ -56,14 +56,14 @@ namespace Butterfly::Game
 
 		if (cameraFound && m_shouldUpdateRenderPipeline)
 		{
-			Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->SetDefaultStages();
+			Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().SetDefaultStages();
 			m_shouldUpdateRenderPipeline = false;
 		}
 
 		if (!cameraFound && m_shouldUpdateRenderPipeline)
 		{
-			Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->ClearStages();
-			Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+			Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().ClearStages();
+			Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
 			m_shouldUpdateRenderPipeline = false;
 		}
 
@@ -74,15 +74,10 @@ namespace Butterfly::Game
 		cameraData.InverseProjection = glm::transpose(glm::inverse(projection));
 		cameraData.Near = zNear;
 		cameraData.Far = zFar;
-		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
-		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
-		event.Viewport.UniformCameraData = cameraData;
 
-		event.Viewport.Lights.Update(event.Viewport);
-		event.Viewport.Materials.Validate();
-		event.Viewport.Models.Validate();
+		event.Viewport.GetRenderData().Update(event.Viewport, cameraData);
 
-		if (SkyboxRenderPipelineStage* srps = event.Viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>())
+		if (SkyboxRenderPipelineStage* srps = event.Viewport.GetRenderPipeline().TryGetStage<SkyboxRenderPipelineStage>())
 		{
 			auto view = Application::Get().GetScene().GetEntityRegistry().view<SkyboxComponent>();
 			auto first = view.begin();

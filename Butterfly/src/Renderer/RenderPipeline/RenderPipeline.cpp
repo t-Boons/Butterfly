@@ -29,11 +29,11 @@ namespace Butterfly
 		}
 	}
 
-	void RenderPipeline::PostRender(const ViewportPostRenderEvent& ev)
+	void RenderPipeline::PostRender()
 	{
 		for (auto& stage : m_renderPipelineStages)
 		{
-			stage->OnPostRender(ev);
+			stage->OnPostRender();
 		}
 	}
 

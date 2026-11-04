@@ -1,9 +1,11 @@
 #include "Renderer/Renderer.hpp"
-#include "Core/Application.hpp"
 
 #include "imgui/imgui_impl_dx12.h"
 #include "imgui/imgui_impl_glfw.h"
 
+#include "Core/Application.hpp"
+#include "Renderer/D3D12Texture.hpp"
+#include "Renderer/RenderData.hpp"
 #include "Renderer/RenderPipeline/RenderPipeline.hpp"
 
 namespace Butterfly
@@ -122,7 +124,8 @@ namespace Butterfly
 		{
 			WaitForInflightFrames();
 
-			it->second.RenderTarget[it->second.FrameIndex].reset();
+			it->second.m_renderTarget[it->second.m_frameIndex].reset();
+			it->second.m_depthStencil[it->second.m_frameIndex].reset();
 			it->second.GetGraphResources().Flush();
 
 			{
@@ -133,7 +136,7 @@ namespace Butterfly
 				desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
 				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " RenderTarget";
 
-				it->second.RenderTarget[it->second.FrameIndex] = MakeRef<BFTexture>(desc);
+				it->second.m_renderTarget[it->second.m_frameIndex] = MakeRef<BFTexture>(desc);
 			}
 			{
 				BFTextureDesc desc;
@@ -143,11 +146,11 @@ namespace Butterfly
 				desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable;
 				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " DepthStencil";
 
-				it->second.DepthStencil[it->second.FrameIndex] = MakeRef<BFTexture>(desc);
+				it->second.m_depthStencil[it->second.m_frameIndex] = MakeRef<BFTexture>(desc);
 			}
 			
 
-			it->second.Events.OnResize.Broadcast(ViewportResizeEvent({ size.x, size.y }));
+			it->second.GetEvents().OnResize.Broadcast(ViewportResizeEvent({size.x, size.y}));
 		}
 
 
@@ -168,7 +171,7 @@ namespace Butterfly
 		for (auto& it : m_frameData.Viewports)
 		{
 			Viewport& viewport = it.second;
-			viewport.FrameIndex = m_frameIndex;
+			viewport.m_frameIndex = m_frameIndex;
 		}
 
 		m_frameData.GetFence().Wait();
@@ -202,8 +205,8 @@ namespace Butterfly
 			for (auto& it : m_frameData.Viewports)
 			{
 				Viewport& viewport = it.second;
-				viewport.RenderPipeline->PreRender(ViewportPrerenderEvent{ viewport });
-				viewport.Events.OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
+				viewport.GetRenderPipeline().PreRender(ViewportPrerenderEvent{ viewport });
+				viewport.GetEvents().OnPreRender.Broadcast(ViewportPrerenderEvent{ viewport });
 			}
 
 			// Record all commands to render all viewports.
@@ -213,10 +216,10 @@ namespace Butterfly
 
 				GraphBuilder builder(viewport.GetGraphResources());
 
-				m_frameData.GetCmdList().BeginGPUMarker("Viewport " + std::to_string(viewport.Handle.m_index));
+				m_frameData.GetCmdList().BeginGPUMarker("Viewport " + std::to_string(viewport.m_handle.m_index));
 
-				viewport.RenderPipeline->RecordPasses(ViewportRenderEvent{ builder, viewport });
-				viewport.Events.OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
+				viewport.GetRenderPipeline().RecordPasses(ViewportRenderEvent{ builder, viewport });
+				viewport.GetEvents().OnRender.Broadcast(ViewportRenderEvent{ builder, viewport });
 
 				auto graph = builder.Create();
 				graph->Execute(m_frameData.GetCmdList());
@@ -253,8 +256,8 @@ namespace Butterfly
 		for (auto& it : m_frameData.Viewports)
 		{
 			Viewport& viewport = it.second;
-			viewport.RenderPipeline->PostRender(ViewportPostRenderEvent());
-			viewport.Events.OnPostRender.Broadcast(ViewportPostRenderEvent());
+			viewport.GetRenderPipeline().PostRender();
+			viewport.GetEvents().OnPostRender.Broadcast();
 		}
 
 		Application::Get().GetWindow().Context().Present();
@@ -275,11 +278,7 @@ namespace Butterfly
 		ViewportHandle handle;
 		handle.m_index = m_viewportHandleIndex++;
 
-		Viewport viewport;
-		viewport.GraphResources.fill(MakeRef<GraphTransientResourceCache>());
-		viewport.Uniforms = MakeRef<BFUniformBuffer>(4096, "Viewport " + std::to_string(handle.m_index) + " Uniforms");
-		viewport.Handle = handle;
-		viewport.RenderPipeline = MakeRef<RenderPipeline>(*this);
+		Viewport viewport{};
 
 		for (uint32_t i = 0; i < NUM_RENDER_BUFFERS; ++i)
 		{
@@ -291,7 +290,7 @@ namespace Butterfly
 				desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
 				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " RenderTarget";
 
-				viewport.RenderTarget[i] = MakeRef<BFTexture>(desc);
+				viewport.m_renderTarget[i] = MakeRef<BFTexture>(desc);
 			}
 			{
 				BFTextureDesc desc;
@@ -301,9 +300,16 @@ namespace Butterfly
 				desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable;
 				desc.DebugName = "Viewport " + std::to_string(handle.m_index) + " DepthStencil";
 
-				viewport.DepthStencil[i] = MakeRef<BFTexture>(desc);
+				viewport.m_depthStencil[i] = MakeRef<BFTexture>(desc);
 			}
+
+			viewport.m_graphResources[i] = MakeRef<GraphTransientResourceCache>();
 		}
+
+		viewport.m_renderData = MakeRef<BFRenderData>();
+		viewport.m_renderPipeline = MakeRef<RenderPipeline>(*this);
+		viewport.m_handle = handle;
+
 		m_frameData.Viewports[handle] = viewport;
 
 		return handle;

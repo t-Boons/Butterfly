@@ -14,7 +14,7 @@
 
 namespace Butterfly
 {
-	RefPtr<BFTexture> GraphicsCommands::CreateSDF(const std::vector<SDFTriangle>& triangleBuffer, const Bounds& bounds, const glm::uvec3& resolution)
+	RefPtr<BFTexture> GraphicsCommands::CreateSDF(const std::vector<SDFTriangle>& triangleBuffer, const BFAABB& bounds, const glm::uvec3& resolution)
 	{
 		BF_PROFILE_EVENT()
 			

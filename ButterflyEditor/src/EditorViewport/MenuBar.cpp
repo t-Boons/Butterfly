@@ -54,7 +54,7 @@ namespace Butterfly
 					{
 						for (auto& viewport : Application::Get().GetRenderer().GetViewports())
 						{
-							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.RenderPipeline->TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
+							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.GetRenderPipeline().TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
 							{
 								stage->SetColorSpace(ColorspaceCorrectionRenderPipelineStage::ColorSpace::SRGB);
 							}
@@ -65,7 +65,7 @@ namespace Butterfly
 					{
 						for (auto& viewport : Application::Get().GetRenderer().GetViewports())
 						{
-							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.RenderPipeline->TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
+							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.GetRenderPipeline().TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
 							{
 								stage->SetColorSpace(ColorspaceCorrectionRenderPipelineStage::ColorSpace::GammaApprox);
 							}
@@ -76,7 +76,7 @@ namespace Butterfly
 					{
 						for (auto& viewport : Application::Get().GetRenderer().GetViewports())
 						{
-							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.RenderPipeline->TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
+							if (ColorspaceCorrectionRenderPipelineStage* stage = viewport.second.GetRenderPipeline().TryGetStage<ColorspaceCorrectionRenderPipelineStage>())
 							{
 								stage->SetColorSpace(ColorspaceCorrectionRenderPipelineStage::ColorSpace::Linear);
 							}

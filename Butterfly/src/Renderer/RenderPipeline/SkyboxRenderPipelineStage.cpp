@@ -4,6 +4,7 @@
 #include "Renderer/Renderer.hpp"
 #include "Renderer/D3D12Sampler.hpp"
 #include "Renderer/D3D12/D3D12CommandQueue.hpp"
+#include "Renderer/RenderData.hpp"
 
 namespace Butterfly
 {
@@ -110,10 +111,8 @@ namespace Butterfly
 		SkyboxPassParams* params = builder.AllocParameters<SkyboxPassParams>();
 		params->SkyboxTexture = m_skyboxTexture.get();
 
-		ForwardRenderer* forwardParams = builder.GetPassData<SkyboxPassParams, ForwardRenderer>();
-
 		builder.AddPass<SkyboxPassParams>("Skybox",
-			[forwardParams, viewport, this](const SkyboxPassParams& params, D3D12CommandList& list)
+			[viewport, this](const SkyboxPassParams& params, D3D12CommandList& list)
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Skybox pass");
 
@@ -138,7 +137,7 @@ namespace Butterfly
 				BFSampler& sampler = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
 
 				ShaderVariables()
-					.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
+					.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
 					.Add(sampler.View())
 					.Add(m_skyboxTexture->SRV().View())
 					.Submit(list);

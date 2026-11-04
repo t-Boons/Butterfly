@@ -92,9 +92,9 @@ namespace Butterfly
 						MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
 						ShaderVariables()
 							.Add(mesh->GPUPositions->SRV().View())
-							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
-							.Add(viewport.Models.SRV().View())
-							.Add(viewport.Models.GetModelViewIndex(entityRenderIndex))
+							.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
+							.Add(viewport.GetRenderData().Models.SRV().View())
+							.Add(viewport.GetRenderData().Models.GetModelViewIndex(entityRenderIndex))
 							.Add(static_cast<int>(entity)) // uint32_t Entity ID in registry.
 							.Submit(list);
 
@@ -121,11 +121,11 @@ namespace Butterfly
 	{
 		m_viewportHandle = Application::Get().GetRenderer().AddViewport();
 
-		Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugRendererPipelineStage>();
-		Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ObjectPickerRenderPipelineStage>();
+		Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
+		Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
 
-		m_viewportResizeReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).Events.OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
-		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).Events.OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
+		m_viewportResizeReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetEvents().OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
+		m_viewportPrerenderReceiver.Subscribe(Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetEvents().OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
 	}
 	
 	SceneViewport::~SceneViewport()
@@ -176,27 +176,6 @@ namespace Butterfly
 				EditorApplication::Get().GetDebugRenderer().DrawBox(modelMatrix * glm::vec4(mesh->GetBounds().Min, 1.0f), modelMatrix * glm::vec4(mesh->GetBounds().Max, 1.0f), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
 			}
 		}
-
-		if (m_subMeshBoundingBoxesVisible)
-		{
-			auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
-			for (auto [entity, transform, meshRenderer] : view.each())
-			{
-				if (!meshRenderer.GetMeshHandle())
-				{
-					continue;
-				}
-
-				const MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-				const glm::mat4 modelMatrix = transform.GetWorldMatrix();
-
-				for (const auto& subMesh : mesh->GetSubMeshes())
-				{
-					EditorApplication::Get().GetDebugRenderer().DrawBox(modelMatrix * glm::vec4(subMesh.SubBounds.Min, 1.0f), modelMatrix * glm::vec4(subMesh.SubBounds.Max, 1.0f), glm::vec4(1.0f, 0.5f, 1.0f, 1.0f));
-				}
-
-			}
-		}
 	}
 
 	void SceneViewport::OnResize(const ViewportResizeEvent& event)
@@ -217,18 +196,10 @@ namespace Butterfly
 		cameraData.InverseProjection = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ProjectionMatrix()));
 		cameraData.Near = m_spectatorCam.GetCamera()->Near();
 		cameraData.Far = m_spectatorCam.GetCamera()->Far();
-		event.Viewport.UniformCameraData = cameraData;
 
-		event.Viewport.Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
-		event.Viewport.Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
+		event.Viewport.GetRenderData().Update(event.Viewport, cameraData);
 
-		event.Viewport.Lights.Update(event.Viewport);
-		event.Viewport.ShadowMaps.Update(event.Viewport);
-		event.Viewport.Materials.Validate();
-		event.Viewport.Models.Validate();
-
-
-		if (SkyboxRenderPipelineStage* srps = event.Viewport.RenderPipeline->TryGetStage<SkyboxRenderPipelineStage>())
+		if (SkyboxRenderPipelineStage* srps = event.Viewport.GetRenderPipeline().TryGetStage<SkyboxRenderPipelineStage>())
 		{
 			auto view = Application::Get().GetScene().GetEntityRegistry().view<SkyboxComponent>();
 			auto first = view.begin();
@@ -385,18 +356,18 @@ namespace Butterfly
 		{
 			if (m_selectedViewType == 0)
 			{
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->SetDefaultStages();
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugRendererPipelineStage>();
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ObjectPickerRenderPipelineStage>();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().SetDefaultStages();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
 			}
 			else
 			{
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->ClearStages();
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugViewRenderPipelineStage>().SetDebugViewType(m_debugTypes[m_selectedViewType]);
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<DebugRendererPipelineStage>();
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ObjectPickerRenderPipelineStage>();
-				Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().ClearStages();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<DebugViewRenderPipelineStage>().SetDebugViewType(m_debugTypes[m_selectedViewType]);
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
+				Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
 			}
 		}
 
@@ -458,7 +429,7 @@ namespace Butterfly
 		const glm::ivec2 relativePos = mousePos - contentPos;
 		uint32_t readbackID = 0;
 
-		ObjectPickerRenderPipelineStage* objectPickerStage = Application::Get().GetRenderer().GetViewport(m_viewportHandle).RenderPipeline->TryGetStage<ObjectPickerRenderPipelineStage>();
+		ObjectPickerRenderPipelineStage* objectPickerStage = Application::Get().GetRenderer().GetViewport(m_viewportHandle).GetRenderPipeline().TryGetStage<ObjectPickerRenderPipelineStage>();
 
 		if (objectPickerStage &&
 			objectPickerStage->m_objectPickerReadback->ReadPixel(relativePos, readbackID) &&

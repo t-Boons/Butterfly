@@ -5,10 +5,7 @@
 #include "Scene/Registry/MeshRendererComponent.hpp"
 #include "Scene/Registry/TransformComponent.hpp"
 #include "Asset/AssetManager.hpp"
-#include "Renderer/Camera.hpp"
-#include "Renderer/Material.hpp"
-#include "Renderer/Light.hpp"
-
+#include "Renderer/RenderData.hpp"
 #include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"
 
 namespace Butterfly
@@ -73,14 +70,14 @@ namespace Butterfly
 							.Add(mesh->GPUNormals->SRV().View())
 							.Add(mesh->GPUTangents->SRV().View())
 							.Add(mesh->GPUUVs->SRV().View())
-							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
+							.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
 							.Add(smp.View())
-							.Add(viewport.Models.SRV().View())
-							.Add(viewport.Models.GetModelViewIndex(entityIndex))
-							.Add(viewport.Lights.SRV().View())
-							.Add(static_cast<uint32_t>(viewport.Lights.GetLights().size()))
-							.Add(viewport.Materials.GetMaterialBuffer().SRV().View())
-							.Add(viewport.Materials.GetMaterialIndex(subMesh.Material.GetID()))
+							.Add(viewport.GetRenderData().Models.SRV().View())
+							.Add(viewport.GetRenderData().Models.GetModelViewIndex(entityIndex))
+							.Add(viewport.GetRenderData().Lights.SRV().View())
+							.Add(static_cast<uint32_t>(viewport.GetRenderData().Lights.GetLights().size()))
+							.Add(viewport.GetRenderData().Materials.GetMaterialBuffer().SRV().View())
+							.Add(viewport.GetRenderData().Materials.GetMaterialIndex(subMesh.Material.GetID()))
 							.Add(static_cast<int>(m_debugViewType))
 							.Add(sdf)
 							.Submit(list);

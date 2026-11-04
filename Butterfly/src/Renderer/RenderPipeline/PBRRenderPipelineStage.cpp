@@ -1,5 +1,6 @@
 #include "Renderer/RenderPipeline/PBRRenderPipelineStage.hpp"
 #include "Renderer/Renderer.hpp"
+#include "Renderer/RenderData.hpp"
 
 #include "Scene/Scene.hpp"
 #include "Scene/Registry/MeshRendererComponent.hpp"
@@ -31,7 +32,7 @@ namespace Butterfly
 	{
 		GraphBuilder& builder = ev.Builder;
 		Viewport& viewport = ev.Viewport;
-
+		struct ForwardRenderer {};
 		ForwardRenderer* params = builder.AllocParameters<ForwardRenderer>();
 
 		int skyboxTextureViewIndex = -1;
@@ -43,15 +44,13 @@ namespace Butterfly
 			}
 		}
 
-		params->Comp = &viewport.GetRenderTarget();
-
 		builder.AddPass<ForwardRenderer>("Forward Model",
 			[this, viewport, skyboxTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
 
 				RasterPassStartInfo info;
-				info.RenderTarget = params.Comp;
+				info.RenderTarget = &viewport.GetRenderTarget();
 				info.DepthStencil = &viewport.GetDepthStencil();
 				info.RenderTargetLoadOp = LoadOP::Load;
 				info.DepthStencilLoadOp = LoadOP::Load;
@@ -121,17 +120,17 @@ namespace Butterfly
 							.Add(mesh->GPUNormals ? mesh->GPUNormals->SRV().View() : -1)
 							.Add(mesh->GPUTangents ? mesh->GPUTangents->SRV().View() : -1)
 							.Add(mesh->GPUUVs ? mesh->GPUUVs->SRV().View() : -1)
-							.Add(viewport.Uniforms->GetView(HASH("CameraData"))->View())
+							.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
 							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap()).View())
-							.Add(viewport.Models.SRV().View())
-							.Add(viewport.Models.GetModelViewIndex(entityIndex))
-							.Add(viewport.Lights.SRV().View())
-							.Add(static_cast<uint32_t>(viewport.Lights.GetNumLights()))
-							.Add(viewport.ShadowMaps.SRV().View())
-							.Add(viewport.Materials.GetMaterialBuffer().SRV().View())
-							.Add(viewport.Materials.GetMaterialIndex(subMesh.Material.GetID()))
+							.Add(viewport.GetRenderData().Models.SRV().View())
+							.Add(viewport.GetRenderData().Models.GetModelViewIndex(entityIndex))
+							.Add(viewport.GetRenderData().Lights.SRV().View())
+							.Add(static_cast<uint32_t>(viewport.GetRenderData().Lights.GetNumLights()))
+							.Add(viewport.GetRenderData().ShadowMaps.SRV().View())
+							.Add(viewport.GetRenderData().Materials.GetMaterialBuffer().SRV().View())
+							.Add(viewport.GetRenderData().Materials.GetMaterialIndex(subMesh.Material.GetID()))
 							.Add(skyboxTextureViewIndex)
-							.Add(viewport.Models.GetNumModels())
+							.Add(viewport.GetRenderData().Models.GetNumModels())
 							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()).View())
 							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearBorder()).View())
 							.Add(pcssShadowMapSampler.View())

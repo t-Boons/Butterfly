@@ -3,7 +3,7 @@
 
 namespace Butterfly
 {
-	void SDF::GenerateSDF(const std::vector<glm::vec3>& positions, const std::vector<uint32_t>& indices, const std::vector<MeshAsset::SubMesh>& subMeshes, const Bounds& meshBounds)
+	void SDF::GenerateSDF(const std::vector<glm::vec3>& positions, const std::vector<uint32_t>& indices, const std::vector<MeshAsset::SubMesh>& subMeshes, const BFAABB& meshBounds)
 	{
 		const glm::vec3 padding = meshBounds.Size() * 0.5f * 0.2f; // 20% of the size;
 		m_sdfBounds.Min = meshBounds.Min - padding;
@@ -35,10 +35,10 @@ namespace Butterfly
 	
 	void MeshAsset::GenerateSubMeshBounds()
 	{
-		m_meshBounds = Bounds();
+		m_meshBounds = BFAABB();
 		for (auto& subMesh : m_subMeshes)
 		{
-			subMesh.SubBounds = Bounds();
+			subMesh.SubBounds = BFAABB();
 			for (uint32_t i = 0; i < subMesh.IndexCount; ++i)
 			{
 				uint32_t index = Indices[subMesh.IndexOffset + i];

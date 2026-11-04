@@ -4,6 +4,7 @@
 #include "Renderer/D3D12Buffer.hpp"
 #include "Renderer/D3D12Texture.hpp"
 #include "Renderer/RenderIncludes.hpp"
+#include "Math/AABB.hpp"
 
 namespace Butterfly
 {
@@ -37,7 +38,7 @@ namespace Butterfly
 			uint32_t IndexOffset;
 			uint32_t IndexCount;
 			AssetHandle<MaterialAsset> Material;
-			Bounds SubBounds;
+			BFAABB SubBounds;
 		};
 
 
@@ -48,14 +49,14 @@ namespace Butterfly
 		const std::vector<SubMesh>& GetSubMeshes() const { return m_subMeshes; }
 		void AddSubMesh(const SubMesh& subMesh) { m_subMeshes.push_back(subMesh); }
 
-		Bounds GetBounds() const { return m_meshBounds; }
+		BFAABB GetBounds() const { return m_meshBounds; }
 		const RefPtr<SDF>& GetSDF() const { return m_sdf; }
 
 		void LoadToGPU();
 
 	private:
 		std::vector<SubMesh> m_subMeshes;
-		Bounds m_meshBounds;
+		BFAABB m_meshBounds;
 
 		bool m_gpuLoaded = false;
 		bool m_createSDF = false;
@@ -65,16 +66,16 @@ namespace Butterfly
 	struct SDF
 	{
 	public:
-		void GenerateSDF(const std::vector<glm::vec3>& positions, const std::vector<uint32_t>& indices, const std::vector<MeshAsset::SubMesh>& subMeshes, const Bounds& meshBounds);
+		void GenerateSDF(const std::vector<glm::vec3>& positions, const std::vector<uint32_t>& indices, const std::vector<MeshAsset::SubMesh>& subMeshes, const BFAABB& meshBounds);
 
 		const RefPtr<BFTexture>& GetSDFTexture() const { return m_sdf; }
 		const glm::vec3& GetSDFResolution() const { return m_sdfResolution; }
-		const Bounds& GetSDFBounds() const { return m_sdfBounds; }
+		const BFAABB& GetSDFBounds() const { return m_sdfBounds; }
 
 	private:
 		RefPtr<BFTexture> m_sdf;
 		glm::vec3 m_sdfResolution;
-		Bounds m_sdfBounds;
+		BFAABB m_sdfBounds;
 	};
 
 
