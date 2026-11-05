@@ -90,6 +90,8 @@ namespace Butterfly
     template<typename T>
     inline T* AssetManager::Resolve(const AssetHandle<T>& handle) const
     {
+        BF_PROFILE_EVENT();
+
         auto it = m_entries.find(handle.GetID());
         if (it != m_entries.end())
         {
@@ -101,6 +103,8 @@ namespace Butterfly
     template<typename T>
     inline T* AssetManager::ResolveWeak(const UUID& uuid) const
     {
+        BF_PROFILE_EVENT();
+
         auto it = m_entries.find(uuid);
         if (it != m_entries.end())
         {
@@ -112,6 +116,8 @@ namespace Butterfly
     template<typename T>
     inline bool AssetManager::Acquire(const UUID& id, AssetHandle<T>& ret)
     {
+        BF_PROFILE_EVENT();
+
         if (!id.Valid())
         {
             BF_CORE_LOG_ERROR("AssetManager::Acquire: Invalid UUID");
@@ -154,6 +160,8 @@ namespace Butterfly
     template<typename T>
     inline AssetHandle<T> AssetManager::AddAssetEntry(const AssetEntry& entry)
     {   
+        BF_PROFILE_EVENT();
+
 		auto it = m_entries.find(entry.ID);
         if(it == m_entries.end())
         {
@@ -170,6 +178,8 @@ namespace Butterfly
     template<typename T>
     inline IAssetImporter* AssetManager::GetImporter(const std::filesystem::path& filePath) const
     {
+        BF_PROFILE_EVENT();
+
         for (auto& im : s_importers)
         {
             if (im->CanImport(filePath.extension().string()) && im->CanImportType(typeid(T)))

@@ -439,7 +439,12 @@ namespace Butterfly
 
 	BFTextureReadback::BFTextureReadback()
 	{
-
+		m_readbackBuffer = DX12ResourceBuilder()
+			.HeapType(D3D12_HEAP_TYPE_READBACK)
+			.InitialState(D3D12_RESOURCE_STATE_COPY_DEST)
+			.Buffer(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT)
+			.SetName("Object Picker Pixel Readback")
+			.Create();
 	}
 
 	BFTextureReadback::~BFTextureReadback()
@@ -448,90 +453,73 @@ namespace Butterfly
 		FREE(m_readbackBuffer);
 	}
 
-	void BFTextureReadback::ValidateBuffer(const BFTexture& texture)
+	bool BFTextureReadback::RequestPixel(const glm::uvec2& pixel)
 	{
-		BF_PROFILE_EVENT();
-
-		const D3D12Resource* src = texture.Resource();
-		const auto desc = src->HwResource->GetDesc();
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
-		UINT numRows = 0;
-		UINT64 rowSize = 0;
-		UINT64 totalSize = 0;
-		D3D12API()->Device()->GetCopyableFootprints(
-			&desc,
-			0,
-			1,
-			0,
-			&footprint,
-			&numRows,
-			&rowSize,
-			&totalSize
-		);
-
-		if (m_readbackBuffer && m_rowPitch == footprint.Footprint.RowPitch && m_width == desc.Width && m_height == desc.Height)
-		{
-			return;
-		}
-
-		FREE(m_readbackBuffer);
-
-		m_readbackBuffer = DX12ResourceBuilder()
-			.HeapType(D3D12_HEAP_TYPE_READBACK)
-			.InitialState(D3D12_RESOURCE_STATE_COPY_DEST)
-			.Buffer(totalSize)
-			.SetName("Readback Buffer")
-			.Create();
-
-		m_totalSize = static_cast<uint32_t>(totalSize);
-		m_rowPitch = static_cast<uint32_t>(footprint.Footprint.RowPitch);
-		m_width = static_cast<uint32_t>(desc.Width);
-		m_height = static_cast<uint32_t>(desc.Height);
-	}
-
-	bool BFTextureReadback::ReadPixel(const glm::ivec2& pixel, uint32_t& out)
-	{
-		if (!m_readbackBuffer || pixel.x < 0 || pixel.y < 0 || pixel.x >= m_width || pixel.y >= m_height)
+		if (m_hasRequest || m_waitingForResult)
 		{
 			return false;
 		}
 
-		const uint8_t* data = static_cast<const uint8_t*>(m_readbackBuffer->Map());
-		const uint8_t* row = data + m_rowPitch * pixel.y;
-		const uint32_t* pixelData = reinterpret_cast<const uint32_t*>(row) + pixel.x;
-
-		out = *pixelData;
-
-		m_readbackBuffer->Unmap();
+		m_requestedPixel = pixel;
+		m_hasRequest = true;
 		return true;
 	}
 
-	void BFTextureReadback::ReadbackCopy(D3D12CommandList& list, BFTexture& texture)
+	void BFTextureReadback::SetFenceValue(uint64_t fenceValue)
 	{
-		ValidateBuffer(texture);
+		if (!m_copyRecorded)
+		{
+			return;
+		}
+
+		m_fenceValue = fenceValue;
+		m_waitingForResult = true;
+		m_copyRecorded = false;
+	}
+
+	void BFTextureReadback::Flush()
+	{
+		m_waitingForResult = false;
+		m_copyRecorded = false;
+	}
+
+	bool BFTextureReadback::TryGetResult(uint64_t completedFenceValue, uint32_t& out)
+	{
+		if (!m_waitingForResult || completedFenceValue < m_fenceValue)
+		{
+			return false;
+		}
+
+		D3D12_RANGE readRange{ 0, sizeof(uint32_t) };
+		void* mapped = nullptr;
+		ThrowIfFailed(m_readbackBuffer->HwResource->Map(0, &readRange, &mapped));
+		out = *static_cast<const uint32_t*>(mapped);
+
+		D3D12_RANGE writtenRange{ 0, 0 };
+		m_readbackBuffer->HwResource->Unmap(0, &writtenRange);
+
+		m_waitingForResult = false;
+		m_hasRequest = false;
+		return true;
+	}
+
+	bool BFTextureReadback::Readback(D3D12CommandList& list, BFTexture& texture)
+	{
+		if (!m_hasRequest)
+		{
+			return false;
+		}
+
+		// Cancel the request if it is out of bounds.
+		if (m_requestedPixel.x >= texture.Width() || m_requestedPixel.y >= texture.Height())
+		{
+			BF_CORE_LOG_WARN("Requested pixel (%d, %d) is out of bounds for texture of size (%d, %d). Cancelling readback request.", m_requestedPixel.x, m_requestedPixel.y, texture.Width(), texture.Height());
+			m_hasRequest = false;
+			m_waitingForResult = false;
+			return false;
+		}
 
 		D3D12Resource* src = texture.Resource();
-
-		m_textureDesc = texture.Desc();
-
-		const auto desc = src->HwResource->GetDesc();
-
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
-		UINT numRows = 0;
-		UINT64 rowSize = 0;
-		UINT64 totalSize = 0;
-
-		D3D12API()->Device()->GetCopyableFootprints(
-			&desc,
-			0,
-			1,
-			0,
-			&footprint,
-			&numRows,
-			&rowSize,
-			&totalSize
-		);
-
 
 		src->Transition(list, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
@@ -544,13 +532,24 @@ namespace Butterfly
 		D3D12_TEXTURE_COPY_LOCATION destination{};
 		destination.pResource = m_readbackBuffer->HwResource;
 		destination.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		destination.PlacedFootprint = footprint;
+		destination.PlacedFootprint.Offset = 0;
+		destination.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32_UINT;
+		destination.PlacedFootprint.Footprint.Width = 1;
+		destination.PlacedFootprint.Footprint.Height = 1;
+		destination.PlacedFootprint.Footprint.Depth = 1;
+		destination.PlacedFootprint.Footprint.RowPitch = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 
-		list.List()->CopyTextureRegion(
-			&destination,
-			0, 0, 0,
-			&source,
-			nullptr
-		);
+		D3D12_BOX sourceBox{};
+		sourceBox.left = static_cast<UINT>(m_requestedPixel.x);
+		sourceBox.top = static_cast<UINT>(m_requestedPixel.y);
+		sourceBox.front = 0;
+		sourceBox.right = sourceBox.left + 1;
+		sourceBox.bottom = sourceBox.top + 1;
+		sourceBox.back = 1;
+
+		list.List()->CopyTextureRegion(&destination, 0, 0, 0, &source, &sourceBox);
+
+		m_copyRecorded = true;
+		return true;
 	}
 }

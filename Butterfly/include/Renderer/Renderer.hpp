@@ -4,7 +4,7 @@
 #include "Core/Window.hpp"
 #include "Renderer/RenderIncludes.hpp"
 
-#define NUM_RENDER_BUFFERS 2
+#define NUM_RENDER_BUFFERS 3
 
 namespace Butterfly
 {
@@ -55,6 +55,8 @@ namespace Butterfly
 		BFRenderData& GetRenderData() { return *m_renderData; }
 		const BFRenderData& GetRenderData() const { return *m_renderData; }
 		const std::string& GetName() const { return m_viewportName; }
+		uint32_t GetFrameIndex() const { return m_frameIndex; }
+
 	private:
 		friend class Renderer;
 

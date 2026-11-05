@@ -40,7 +40,8 @@ namespace Butterfly
 		std::vector<RenderObject> CulledRenderObjects;
 		uint32_t MeshesInScene = 0;
 
-		std::array<std::array<std::vector<RenderObject>, MAX_LIGHTS>, CUBEMAP_SLICES> ShadowRenderObjects;
+		std::array<std::array<BFFrustum, CUBEMAP_SLICES>, MAX_LIGHTS> ShadowLightFrustums;
+		std::array<std::array<std::vector<RenderObject>, CUBEMAP_SLICES>, MAX_LIGHTS> ShadowRenderObjects;
 
 	public:
 		BFRenderData()
@@ -50,6 +51,8 @@ namespace Butterfly
 
 		void Update(const Viewport& viewport, const CameraData& cameraData)
 		{
+			BF_PROFILE_EVENT();
+
 			UniformCameraData = cameraData;
 			Uniforms->GetOrCreateView(sizeof(CameraData), HASH("CameraData"));
 			Uniforms->Write(&cameraData, sizeof(CameraData), HASH("CameraData"));
@@ -58,59 +61,58 @@ namespace Butterfly
 			Materials.Validate();
 			Models.Validate();
 
+
+
+			const uint32_t numLights = Lights.GetNumLights();
+			const auto& shadowMaps = ShadowMaps.GetShadowMaps();
+
+			BFFrustum cameraFrustum = BFFrustum{ cameraData.ViewProjection, {} };
+			cameraFrustum.UpdatePlanes();
+
 			CulledRenderObjects.clear();
 			MeshesInScene = 0;
-			for (const auto& [entity, meshRenderer, transform] : Application::Get().GetScene().GetEntityRegistry().view<MeshRendererComponent, TransformComponent>().each())
+
+
+
+			// Clear shadow render lists once.
+			for (int i = 0; i < numLights; ++i)
+			{
+				for (int j = 0; j < shadowMaps[i].NumSlices; ++j)
+				{
+					ShadowRenderObjects[i][j].clear();
+					ShadowLightFrustums[i][j].Projection = shadowMaps[i].LightViewProjections[j];
+					ShadowLightFrustums[i][j].UpdatePlanes();
+				}
+			}
+#define USE_FRUSTUM_CULLING
+#ifdef USE_FRUSTUM_CULLING
+			for (const auto& [entity, meshRenderer, transform] :
+				Application::Get().GetScene().GetEntityRegistry().view<MeshRendererComponent, TransformComponent>().each())
 			{
 				if (!meshRenderer.GetMeshHandle())
-				{
 					continue;
-				}
 
 				const MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
 				const glm::mat4 modelMatrix = transform.GetWorldMatrix();
+
 				for (const auto& subm : mesh->GetSubMeshes())
 				{
-					const std::array<glm::vec3, 8> corners = subm.SubBounds.GetCorners();
-					BFAABB worldAABB{};
-					for (const glm::vec3& corner : corners)
-					{
-						const glm::vec3 worldCorner = glm::vec3(modelMatrix * glm::vec4(corner, 1.0f));
-						worldAABB.ExpandToFit(worldCorner);
-					}
+					MeshesInScene++;
 
-					if (worldAABB.IntersectsFrustum(cameraData.ViewProjection))
+					BFAABB worldAABB = subm.SubBounds.Transform(modelMatrix);
+
+					// Camera culling
+					if (worldAABB.IntersectsFrustum(cameraFrustum))
 					{
 						CulledRenderObjects.push_back({ meshRenderer.GetMeshHandle(), subm, entity });
 					}
-					MeshesInScene++;
-				}
 
-				for (int i = 0; i < MAX_LIGHTS; ++i)
-				{
-					for (int j = 0; j < CUBEMAP_SLICES; ++j)
+					// Shadow culling
+					for (uint32_t i = 0; i < numLights; ++i)
 					{
-						ShadowRenderObjects[i][j].clear();
-					}
-
-					if (i >= Lights.GetNumLights())
-					{
-						break;
-					}
-
-					for (const auto& subm : mesh->GetSubMeshes())
-					{
-						const std::array<glm::vec3, 8> corners = subm.SubBounds.GetCorners();
-						BFAABB worldAABB{};
-						for (const glm::vec3& corner : corners)
+						for (int j = 0; j < shadowMaps[i].NumSlices; ++j)
 						{
-							const glm::vec3 worldCorner = glm::vec3(modelMatrix * glm::vec4(corner, 1.0f));
-							worldAABB.ExpandToFit(worldCorner);
-						}
-
-						for (int j = 0; j < ShadowMaps.GetShadowMaps()[i].NumSlices; ++j)
-						{
-							if (worldAABB.IntersectsFrustum(ShadowMaps.GetShadowMaps()[i].LightViewProjections[j]))
+							if (worldAABB.IntersectsFrustum(ShadowLightFrustums[i][j]))
 							{
 								ShadowRenderObjects[i][j].push_back({ meshRenderer.GetMeshHandle(), subm, entity });
 							}
@@ -118,6 +120,34 @@ namespace Butterfly
 					}
 				}
 			}
+#else
+			for (const auto& [entity, meshRenderer, transform] :
+				Application::Get().GetScene().GetEntityRegistry().view<MeshRendererComponent, TransformComponent>().each())
+			{
+				if (!meshRenderer.GetMeshHandle())
+					continue;
+
+				const MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+				const glm::mat4 modelMatrix = transform.GetWorldMatrix();
+
+				for (const auto& subm : mesh->GetSubMeshes())
+				{
+					MeshesInScene++;
+
+					BFAABB worldAABB = subm.SubBounds.Transform(modelMatrix);
+					CulledRenderObjects.push_back({ meshRenderer.GetMeshHandle(), subm, entity });
+
+					// Shadow culling
+					for (uint32_t i = 0; i < numLights; ++i)
+					{
+						for (int j = 0; j < shadowMaps[i].NumSlices; ++j)
+						{
+							ShadowRenderObjects[i][j].push_back({ meshRenderer.GetMeshHandle(), subm, entity });
+						}
+					}
+				}
+			}
+#endif
 		}
 	};
 }

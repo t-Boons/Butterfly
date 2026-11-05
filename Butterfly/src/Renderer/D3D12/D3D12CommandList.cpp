@@ -160,6 +160,8 @@ namespace Butterfly
 
 	void D3D12CommandList::SetDepthStencilTarget(BFTexture& depthStencil, uint32_t slice)
 	{
+		BF_PROFILE_EVENT();
+
 		m_depthStencilTexture = &depthStencil;
 		m_depthStencilView = depthStencil.DSVArraySlice(slice).Handle();
 		depthStencil.Resource()->Transition(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE);
@@ -169,12 +171,16 @@ namespace Butterfly
 
 	void D3D12CommandList::ClearRenderTarget(BFTexture& color, const glm::vec4& clearColor)
 	{
+		BF_PROFILE_EVENT();
+
 		color.Resource()->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		m_cmdList->ClearRenderTargetView(color.RTV().Handle(), &clearColor[0], 0, nullptr);
 	}
 
 	void D3D12CommandList::ClearDepthStencilTarget(BFTexture& depthStencil, float depthValue, uint8_t stencilValue, uint32_t slice)
 	{
+		BF_PROFILE_EVENT();
+
 		if(depthStencil.Format() == DXGI_FORMAT_D32_FLOAT)
 		{
 			m_cmdList->ClearDepthStencilView(depthStencil.DSVArraySlice(slice).Handle(), D3D12_CLEAR_FLAG_DEPTH, depthValue, stencilValue, 0, nullptr);
@@ -363,6 +369,8 @@ namespace Butterfly
 	
 	void D3D12CommandList::SetViewport(const RenderViewport& viewport)
 	{
+		BF_PROFILE_EVENT();
+
 		D3D12_VIEWPORT vp;
 		vp.TopLeftX = 0.0f;
 		vp.TopLeftY = 0.0f;

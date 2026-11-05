@@ -98,22 +98,22 @@ namespace Butterfly
 		BFTextureReadback();
 		~BFTextureReadback();
 
-		bool ReadPixel(const glm::ivec2& pixel, uint32_t& out);
+		bool Readback(D3D12CommandList& list, BFTexture& texture);
+		bool RequestPixel(const glm::uvec2& pixel);
 
-		void ReadbackCopy(D3D12CommandList& list, BFTexture& texture);
+		void SetFenceValue(uint64_t fenceValue);
+
+		bool TryGetResult(uint64_t fenceValue, uint32_t& outValue);
+
+		void Flush();
 
 	private:
-		void ValidateBuffer(const BFTexture& texture);
-
-		BFTextureDesc m_textureDesc;
 		D3D12Resource* m_readbackBuffer = nullptr;
-		bool m_isReady = false;
-
 		uint64_t m_fenceValue = 0;
 
-		uint32_t m_totalSize = 0;
-		uint32_t m_rowPitch = 0;
-		uint32_t m_width = 0;
-		uint32_t m_height = 0;
+		bool m_hasRequest = false;
+		bool m_waitingForResult = false;
+		bool m_copyRecorded = false;
+		glm::uvec2 m_requestedPixel;
 	};
 }

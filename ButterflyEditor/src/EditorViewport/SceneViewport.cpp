@@ -32,7 +32,10 @@ namespace Butterfly
 
 		ObjectPickerRenderPipelineStage()
 		{
-			m_objectPickerReadback = MakeRef<BFTextureReadback>();
+			for (uint32_t i = 0; i < NUM_RENDER_BUFFERS; ++i)
+			{
+				m_objectPickerReadbacks[i] = MakeRef<BFTextureReadback>();
+			}
 		}
 
 		virtual void OnRecordPass(const ViewportRenderEvent& event) override
@@ -79,7 +82,6 @@ namespace Butterfly
 					psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/ObjectPicker_frag.hlsl");
 					list.SetGraphicsPSO(psoInfo);
 
-					uint32_t entityRenderIndex = 0;
 					for (const RenderObject& renderObject : viewport.GetRenderData().CulledRenderObjects)
 					{
 						if (!renderObject.MeshAsset)
@@ -97,13 +99,11 @@ namespace Butterfly
 							.Add(static_cast<int>(renderObject.Entity)) // uint32_t Entity ID in registry.
 							.Submit(list);
 
-						entityRenderIndex++;
-
 						list.SetIndexBuffer(*mesh->GPUIndices);
-						list.DrawIndexedInstanced(mesh->GPUIndices->NumElements(), 1, 0, 0, 0);
+						list.DrawIndexedInstanced(renderObject.SubMesh.IndexCount, 1, renderObject.SubMesh.IndexOffset, 0, 0);
 					}
 
-					m_objectPickerReadback->ReadbackCopy(list, *data.RenderTarget);
+					m_objectPickerReadbacks[event.Viewport.GetFrameIndex()]->Readback(list, *data.RenderTarget);
 
 					list.EndRenderPass();
 				});
@@ -111,9 +111,8 @@ namespace Butterfly
 
 	private:
 		friend class SceneViewport;
-		RefPtr<BFTextureReadback> m_objectPickerReadback;
+		std::array<RefPtr<BFTextureReadback>, NUM_RENDER_BUFFERS> m_objectPickerReadbacks;
 	};
-
 
 
 	SceneViewport::SceneViewport()
@@ -125,6 +124,20 @@ namespace Butterfly
 
 		m_viewportResizeReceiver.Subscribe(m_viewport->GetEvents().OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
 		m_viewportPrerenderReceiver.Subscribe(m_viewport->GetEvents().OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
+		m_viewportPostRenderReceiver.Subscribe(m_viewport->GetEvents().OnPostRender, BF_BIND_FUNC(&SceneViewport::OnPostRender));
+	}
+
+	void SceneViewport::OnPostRender()
+	{
+		BF_PROFILE_EVENT();
+
+		ObjectPickerRenderPipelineStage* objectPickerStage = m_viewport->GetRenderPipeline().TryGetStage<ObjectPickerRenderPipelineStage>();
+		if (!objectPickerStage)
+		{
+			return;
+		}
+
+		objectPickerStage->m_objectPickerReadbacks[m_viewport->GetFrameIndex()]->SetFenceValue(Application::Get().GetRenderer().GetFrameData().GetFence().FenceValue());
 	}
 		
 	void SceneViewport::OnTick()
@@ -132,8 +145,10 @@ namespace Butterfly
 		BF_PROFILE_EVENT()
 
 		m_spectatorCam.Tick(Application::Get().GetInput(), Application::Get().GetTime().DeltaTime());
+	}
 
-
+	void SceneViewport::RenderGrid()
+	{
 		if (m_gridVisible)
 		{
 			glm::vec3 position = m_spectatorCam.GetCamera()->Position();
@@ -154,7 +169,10 @@ namespace Butterfly
 				EditorApplication::Get().GetDebugRenderer().DrawLine(glm::vec3(position.x - gridLineCount, 0, i), glm::vec3(position.x + gridLineCount, 0, i), color);
 			}
 		}
+	}
 
+	void SceneViewport::RenderObjectBoundingBoxes()
+	{
 		if (m_boundingBoxesVisible)
 		{
 			auto v = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, CameraComponent>();
@@ -163,39 +181,51 @@ namespace Butterfly
 			{
 				return;
 			}
-			const CameraComponent& camera = v.get<CameraComponent>(*v.begin());
-			const TransformComponent& cameraTransform = v.get<TransformComponent>(*v.begin());
 
-			auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
-			for (auto [entity, transform, meshRenderer] : view.each())
+			if (EditorApplication::Get().GetEditorViewport().m_selectedEntity)
 			{
-				if (!meshRenderer.GetMeshHandle())
+				const CameraComponent* camera = EditorApplication::Get().GetEditorViewport().m_selectedEntity.TryGetComponent<CameraComponent>();
+
+				if (!camera)
 				{
-					continue;
+					return;
 				}
 
-				const MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-				const glm::mat4 modelMatrix = transform.GetWorldMatrix();
-
-				for (const auto& subm : mesh->GetSubMeshes())
+				const TransformComponent& cameraTransform = EditorApplication::Get().GetEditorViewport().m_selectedEntity.GetComponent<TransformComponent>();
+				BFFrustum frustum;
+				frustum.Projection = camera->GetViewprojectionMatrrix(cameraTransform.GetPosition(), cameraTransform.GetRotation());
+				frustum.UpdatePlanes();
+				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+				for (auto [entity, transform, meshRenderer] : view.each())
 				{
-					const std::array<glm::vec3, 8> corners = subm.SubBounds.GetCorners();
-
-					BFAABB worldAABB{};
-
-					for (const glm::vec3& corner : corners)
+					if (!meshRenderer.GetMeshHandle())
 					{
-						const glm::vec3 worldCorner = glm::vec3(modelMatrix * glm::vec4(corner, 1.0f));
-						worldAABB.ExpandToFit(worldCorner);
+						continue;
 					}
 
-					const bool intersects = worldAABB.IntersectsFrustum(camera.GetViewprojectionMatrrix(cameraTransform.GetPosition(), cameraTransform.GetRotation()));
+					const MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+					const glm::mat4 modelMatrix = transform.GetWorldMatrix();
 
-					const glm::vec4 color = intersects
-						? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)
-						: glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+					for (const auto& subm : mesh->GetSubMeshes())
+					{
+						const std::array<glm::vec3, 8> corners = subm.SubBounds.GetCorners();
 
-					EditorApplication::Get().GetDebugRenderer().DrawBox(worldAABB.Min, worldAABB.Max, color);
+						BFAABB worldAABB{};
+
+						for (const glm::vec3& corner : corners)
+						{
+							const glm::vec3 worldCorner = glm::vec3(modelMatrix * glm::vec4(corner, 1.0f));
+							worldAABB.ExpandToFit(worldCorner);
+						}
+
+						const bool intersects = worldAABB.IntersectsFrustum(frustum);
+
+						const glm::vec4 color = intersects
+							? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)
+							: glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+
+						EditorApplication::Get().GetDebugRenderer().DrawBox(worldAABB.Min, worldAABB.Max, color);
+					}
 				}
 			}
 		}
@@ -241,6 +271,10 @@ namespace Butterfly
 	void SceneViewport::OnRenderImGUI()
 	{
 		BF_PROFILE_EVENT()
+
+
+		RenderGrid();
+		RenderObjectBoundingBoxes();
 
 		ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_NoWindowMenuButton;
 		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockspaceFlags);
@@ -333,7 +367,6 @@ namespace Butterfly
 		{
 			const ImVec2 buttonSize = ImVec2(20, 20);
 
-			
 			const auto pressedColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
 			const auto normalColor = ImGui::GetStyleColorVec4(ImGuiCol_Button);
 
@@ -371,7 +404,7 @@ namespace Butterfly
 		ImGui::PopStyleColor(3);
 		ImGui::PopStyleVar();
 
-		if (m_objectHelpersVisible)
+		if (m_gizmosVisible)
 		{
 			// Draw icons.
 			const glm::ivec2 viewportOffset = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
@@ -411,7 +444,7 @@ namespace Butterfly
 			ImGui::PopFont();
 
 			// Draw selected entity primtives.
-			if (EditorApplication::Get().GetEditorViewport().m_selectedEntity)
+			if (EditorApplication::Get().GetEditorViewport().m_selectedEntity && m_gizmosVisible)
 			{
 				if (CameraComponent* camera = EditorApplication::Get().GetEditorViewport().m_selectedEntity.TryGetComponent<CameraComponent>())
 				{
@@ -426,31 +459,42 @@ namespace Butterfly
 		const glm::ivec2 mousePos = glm::ivec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
 		const glm::ivec2 contentPos = glm::ivec2(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y) + glm::ivec2(ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMin().y);
 		const glm::ivec2 relativePos = mousePos - contentPos;
-		uint32_t readbackID = 0;
+		const glm::uvec2 readPixelPos = glm::uvec2(relativePos.x, relativePos.y);
+		const bool readbackPixelInRange = readPixelPos.x >= 0 && readPixelPos.y >= 0 && readPixelPos.x < m_viewport->Size().x && readPixelPos.y < m_viewport->Size().y;
 
 		ObjectPickerRenderPipelineStage* objectPickerStage = m_viewport->GetRenderPipeline().TryGetStage<ObjectPickerRenderPipelineStage>();
-
-		if (objectPickerStage &&
-			objectPickerStage->m_objectPickerReadback->ReadPixel(relativePos, readbackID) &&
-			ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
-			!ImGuizmo::IsOver() &&
-			!hoveringToolbar)
+		if (objectPickerStage && readbackPixelInRange)
 		{
-			if (readbackID > 0)
-			{
-				// We do -1 because the rendred readbackID increments the entity count for entity 0.
-				// Thus entity 0 is entity 1
-				const uint32_t sceneEntityID = readbackID - 1;
+			const uint64_t fenceValue = Application::Get().GetRenderer().GetFrameData().GetFence().FenceValue();
 
-				EditorApplication::Get().GetEditorViewport().m_selectedEntity = static_cast<entt::entity>(sceneEntityID);
-				BF_LOG_INFO("Selected entity: %u", sceneEntityID);
-			}
-			else
+			uint32_t readbackID = 0;
+			const bool result = objectPickerStage->m_objectPickerReadbacks[m_viewport->GetFrameIndex()]->TryGetResult(fenceValue, readbackID);
+
+			if (result)
 			{
-				EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
+				objectPickerStage->m_objectPickerReadbacks[m_viewport->GetFrameIndex()]->Flush();
+
+				if (readbackID > 0)
+				{
+					// We do -1 because the rendered readbackID increments the entity count by 1 for entity 0.
+					// Thus entity 0 is entity 1
+					const uint32_t sceneEntityID = readbackID - 1;
+
+					EditorApplication::Get().GetEditorViewport().m_selectedEntity = static_cast<entt::entity>(sceneEntityID);
+					BF_LOG_INFO("Selected entity: %u", sceneEntityID);
+				}
+				else
+				{
+					EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
+				}
+			}
+
+
+			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver() && !hoveringToolbar)
+			{
+				objectPickerStage->m_objectPickerReadbacks[m_viewport->GetFrameIndex()]->RequestPixel(readPixelPos);
 			}
 		}
-
 		ImGui::PopStyleVar(2);
 		ImGui::End();
 	}

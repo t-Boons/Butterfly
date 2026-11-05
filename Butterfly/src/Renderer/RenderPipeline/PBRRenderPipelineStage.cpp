@@ -108,31 +108,28 @@ namespace Butterfly
 
 					list.SetIndexBuffer(*mesh->GPUIndices);
 
-					for (const auto& subMesh : mesh->GetSubMeshes())
-					{
-						ShaderVariables()
-							.Add(mesh->GPUPositions->SRV().View())
-							.Add(mesh->GPUNormals ? mesh->GPUNormals->SRV().View() : -1)
-							.Add(mesh->GPUTangents ? mesh->GPUTangents->SRV().View() : -1)
-							.Add(mesh->GPUUVs ? mesh->GPUUVs->SRV().View() : -1)
-							.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
-							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap()).View())
-							.Add(viewport.GetRenderData().Models.SRV().View())
-							.Add(viewport.GetRenderData().Models.GetModelViewIndex(renderObject.MeshAsset))
-							.Add(viewport.GetRenderData().Lights.SRV().View())
-							.Add(static_cast<uint32_t>(viewport.GetRenderData().Lights.GetNumLights()))
-							.Add(viewport.GetRenderData().ShadowMaps.SRV().View())
-							.Add(viewport.GetRenderData().Materials.GetMaterialBuffer().SRV().View())
-							.Add(viewport.GetRenderData().Materials.GetMaterialIndex(subMesh.Material.GetID()))
-							.Add(skyboxTextureViewIndex)
-							.Add(viewport.GetRenderData().Models.GetNumModels())
-							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()).View())
-							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearBorder()).View())
-							.Add(pcssShadowMapSampler.View())
-							.Submit(list);
+					ShaderVariables()
+						.Add(mesh->GPUPositions->SRV().View())
+						.Add(mesh->GPUNormals ? mesh->GPUNormals->SRV().View() : -1)
+						.Add(mesh->GPUTangents ? mesh->GPUTangents->SRV().View() : -1)
+						.Add(mesh->GPUUVs ? mesh->GPUUVs->SRV().View() : -1)
+						.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
+						.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap()).View())
+						.Add(viewport.GetRenderData().Models.SRV().View())
+						.Add(viewport.GetRenderData().Models.GetModelViewIndex(renderObject.MeshAsset))
+						.Add(viewport.GetRenderData().Lights.SRV().View())
+						.Add(static_cast<uint32_t>(viewport.GetRenderData().Lights.GetNumLights()))
+						.Add(viewport.GetRenderData().ShadowMaps.SRV().View())
+						.Add(viewport.GetRenderData().Materials.GetMaterialBuffer().SRV().View())
+						.Add(viewport.GetRenderData().Materials.GetMaterialIndex(renderObject.SubMesh.Material.GetID()))
+						.Add(skyboxTextureViewIndex)
+						.Add(viewport.GetRenderData().Models.GetNumModels())
+						.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()).View())
+						.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearBorder()).View())
+						.Add(pcssShadowMapSampler.View())
+						.Submit(list);
 
-						list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);
-					}
+					list.DrawIndexedInstanced(renderObject.SubMesh.IndexCount, 1, renderObject.SubMesh.IndexOffset, 0, 0);
 
 					entityIndex++;
 				}

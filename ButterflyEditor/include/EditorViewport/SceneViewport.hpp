@@ -24,21 +24,27 @@ namespace Butterfly
 		void OnResize(const ViewportResizeEvent& event);
 		void OnPrerender(const ViewportPrerenderEvent& event);
 		void RenderObjectPicker(const ViewportRenderEvent& event);
+		void OnPostRender();
 
 	private:
+		void RenderGrid();
+		void RenderObjectHelpersImGui();
+		void RenderObjectBoundingBoxes();
+
+
 		RefPtr<Viewport> m_viewport;
 		SpectatorCamera m_spectatorCam;
 
 		EventReceiver<ViewportResizeEvent> m_viewportResizeReceiver;
 		EventReceiver<ViewportPrerenderEvent> m_viewportPrerenderReceiver;
+		EventReceiver<> m_viewportPostRenderReceiver;
 		ObjectMovementSpace m_objectMovementSpace = ObjectMovementSpace::World;
 		ImGuizmo::OPERATION m_currentOperation = ImGuizmo::OPERATION::TRANSLATE;
 		uint32_t m_selectedViewType = 0;
 		EventReceiver<Scene*> m_sceneChangedReceiver;
 
 		bool m_boundingBoxesVisible = true;
-		bool m_subMeshBoundingBoxesVisible = true;
 		bool m_gridVisible = true;
-		bool m_objectHelpersVisible = true;
+		bool m_gizmosVisible = true;
 	};
 }

@@ -8,6 +8,61 @@ namespace Butterfly
 		return value >= min && value <= max;
 	}
 
+    struct BFFrustum
+    {
+        glm::mat4 Projection;
+        std::array<glm::vec4, 6> Planes;
+
+		inline void UpdatePlanes()
+		{
+            Planes = std::array<glm::vec4, 6>
+            {
+                // Left
+                glm::vec4{
+                    Projection[0][3] + Projection[0][0],
+                    Projection[1][3] + Projection[1][0],
+                    Projection[2][3] + Projection[2][0],
+                    Projection[3][3] + Projection[3][0]
+                },
+                    // Right
+                glm::vec4{
+                    Projection[0][3] - Projection[0][0],
+                    Projection[1][3] - Projection[1][0],
+                    Projection[2][3] - Projection[2][0],
+                    Projection[3][3] - Projection[3][0]
+                },
+                    // Bottom
+                glm::vec4{
+                    Projection[0][3] + Projection[0][1],
+                    Projection[1][3] + Projection[1][1],
+                    Projection[2][3] + Projection[2][1],
+                    Projection[3][3] + Projection[3][1]
+                },
+                    // Top
+                glm::vec4{
+                    Projection[0][3] - Projection[0][1],
+                    Projection[1][3] - Projection[1][1],
+                    Projection[2][3] - Projection[2][1],
+                    Projection[3][3] - Projection[3][1]
+                },
+                    // Near
+                glm::vec4{
+                    Projection[0][3] + Projection[0][2],
+                    Projection[1][3] + Projection[1][2],
+                    Projection[2][3] + Projection[2][2],
+                    Projection[3][3] + Projection[3][2]
+                },
+                    // Far
+                glm::vec4{
+                    Projection[0][3] - Projection[0][2],
+                    Projection[1][3] - Projection[1][2],
+                    Projection[2][3] - Projection[2][2],
+                    Projection[3][3] - Projection[3][2]
+                }
+            };
+		}
+    };
+
     struct BFAABB
     {
 		glm::vec3 Min = glm::vec3{ FLT_MAX };
@@ -18,54 +73,9 @@ namespace Butterfly
 			return Max - Min;
 		}
 
-        inline bool IntersectsFrustum(const glm::mat4& mvp) const
+        inline bool IntersectsFrustum(const BFFrustum& frustum) const
         {
-            const glm::vec4 planes[6] = {
-                // Left
-                {
-                    mvp[0][3] + mvp[0][0],
-                    mvp[1][3] + mvp[1][0],
-                    mvp[2][3] + mvp[2][0],
-                    mvp[3][3] + mvp[3][0]
-                },
-                // Right
-                {
-                    mvp[0][3] - mvp[0][0],
-                    mvp[1][3] - mvp[1][0],
-                    mvp[2][3] - mvp[2][0],
-                    mvp[3][3] - mvp[3][0]
-                },
-                // Bottom
-                {
-                    mvp[0][3] + mvp[0][1],
-                    mvp[1][3] + mvp[1][1],
-                    mvp[2][3] + mvp[2][1],
-                    mvp[3][3] + mvp[3][1]
-                },
-                // Top
-                {
-                    mvp[0][3] - mvp[0][1],
-                    mvp[1][3] - mvp[1][1],
-                    mvp[2][3] - mvp[2][1],
-                    mvp[3][3] - mvp[3][1]
-                },
-                // Near
-                {
-                    mvp[0][3] + mvp[0][2],
-                    mvp[1][3] + mvp[1][2],
-                    mvp[2][3] + mvp[2][2],
-                    mvp[3][3] + mvp[3][2]
-                },
-                // Far
-                {
-                    mvp[0][3] - mvp[0][2],
-                    mvp[1][3] - mvp[1][2],
-                    mvp[2][3] - mvp[2][2],
-                    mvp[3][3] - mvp[3][2]
-                }
-            };
-
-            for (const glm::vec4& plane : planes)
+            for (const glm::vec4& plane : frustum.Planes)
             {
                 const glm::vec3 normal = glm::vec3(plane);
 
@@ -119,5 +129,25 @@ namespace Butterfly
 				glm::vec3{ Max.x, Max.y, Max.z }
 			};
 		}
+
+        inline BFAABB Transform(const glm::mat4& modelMatrix) const
+        {
+            BFAABB result{};
+            const glm::vec3 center = (Min + Max) * 0.5f;
+            const glm::vec3 extents = (Max - Min) * 0.5f;
+
+            const glm::mat3 absMatrix(
+                glm::abs(glm::vec3(modelMatrix[0])),
+                glm::abs(glm::vec3(modelMatrix[1])),
+                glm::abs(glm::vec3(modelMatrix[2]))
+            );
+
+            const glm::vec3 worldCenter = glm::vec3(modelMatrix * glm::vec4(center, 1.0f));
+            const glm::vec3 worldExtents = absMatrix * extents;
+
+            result.Min = worldCenter - worldExtents;
+            result.Max = worldCenter + worldExtents;
+            return result;
+        }
     };
 }

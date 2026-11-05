@@ -18,9 +18,9 @@ namespace Butterfly
 		m_running = true;
 		s_instance = this;
 
-		bool useDebug = true;
-#ifdef NDEBUG
-		useDebug = false;
+		bool useDebug = false;
+#ifdef BUTTERFLY_DEBUG
+		useDebug = true;
 #endif
 
 		GraphicsAPI::Init(GraphicsAPIType::D3D12, useDebug);
