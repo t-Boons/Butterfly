@@ -40,7 +40,6 @@ namespace Butterfly
 		{
 			m_models.clear();
 
-			uint32_t entityIndex = 0;
 			auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 			for (auto [entity, transform, meshRenderer] : view.each())
 			{
@@ -63,7 +62,7 @@ namespace Butterfly
 					model.SDFResolution = glm::vec4(mesh->GetSDF()->GetSDFResolution(), 0.0f);
 					model.SDFTextureIndex = mesh->GetSDF()->GetSDFTexture()->SRV().View();
 					model.SDFBoundsMin = glm::vec4(mesh->GetSDF()->GetSDFBounds().Min, 0.0f);
-					model.SDFBoundsSize = glm::vec4(mesh->GetSDF()->GetSDFBounds().Size(), 0.0f);
+					model.SDFBoundsSize = glm::vec4(mesh->GetSDF()->GetSDFBounds().GetSize(), 0.0f);
 				}
 				else
 				{
@@ -71,17 +70,15 @@ namespace Butterfly
 				}
 
 				m_models.push_back(model);
-				m_entityToModelIndex[entityIndex] = static_cast<uint32_t>(m_models.size() - 1);
-
-				entityIndex++;
+				m_entityToModelIndex[meshRenderer.GetMeshHandle().GetID()] = static_cast<uint32_t>(m_models.size() - 1);
 			}
 
 			m_modelBuffer->Write(m_models.data(), sizeof(GPUModel) * GetNumModels(), 0);
 		}
 
-		int GetModelViewIndex(uint32_t entityIndex) const
+		int GetModelViewIndex(const AssetHandle<MeshAsset>& meshAsset) const
 		{
-			auto it = m_entityToModelIndex.find(entityIndex);
+			auto it = m_entityToModelIndex.find(meshAsset.GetID());
 			if (it != m_entityToModelIndex.end())
 			{
 				return static_cast<int>(it->second);
@@ -102,6 +99,6 @@ namespace Butterfly
 	private:
 		RefPtr<BFStructuredBuffer> m_modelBuffer;
 		std::vector<GPUModel> m_models;
-		std::unordered_map<uint32_t, uint32_t> m_entityToModelIndex;
+		std::unordered_map<UUID, uint32_t> m_entityToModelIndex;
 	};
 }

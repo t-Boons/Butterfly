@@ -34,14 +34,8 @@ namespace Butterfly
 				list.SetViewport(RenderViewport::FromTexture(viewport.GetRenderTarget()));
 
 				uint32_t entityIndex = 0;
-				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
-				for (auto [entity, transform, meshRenderer] : view.each())
+				for (const RenderObject& renderObject : viewport.GetRenderData().CulledRenderObjects)
 				{
-					if (!meshRenderer.GetMeshHandle())
-					{
-						continue;
-					}
-
 					BFGraphicsPSOInfo psoInfo;
 					psoInfo.DepthStencil.EnableDepth = true;
 					psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
@@ -51,7 +45,7 @@ namespace Butterfly
 					list.SetGraphicsPSO(psoInfo);
 
 					AssetManager& as = Application::Get().GetAssetManager();
-					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+					MeshAsset* mesh = as.Resolve<MeshAsset>(renderObject.MeshAsset);
 
 					list.SetIndexBuffer(*mesh->GPUIndices);
 
@@ -73,7 +67,7 @@ namespace Butterfly
 							.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
 							.Add(smp.View())
 							.Add(viewport.GetRenderData().Models.SRV().View())
-							.Add(viewport.GetRenderData().Models.GetModelViewIndex(entityIndex))
+							.Add(viewport.GetRenderData().Models.GetModelViewIndex(renderObject.MeshAsset))
 							.Add(viewport.GetRenderData().Lights.SRV().View())
 							.Add(static_cast<uint32_t>(viewport.GetRenderData().Lights.GetLights().size()))
 							.Add(viewport.GetRenderData().Materials.GetMaterialBuffer().SRV().View())

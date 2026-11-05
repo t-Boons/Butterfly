@@ -80,22 +80,21 @@ namespace Butterfly
 					list.SetGraphicsPSO(psoInfo);
 
 					uint32_t entityRenderIndex = 0;
-					auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
-					for (auto [entity, transform, meshRenderer] : view.each())
+					for (const RenderObject& renderObject : viewport.GetRenderData().CulledRenderObjects)
 					{
-						if (!meshRenderer.GetMeshHandle())
+						if (!renderObject.MeshAsset)
 						{
 							continue;
 						}
 
 						AssetManager& as = Application::Get().GetAssetManager();
-						MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+						MeshAsset* mesh = as.Resolve<MeshAsset>(renderObject.MeshAsset);
 						ShaderVariables()
 							.Add(mesh->GPUPositions->SRV().View())
 							.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
 							.Add(viewport.GetRenderData().Models.SRV().View())
-							.Add(viewport.GetRenderData().Models.GetModelViewIndex(entityRenderIndex))
-							.Add(static_cast<int>(entity)) // uint32_t Entity ID in registry.
+							.Add(viewport.GetRenderData().Models.GetModelViewIndex(renderObject.MeshAsset))
+							.Add(static_cast<int>(renderObject.Entity)) // uint32_t Entity ID in registry.
 							.Submit(list);
 
 						entityRenderIndex++;
@@ -158,6 +157,15 @@ namespace Butterfly
 
 		if (m_boundingBoxesVisible)
 		{
+			auto v = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, CameraComponent>();
+
+			if (Application::Get().GetScene().GetEntityRegistry().view<CameraComponent>().size() == 0)
+			{
+				return;
+			}
+			const CameraComponent& camera = v.get<CameraComponent>(*v.begin());
+			const TransformComponent& cameraTransform = v.get<TransformComponent>(*v.begin());
+
 			auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 			for (auto [entity, transform, meshRenderer] : view.each())
 			{
@@ -168,7 +176,27 @@ namespace Butterfly
 
 				const MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
 				const glm::mat4 modelMatrix = transform.GetWorldMatrix();
-				EditorApplication::Get().GetDebugRenderer().DrawBox(modelMatrix * glm::vec4(mesh->GetBounds().Min, 1.0f), modelMatrix * glm::vec4(mesh->GetBounds().Max, 1.0f), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
+
+				for (const auto& subm : mesh->GetSubMeshes())
+				{
+					const std::array<glm::vec3, 8> corners = subm.SubBounds.GetCorners();
+
+					BFAABB worldAABB{};
+
+					for (const glm::vec3& corner : corners)
+					{
+						const glm::vec3 worldCorner = glm::vec3(modelMatrix * glm::vec4(corner, 1.0f));
+						worldAABB.ExpandToFit(worldCorner);
+					}
+
+					const bool intersects = worldAABB.IntersectsFrustum(camera.GetViewprojectionMatrrix(cameraTransform.GetPosition(), cameraTransform.GetRotation()));
+
+					const glm::vec4 color = intersects
+						? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)
+						: glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+
+					EditorApplication::Get().GetDebugRenderer().DrawBox(worldAABB.Min, worldAABB.Max, color);
+				}
 			}
 		}
 	}
@@ -335,34 +363,13 @@ namespace Butterfly
 			}
 			ImGui::PopStyleColor();
 		}
+		ImGui::SameLine(0.0f, 10);
+		{
+			ImGui::Text("RENDERED OBJECTS: %d OUT OF %d", m_viewport->GetRenderData().CulledRenderObjects.size(), m_viewport->GetRenderData().MeshesInScene);
+		}
 		ImGui::PopFont();
 		ImGui::PopStyleColor(3);
 		ImGui::PopStyleVar();
-
-		const ImVec2 windowSize = ImGui::GetWindowSize();
-		ImGui::SetCursorPos({ startCursorPos.x + 200, + startCursorPos.y});
-		std::vector<std::string> selectables = { "Lit", "Normal", "Albedo", "Roughness", "Metallic", "Emission", "Uvs", "SDF" };
-		std::vector< DebugViewType> m_debugTypes = { DebugViewType::None, DebugViewType::Normal, DebugViewType::Albedo, DebugViewType::Roughness, DebugViewType::Metallic, DebugViewType::Emission, DebugViewType::UVs, DebugViewType::SDF };
-
-		if (ImGUIHelpers::EnumSelector("View", selectables, m_selectedViewType))
-		{
-			if (m_selectedViewType == 0)
-			{
-				m_viewport->GetRenderPipeline().SetDefaultStages();
-				m_viewport->GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
-				m_viewport->GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
-			}
-			else
-			{
-				m_viewport->GetRenderPipeline().ClearStages();
-				m_viewport->GetRenderPipeline().RegisterStage<ClearRenderPipelineStage>().SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
-				m_viewport->GetRenderPipeline().RegisterStage<DebugViewRenderPipelineStage>().SetDebugViewType(m_debugTypes[m_selectedViewType]);
-				m_viewport->GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
-				m_viewport->GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
-				m_viewport->GetRenderPipeline().RegisterStage<ColorspaceCorrectionRenderPipelineStage>();
-			}
-		}
-
 
 		if (m_objectHelpersVisible)
 		{

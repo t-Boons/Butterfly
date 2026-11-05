@@ -41,9 +41,6 @@ namespace Butterfly
 			BFAABB SubBounds;
 		};
 
-
-
-
 		void GenerateSubMeshBounds();
 
 		const std::vector<SubMesh>& GetSubMeshes() const { return m_subMeshes; }

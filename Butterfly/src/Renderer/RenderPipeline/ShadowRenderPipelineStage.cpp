@@ -54,36 +54,25 @@ namespace Butterfly
 						list.SetDepthStencilTarget(*shadowMap.ShadowMapTexture, slice);
 						list.ClearDepthStencilTarget(*shadowMap.ShadowMapTexture, 1.0f, 0, slice);
 
-						uint32_t entityIndex = 0;
-						auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
-						for (const auto& [entity, transform, meshRenderer] : view.each())
-						{
-							if (!meshRenderer.GetMeshHandle())
-							{
-								continue;
-							}
 
+						for (const auto& renderObject : viewport.GetRenderData().ShadowRenderObjects[shadowMapIndex][slice])
+						{
 							AssetManager& as = Application::Get().GetAssetManager();
-							MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+							MeshAsset* mesh = as.Resolve<MeshAsset>(renderObject.MeshAsset);
 
 							list.SetIndexBuffer(*mesh->GPUIndices);
 
-							for (const auto& subMesh : mesh->GetSubMeshes())
-							{
-								ShaderVariables()
-									.Add(mesh->GPUPositions->SRV().View())
-									.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
-									.Add(viewport.GetRenderData().ShadowMaps.SRV().View())
-									.Add(shadowMapIndex)
-									.Add(viewport.GetRenderData().Models.SRV().View())
-									.Add(viewport.GetRenderData().Models.GetModelViewIndex(entityIndex))
-									.Add(slice)
-									.Submit(list);
+							ShaderVariables()
+								.Add(mesh->GPUPositions->SRV().View())
+								.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
+								.Add(viewport.GetRenderData().ShadowMaps.SRV().View())
+								.Add(shadowMapIndex)
+								.Add(viewport.GetRenderData().Models.SRV().View())
+								.Add(viewport.GetRenderData().Models.GetModelViewIndex(renderObject.MeshAsset))
+								.Add(slice)
+								.Submit(list);
 
-								list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);
-							}
-
-							entityIndex++;
+							list.DrawIndexedInstanced(renderObject.SubMesh.IndexCount, 1, renderObject.SubMesh.IndexOffset, 0, 0);
 						}
 					}
 				}

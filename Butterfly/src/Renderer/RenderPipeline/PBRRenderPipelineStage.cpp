@@ -101,15 +101,10 @@ namespace Butterfly
 				}
 
 				uint32_t entityIndex = 0;
-				for (const auto& [entity, transform, meshRenderer] : view.each())
+				for (const RenderObject& renderObject : viewport.GetRenderData().CulledRenderObjects)
 				{
-					if (!meshRenderer.GetMeshHandle())	
-					{
-						continue;
-					}
-
 					AssetManager& as = Application::Get().GetAssetManager();
-					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+					MeshAsset* mesh = as.Resolve<MeshAsset>(renderObject.MeshAsset);
 
 					list.SetIndexBuffer(*mesh->GPUIndices);
 
@@ -123,7 +118,7 @@ namespace Butterfly
 							.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
 							.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap()).View())
 							.Add(viewport.GetRenderData().Models.SRV().View())
-							.Add(viewport.GetRenderData().Models.GetModelViewIndex(entityIndex))
+							.Add(viewport.GetRenderData().Models.GetModelViewIndex(renderObject.MeshAsset))
 							.Add(viewport.GetRenderData().Lights.SRV().View())
 							.Add(static_cast<uint32_t>(viewport.GetRenderData().Lights.GetNumLights()))
 							.Add(viewport.GetRenderData().ShadowMaps.SRV().View())

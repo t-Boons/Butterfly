@@ -5,7 +5,7 @@ namespace Butterfly
 {
 	void SDF::GenerateSDF(const std::vector<glm::vec3>& positions, const std::vector<uint32_t>& indices, const std::vector<MeshAsset::SubMesh>& subMeshes, const BFAABB& meshBounds)
 	{
-		const glm::vec3 padding = meshBounds.Size() * 0.5f * 0.2f; // 20% of the size;
+		const glm::vec3 padding = meshBounds.GetSize() * 0.5f * 0.2f; // 20% of the size;
 		m_sdfBounds.Min = meshBounds.Min - padding;
 		m_sdfBounds.Max = meshBounds.Max + padding;
 
