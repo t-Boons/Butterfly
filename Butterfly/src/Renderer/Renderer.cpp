@@ -102,7 +102,7 @@ namespace Butterfly
 		// When one of the viewports gets resized.
 		if (!viewport->HasRenderTarget() || viewport->GetRenderTarget().Width() != size.x || viewport->GetRenderTarget().Height() != size.y)
 		{
-			WaitForInflightFrames();
+			FlushRenderCommands();
 
 			viewport->m_renderTarget[viewport->m_frameIndex].reset();
 			viewport->m_depthStencil[viewport->m_frameIndex].reset();
@@ -161,7 +161,7 @@ namespace Butterfly
 		auto isDeadFunc = [](const RefPtr<Viewport>& vp) { return vp.use_count() == 1; };
 		if (std::any_of(m_frameData.Viewports.begin(), m_frameData.Viewports.end(), isDeadFunc))
 		{
-			WaitForInflightFrames();
+			FlushRenderCommands();
 			std::erase_if(m_frameData.Viewports, isDeadFunc);
 		}
 
@@ -316,7 +316,7 @@ namespace Butterfly
 		return viewport;
 	}
 
-	void Renderer::WaitForInflightFrames()
+	void Renderer::FlushRenderCommands()
 	{
 		BF_PROFILE_EVENT()
 
@@ -359,7 +359,7 @@ namespace Butterfly
 
 	Renderer::~Renderer()
 	{
-		WaitForInflightFrames();
+		FlushRenderCommands();
 
 		m_frameData.CompositeRenderTarget.fill(nullptr);
 		m_frameData.CmdList.fill(nullptr);

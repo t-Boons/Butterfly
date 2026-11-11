@@ -11,6 +11,8 @@ namespace Butterfly
 		m_manager = manager;
 		m_assetPath = FileSystem::WorkingDirectory() / "Assets";
 
+		BF_CORE_LOG_TRACE("Asset root path: %s", m_assetPath.string().c_str());
+
 		Scan();
 	}
 
@@ -33,6 +35,35 @@ namespace Butterfly
 		}
 		m_registeredFiles.erase(meta.SourceFileID);
 	}
+
+	void AssetRegistry::RenameFileAndMeta(const UUID& id, const std::filesystem::path& newPath)
+	{
+		auto it = m_registeredFiles.find(id);
+		if (it == m_registeredFiles.end())
+		{
+			BF_CORE_LOG_ERROR("Unable to rename file, no file with ID: %s found in registry", id.ToString().c_str());
+			return;
+		}
+
+		const std::filesystem::path oldFilePath = it->second.Path;
+		const std::filesystem::path oldMetaPath = oldFilePath.string() + m_metaFileExtention;
+		const std::filesystem::path newFilePath = newPath;
+		const std::filesystem::path newMetaPath = newFilePath.string() + m_metaFileExtention;
+
+		if (!FileSystem::Rename(oldFilePath, newFilePath))
+		{
+			BF_CORE_LOG_ERROR("Unable to rename file: %s to %s", oldFilePath.string().c_str(), newFilePath.string().c_str());
+			return;
+		}
+
+		if(!FileSystem::Rename(oldMetaPath, newMetaPath))
+		{
+			BF_CORE_LOG_ERROR("Unable to rename meta file: %s to %s", oldMetaPath.string().c_str(), newMetaPath.string().c_str());
+			return;
+		}
+		it->second.Path = newFilePath;
+	}
+
 
 	bool AssetRegistry::NewFile(const std::string& name, const std::string& extention, const std::string& contents, AssetFileMetadata& meta)
 	{
@@ -201,7 +232,9 @@ namespace Butterfly
 		{
 			YAML::Node node;
 			node = YAML::LoadFile(metaPath.string());
-			return node["Meta"].as<AssetFileMetadata>();
+			AssetFileMetadata meta = node["Meta"].as<AssetFileMetadata>();
+			meta.Path = file;
+			return meta;
 		}
 		catch (const YAML::Exception& e)
 		{

@@ -13,6 +13,8 @@ namespace Butterfly
 		bool ImportFromDisk(const std::filesystem::path& file, AssetFileMetadata& meta);
 		bool NewFile(const std::string& name, const std::string& extention, const std::string& contents, AssetFileMetadata& meta);
 		bool DeleteFileAndMeta(const UUID& id);
+		void RenameFileAndMeta(const UUID& id, const std::filesystem::path& newPath);
+
 
 		void Scan();
 		bool FindAsset(const UUID& id, AssetMetadata& meta) const;

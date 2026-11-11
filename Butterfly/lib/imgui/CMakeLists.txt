@@ -10,4 +10,9 @@ add_library(imgui STATIC
 
 target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
 target_link_libraries(imgui PUBLIC d3d12 glfw)
-target_compile_options(imgui PRIVATE /W0)
+
+if(MSVC)
+    target_compile_options(imgui PRIVATE /W0)
+else()
+    target_compile_options(imgui PRIVATE -w)
+endif()

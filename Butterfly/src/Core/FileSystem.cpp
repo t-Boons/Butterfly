@@ -186,4 +186,24 @@ namespace Butterfly
 		BF_CORE_LOG_TRACE("Deleted file: %ls", path.c_str());
 		return true;
 	}
+
+    bool FileSystem::Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath)
+    {
+        if (!Exists(oldPath))
+        {
+            BF_CORE_LOG_WARN("File does not exist: %ls", oldPath.c_str());
+            return false;
+        }
+
+        std::error_code ec;
+        std::filesystem::rename(oldPath, newPath, ec);
+        if (ec)
+        {
+            BF_CORE_LOG_WARN("Failed to rename file: %ls to %ls", oldPath.c_str(), newPath.c_str());
+            return false;
+        }
+
+        BF_CORE_LOG_TRACE("Renamed file: %ls to %ls", oldPath.c_str(), newPath.c_str());
+        return true;
+    }
 }

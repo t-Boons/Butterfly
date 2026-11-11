@@ -25,6 +25,8 @@
 #include <any>
 #include <exception>
 #include <numeric>
+#include <condition_variable>
+#include <thread>
 
 #include "glm/glm.hpp"
 #include "glm/gtx/quaternion.hpp"

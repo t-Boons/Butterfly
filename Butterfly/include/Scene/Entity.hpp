@@ -52,46 +52,45 @@ namespace Butterfly
 		template<typename T>
 		T& AddComponent()
 		{
-			return Application::Get().GetScene().m_activeScene->AddComponent<T>(m_handle);
+			return Application::Get().GetScene().GetActiveScene().AddComponent<T>(m_handle);
 		}
 
 		template<typename T>
 		T& GetComponent()
 		{
-			return Application::Get().GetScene().m_activeScene->GetComponent<T>(m_handle);
+			return Application::Get().GetScene().GetActiveScene().GetComponent<T>(m_handle);
 		}
 
 		template<typename T>
 		const T& GetComponent() const
 		{
-			return Application::Get().GetScene().m_activeScene->GetComponent<T>(m_handle);
+			return Application::Get().GetScene().GetActiveScene().GetComponent<T>(m_handle);
 		}
 
 		template<typename T>
 		bool HasComponent() const
 		{
-			return Application::Get().GetScene().m_activeScene->HasComponent<T>(m_handle);
+			return Application::Get().GetScene().GetActiveScene().HasComponent<T>(m_handle);
 		}
 
 		template<typename T>
 		T* TryGetComponent()
 		{
-			return Application::Get().GetScene().m_activeScene->TryGetComponent<T>(m_handle);
+			return Application::Get().GetScene().GetActiveScene().TryGetComponent<T>(m_handle);
 		}
 
 		template<typename T>
 		void RemoveComponent()
 		{
-			Application::Get().GetScene().m_activeScene->RemoveComponent<T>(m_handle);
+			Application::Get().GetScene().GetActiveScene().RemoveComponent<T>(m_handle);
 		}
 
 		void Destroy()
 		{
-			Application::Get().GetScene().m_activeScene->DestroyEntity(m_handle);
+			Application::Get().GetScene().GetActiveScene().DestroyEntity(m_handle);
 		}
 
 	private:
-		friend class Scene;
 
 		entt::entity m_handle = entt::null;
 	};

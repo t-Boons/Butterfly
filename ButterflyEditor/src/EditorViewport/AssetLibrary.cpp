@@ -7,14 +7,7 @@
 
 namespace Butterfly
 {
-	struct LibraryIcon
-	{
-		const char* IconCode;
-		RefPtr<Thumbnail> Thumbnail;
-	};
-
-	void DrawCell(const std::string& id, const std::string& name, const LibraryIcon& icon,
-		bool& doubleClicked, const std::function<void()>& onItem = {})
+	void AssetLibrary::DrawCell(const std::string &id, const std::string &name, const LibraryIcon &icon, bool &doubleClicked, const std::function<void()> &onItem, bool renaming, std::string *renameBuffer, const std::function<void()> &onRename)
 	{
 		BF_PROFILE_EVENT()
 
@@ -38,11 +31,11 @@ namespace Butterfly
 			onItem();
 		}
 
-		ImDrawList* dl = ImGui::GetWindowDrawList();
+		ImDrawList *dl = ImGui::GetWindowDrawList();
 		if (hovered)
 		{
 			dl->AddRect(cellStart, ImVec2(cellStart.x + cellSize, cellStart.y + cellSize),
-				IM_COL32(255, 255, 255, 40), 4.0f);
+						IM_COL32(255, 255, 255, 40), 4.0f);
 		}
 
 		const float textMargin = 25.0f;
@@ -56,85 +49,143 @@ namespace Butterfly
 		}
 		else
 		{
-			ImFont* iconFont = ImGui::GetIO().Fonts->Fonts[2];
+			ImFont *iconFont = ImGui::GetIO().Fonts->Fonts[2];
 			const float fontSize = iconRectSize.x - 5.0f;
 			const ImVec2 iconTextSize = iconFont->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, icon.IconCode);
 			const float iconX = cellStart.x + (cellSize - iconTextSize.x) * 0.5f;
 			dl->AddText(iconFont, fontSize, ImVec2(iconX, iconRectStart.y), IM_COL32(255, 255, 255, 255), icon.IconCode);
 		}
 
-		ImGUIHelpers::TextWrappedCentered(name, ImVec2(cellMarginStart.x, cellMarginStart.y + iconRectSize.y), cellMarginSize.x);
+		if (renaming && renameBuffer)
+		{
+			ImGui::SetCursorScreenPos(ImVec2(cellStart.x + 4.0f, cellStart.y + cellSize - 25.0f));
+			ImGui::SetNextItemWidth(cellSize - 8.0f);
+
+			if (m_focusRename)
+			{
+				ImGui::SetKeyboardFocusHere();
+				m_focusRename = false;
+			}
+
+			const bool enterPressed = ImGui::InputText("##Rename", renameBuffer, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+
+			const bool clickedOutside = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemHovered();
+			const bool escapePressed = ImGui::IsKeyPressed(ImGuiKey_Escape);
+
+			if (escapePressed)
+			{
+				m_renameID = UUID();
+			}
+			else if (enterPressed || clickedOutside)
+			{
+				if (onRename)
+					onRename();
+
+				m_renameID = UUID();
+			}
+		}
+		else
+		{
+			ImGUIHelpers::TextWrappedCentered(name, ImVec2(cellMarginStart.x, cellMarginStart.y + iconRectSize.y), cellMarginSize.x);
+		}
 		ImGui::PopID();
 	}
 
-	void DrawFileCell(const LibraryIcon& icon, const std::string& name, const AssetFileMetadata& meta, bool& doubleClicked)
+void AssetLibrary::DrawFileCell(const LibraryIcon& icon, const std::string& name, const AssetFileMetadata& meta, bool& doubleClicked)
+{
+    const bool renaming = m_renameID == meta.SourceFileID;
+
+    DrawCell(meta.Path.string(), name, icon, doubleClicked, [&]()
+    {
+        if (ImGui::BeginPopupContextItem())
+        {
+            if (ImGui::MenuItem("Show in Explorer"))
+            {
+                system(("explorer.exe /select,\"" + meta.Path.string() + "\"").c_str());
+            }
+
+            if (ImGui::MenuItem("Rename"))
+            {
+                m_renameBuffer = meta.Path.stem().string();
+                m_renameID = meta.SourceFileID;
+                m_focusRename = true;
+            }
+
+            if (ImGui::MenuItem("Delete"))
+            {
+                EditorApplication::Get().GetEditorViewport().RunBeforeImGuiRender([meta]()
+                {
+                    Application::Get().GetAssetManager().GetAssetRegistry().DeleteFileAndMeta(meta.SourceFileID);
+                });
+            }
+
+            ImGui::EndPopup();
+        }
+
+        if (!renaming && ImGui::BeginDragDropSource())
+        {
+            UUID id = meta.RootAssetID;
+            ImGui::SetDragDropPayload("ASSET", &id, sizeof(UUID));
+            ImGui::Text("Dragging %s", name.c_str());
+            ImGui::EndDragDropSource();
+        }
+    },
+    renaming,
+    &m_renameBuffer,
+    [&]()
+    {
+        if (m_renameBuffer.empty() || m_renameBuffer == meta.Path.stem().string())
+            return;
+
+        const auto newPath = meta.Path.parent_path() / (m_renameBuffer + meta.Path.extension().string());
+
+        EditorApplication::Get().GetEditorViewport().RunBeforeImGuiRender([id = meta.SourceFileID, newPath]()
+        {
+            auto& registry = Application::Get().GetAssetManager().GetAssetRegistry();
+            registry.RenameFileAndMeta(id, newPath);
+        });
+    });
+}
+
+	void AssetLibrary::OpenAsset(const AssetFileMetadata &meta, const std::string &ext)
 	{
-		DrawCell(meta.Path.string(), name, icon, doubleClicked, [&]()
-			{
-				if (ImGui::BeginPopupContextItem())
-				{
-					if (ImGui::MenuItem("Show in Explorer"))
-						system(("explorer.exe /select," + meta.Path.string()).c_str());
+		m_renameID = UUID();
 
-					if (ImGui::MenuItem("Delete"))
-					{
-						EditorApplication::Get().GetEditorViewport().RunBeforeImGuiRender([meta]()
-							{
-								Application::Get().GetAssetManager().GetAssetRegistry().DeleteFileAndMeta(meta.SourceFileID);
-							});
-					}
-					ImGui::EndPopup();
-				}
-
-				if (ImGui::BeginDragDropSource())
-				{
-					UUID id = meta.RootAssetID;
-					ImGui::SetDragDropPayload("ASSET", &id, sizeof(UUID));
-					ImGui::Text("Dragging %s", name.c_str());
-					ImGui::EndDragDropSource();
-				}
-			});
-	}
-
-	void OpenAsset(const AssetFileMetadata& meta, const std::string& ext)
-	{
 		if (ext == ".bfscene")
 		{
 			EditorApplication::Get().GetEditorViewport().RunBeforeImGuiRender([meta]()
-				{
-					const std::string& scene = FileSystem::ReadText(meta.Path);
-					Application::Get().GetScene().LoadSceneFromFile(std::filesystem::path(meta.Path));
-					EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity();
-				});
+																			  {
+					Application::Get().GetScene().SetActiveScene(Scene::DeserializeFromFilePath(meta.Path));
+					EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity(); });
 		}
 		else if (ext == ".gltf" || ext == ".glb")
 		{
 			AssetHandle<ModelAsset> handle;
 			Application::Get().GetAssetManager().Acquire(meta.RootAssetID, handle);
-			ModelAsset* model = Application::Get().GetAssetManager().Resolve(handle);
+			ModelAsset *model = Application::Get().GetAssetManager().Resolve(handle);
 
-			std::function<void(ModelNode*, entt::entity)> traverse = [&](ModelNode* node, entt::entity parent)
+			std::function<void(ModelNode *, entt::entity)> traverse = [&](ModelNode *node, entt::entity parent)
+			{
+				entt::entity entity = Application::Get().GetScene().CreateEntity(node->Name);
+				auto &tr = Application::Get().GetScene().GetActiveScene().GetComponent<TransformComponent>(entity);
+				tr.SetWorldMatrix(node->ModelMatrix);
+
+				if (parent != entt::null)
 				{
-					entt::entity entity = Application::Get().GetScene().CreateEntity(node->Name);
-					auto& tr = Application::Get().GetScene().m_activeScene->GetComponent<TransformComponent>(entity);
-					tr.SetWorldMatrix(node->ModelMatrix);
+					Application::Get().GetScene().GetActiveScene().GetComponent<TransformComponent>(parent).Attach(tr);
+				}
 
-					if (parent != entt::null)
-					{
-						Application::Get().GetScene().m_activeScene->GetComponent<TransformComponent>(parent).Attach(tr);
-					}
+				if (node->Mesh)
+				{
+					MeshRendererComponent &mr = Application::Get().GetScene().GetActiveScene().AddComponent<MeshRendererComponent>(entity);
+					mr.SetMeshHandle(node->Mesh);
+				}
 
-					if (node->Mesh)
-					{
-						MeshRendererComponent& mr = Application::Get().GetScene().m_activeScene->AddComponent<MeshRendererComponent>(entity);
-						mr.SetMeshHandle(node->Mesh);
-					}
-
-					for (auto& child : node->Children)
-					{
-						traverse(child.get(), entity);
-					}
-				};
+				for (auto &child : node->Children)
+				{
+					traverse(child.get(), entity);
+				}
+			};
 
 			traverse(model->RootNode.get(), entt::null);
 		}
@@ -151,14 +202,13 @@ namespace Butterfly
 
 	void AssetLibrary::OnTick()
 	{
-
 	}
 
 	void AssetLibrary::OnRenderImGUI()
 	{
 		BF_PROFILE_EVENT()
 
-		auto& registry = Application::Get().GetAssetManager().GetAssetRegistry();
+		auto &registry = Application::Get().GetAssetManager().GetAssetRegistry();
 		const std::filesystem::path assetRoot = registry.GetRootDirectory().lexically_normal();
 
 		ImGui::Begin("Asset View");
@@ -169,6 +219,7 @@ namespace Butterfly
 		if (ImGui::Button(FontAwesome::AngleLeft))
 		{
 			m_currentDir = m_currentDir.parent_path();
+			m_renameID = UUID();
 		}
 		ImGui::PopFont();
 
@@ -178,9 +229,9 @@ namespace Butterfly
 		ImGui::Separator();
 
 		std::set<std::string> folders;
-		std::vector<const AssetFileMetadata*> files;
+		std::vector<const AssetFileMetadata *> files;
 
-		for (const auto& [id, meta] : registry.GetAll())
+		for (const auto &[id, meta] : registry.GetAll())
 		{
 			const auto parent = meta.Path.lexically_normal().parent_path();
 
@@ -206,9 +257,9 @@ namespace Butterfly
 		int columnCount = std::max(1, (int)((panelWidth + cellPadding) / (cellSize + cellPadding)));
 
 		if (ImGui::BeginTable("AssetGridTable", columnCount,
-			ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_NoBordersInBody))
+							  ImGuiTableFlags_SizingFixedSame | ImGuiTableFlags_NoBordersInBody))
 		{
-			for (const std::string& name : folders)
+			for (const std::string &name : folders)
 			{
 				LibraryIcon folderIcon;
 				folderIcon.IconCode = FontAwesome::Folder;
@@ -221,9 +272,9 @@ namespace Butterfly
 				}
 			}
 
-			for (const AssetFileMetadata* metaPtr : files)
+			for (const AssetFileMetadata *metaPtr : files)
 			{
-				const auto& meta = *metaPtr;
+				const auto &meta = *metaPtr;
 
 				if (ThumbnailProcessor::IsSupportedImageType(meta.Path) && !EditorApplication::Get().GetEditorCache().Exists(meta.SourceFileID))
 				{
@@ -239,9 +290,12 @@ namespace Butterfly
 
 				LibraryIcon icon;
 				icon.IconCode = FontAwesome::File;
-				if (ext == ".bfscene") icon.IconCode = FontAwesome::CubeStack;
-				else if (ext == ".obj" || ext == ".gltf" || ext == ".glb") icon.IconCode = FontAwesome::Cube;
-				if (entry.Loaded) icon.Thumbnail = entry.Data->GetThumbnail();
+				if (ext == ".bfscene")
+					icon.IconCode = FontAwesome::CubeStack;
+				else if (ext == ".obj" || ext == ".gltf" || ext == ".glb")
+					icon.IconCode = FontAwesome::Cube;
+				if (entry.Loaded)
+					icon.Thumbnail = entry.Data->GetThumbnail();
 
 				bool doubleClicked = false;
 				DrawFileCell(icon, meta.Path.filename().string(), meta, doubleClicked);

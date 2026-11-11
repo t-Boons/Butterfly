@@ -106,8 +106,8 @@ namespace Butterfly
 		const std::unordered_set<RefPtr<Viewport>>& GetAllViewports() const { return m_frameData.Viewports; }
 		std::unordered_set<RefPtr<Viewport>>& GetAllViewports() { return m_frameData.Viewports; }
 
+		void FlushRenderCommands();
 	private:
-		void WaitForInflightFrames();
 		void ApplyResize();
 
 		void RecordCmdList(const ViewportRenderEvent& ev);

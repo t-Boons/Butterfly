@@ -5,6 +5,7 @@
 #include "Scene/Registry/TransformComponent.hpp"
 #include "Serialization/ENTT/ComponentRegistry.hpp"
 #include "Core/Window.hpp"
+#include "Renderer/Renderer.hpp"
 
 #include "Core/Application.hpp"
 #include "Asset/AssetManager.hpp"
@@ -39,6 +40,13 @@ namespace Butterfly
 		YAML::Emitter out;
 		out << root;
 		return out.c_str();
+	}
+
+	RefPtr<Scene> Scene::DeserializeFromFilePath(const std::filesystem::path& filePath)
+	{
+		BF_PROFILE_EVENT()
+
+		return Deserialize(FileSystem::ReadText(filePath));
 	}
 
 	RefPtr<Scene> Scene::Deserialize(const std::string& text)
@@ -120,12 +128,14 @@ namespace Butterfly
 		Application::Get().GetAssetManager().GetAssetRegistry().NewFile(m_activeScene->GetName(), ".bfscene", Scene::Serialize(*m_activeScene), meta);
 	}
 
-	void SceneManager::LoadSceneFromFile(const std::filesystem::path& path)
+	void SceneManager::SetActiveScene(const RefPtr<Scene>& scene)
 	{
 		BF_PROFILE_EVENT()
 
+		// Unload previous scene.
 		m_activeScene.reset();
-		m_activeScene = Scene::Deserialize(FileSystem::ReadText(path));
+
+		m_activeScene = scene;
 		Application::Get().GetWindow().SetWindowTitle("Butterfly Editor - " + m_activeScene->GetName());
 	}
 

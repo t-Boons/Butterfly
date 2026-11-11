@@ -9,6 +9,7 @@ namespace Butterfly
 	public:
 		static std::string Serialize(const Scene& scene);
 		static RefPtr<Scene> Deserialize(const std::string& text);
+		static RefPtr<Scene> DeserializeFromFilePath(const std::filesystem::path& filePath);
 
 		void CloneTo(Scene& destination) const;
 
@@ -86,7 +87,9 @@ namespace Butterfly
 
 
 		void SaveCurrentScene();
-		void LoadSceneFromFile(const std::filesystem::path& path);
+		void SetActiveScene(const RefPtr<Scene>& scene);
+		const Scene& GetActiveScene() const { return *m_activeScene; }
+		Scene& GetActiveScene() { return *m_activeScene; }
 
 		void DestroyPendingEntities();
 		entt::entity CreateEntity(const std::string& name = "New GameObject");
@@ -94,8 +97,9 @@ namespace Butterfly
 		const entt::registry& GetEntityRegistry() const { return m_activeScene->m_registry; }
 		const entt::entity& GetRootEntity() const { return m_activeScene->m_rootEntity; }
 
-		RefPtr<Scene> m_activeScene;
 	private:
 		void DestroyChildren(entt::entity entity);
+
+		RefPtr<Scene> m_activeScene;
 	};
 }

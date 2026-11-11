@@ -10,7 +10,8 @@ namespace Butterfly::Game
 		s_instance = this;
 		m_viewport = new GameViewport();
 
-		Application::Get().GetScene().LoadSceneFromFile(Application::Get().GetAssetManager().GetAssetRegistry().GetRootDirectory() / "Untitled Scene 15.bfscene");
+		RefPtr<Scene> scene = Scene::DeserializeFromFilePath(Application::Get().GetAssetManager().GetAssetRegistry().GetRootDirectory() / "Untitled Scene 15.bfscene");
+		Application::Get().GetScene().SetActiveScene(scene);
 	}
 
 	void GameApplication::OnTick()

@@ -49,7 +49,6 @@ namespace YAML
 		{
 			Node node;
 
-			node["Path"] = meta.Path.string();
 			node["SourceFileID"] = meta.SourceFileID.ToString();
 			node["RootAssetID"] = meta.RootAssetID.ToString();
 
@@ -70,7 +69,6 @@ namespace YAML
 					return false;
 				}
 
-				meta.Path = std::filesystem::path(node["Path"].as<std::string>());
 				meta.SourceFileID = Butterfly::UUID::FromString(node["SourceFileID"].as<std::string>());
 				meta.RootAssetID = Butterfly::UUID::FromString(node["RootAssetID"].as<std::string>());
 
