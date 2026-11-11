@@ -1,13 +1,16 @@
 #pragma once
 #include "Core/Common.hpp"
-#include "Renderer/Light.hpp"
 #include "Renderer/Material.hpp"
-#include "Renderer/Model.hpp"
+#include "Renderer/Light.hpp"
 #include "Renderer/ShadowMap.hpp"
 
 #include "Core/Application.hpp"
 #include "Scene/Registry/MeshRendererComponent.hpp"
+#include "Scene/Registry/TransformComponent.hpp"
 #include "Asset/AssetTypes.hpp"
+
+
+#define MAX_LIGHTS 16
 
 namespace Butterfly
 {
@@ -26,6 +29,20 @@ namespace Butterfly
 		AssetHandle<MeshAsset> MeshAsset;
 		MeshAsset::SubMesh SubMesh;
 		entt::entity Entity;
+		int ModelDataArrayIndex;
+	};
+
+	struct GPUModel
+	{
+		glm::mat4 ModelMatrix;
+		glm::mat4 InverseModelMatrix;
+		glm::mat4 NormalMatrix;
+
+		glm::vec4 SDFBoundsMin;
+		glm::vec4 SDFBoundsSize;
+		glm::vec4 SDFResolution;
+
+		int SDFTextureIndex;
 	};
 
 	class BFRenderData
@@ -35,7 +52,8 @@ namespace Butterfly
 		RefPtr<BFUniformBuffer> Uniforms;
 		MaterialLibrary Materials;
 		LightBuffer Lights;
-		ModelBuffer Models;
+		RefPtr<BFStructuredBuffer> ModelDataBuffer;
+		std::vector<GPUModel> ModelDataList;
 		ShadowMapBuffer ShadowMaps;
 		std::vector<RenderObject> CulledRenderObjects;
 		uint32_t MeshesInScene = 0;
@@ -47,6 +65,17 @@ namespace Butterfly
 		BFRenderData()
 		{
 			Uniforms = MakeRef<BFUniformBuffer>(4096, "Uniforms");
+
+			{
+				BFStructuredBufferDesc desc;
+				desc.Data = nullptr;
+				desc.HeapType = BFHeapType::Upload;
+				desc.NumElements = 128;
+				desc.Stride = sizeof(GPUModel);
+				desc.DebugName = "ModelData";
+
+				ModelDataBuffer = MakeRef<BFStructuredBuffer>(desc);
+			}
 		}
 
 		void Update(const Viewport& viewport, const CameraData& cameraData)
@@ -59,8 +88,6 @@ namespace Butterfly
 			Lights.Update(viewport);
 			ShadowMaps.Update(viewport);
 			Materials.Validate();
-			Models.Validate();
-
 
 
 			const uint32_t numLights = Lights.GetNumLights();
@@ -72,8 +99,6 @@ namespace Butterfly
 			CulledRenderObjects.clear();
 			MeshesInScene = 0;
 
-
-
 			// Clear shadow render lists once.
 			for (int i = 0; i < numLights; ++i)
 			{
@@ -84,27 +109,52 @@ namespace Butterfly
 					ShadowLightFrustums[i][j].UpdatePlanes();
 				}
 			}
-#define USE_FRUSTUM_CULLING
-#ifdef USE_FRUSTUM_CULLING
-			for (const auto& [entity, meshRenderer, transform] :
-				Application::Get().GetScene().GetEntityRegistry().view<MeshRendererComponent, TransformComponent>().each())
+
+
+			ModelDataList.clear();
+			auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+			for (auto [entity, transform, meshRenderer] : view.each())
 			{
 				if (!meshRenderer.GetMeshHandle())
+				{
 					continue;
+				}
 
-				const MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-				const glm::mat4 modelMatrix = transform.GetWorldMatrix();
+				GPUModel model;
+
+				AssetManager& as = Application::Get().GetAssetManager();
+				MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
+
+				model.ModelMatrix = transform.GetWorldMatrix();
+				model.InverseModelMatrix = glm::inverse(model.ModelMatrix);
+				model.NormalMatrix = glm::transpose(glm::inverse(model.ModelMatrix));
+
+				if (mesh->GetSDF())
+				{
+					model.SDFResolution = glm::vec4(mesh->GetSDF()->GetSDFResolution(), 0.0f);
+					model.SDFTextureIndex = mesh->GetSDF()->GetSDFTexture()->SRV().View();
+					model.SDFBoundsMin = glm::vec4(mesh->GetSDF()->GetSDFBounds().Min, 0.0f);
+					model.SDFBoundsSize = glm::vec4(mesh->GetSDF()->GetSDFBounds().GetSize(), 0.0f);
+				}
+				else
+				{
+					model.SDFTextureIndex = -1;
+				}
+
+				ModelDataList.push_back(model);
+
+
 
 				for (const auto& subm : mesh->GetSubMeshes())
 				{
 					MeshesInScene++;
 
-					BFAABB worldAABB = subm.SubBounds.Transform(modelMatrix);
+					BFAABB worldAABB = subm.SubBounds.Transform(transform.GetWorldMatrix());
 
 					// Camera culling
 					if (worldAABB.IntersectsFrustum(cameraFrustum))
 					{
-						CulledRenderObjects.push_back({ meshRenderer.GetMeshHandle(), subm, entity });
+						CulledRenderObjects.push_back({ meshRenderer.GetMeshHandle(), subm, entity, static_cast<int>(ModelDataList.size() - 1) });
 					}
 
 					// Shadow culling
@@ -114,40 +164,13 @@ namespace Butterfly
 						{
 							if (worldAABB.IntersectsFrustum(ShadowLightFrustums[i][j]))
 							{
-								ShadowRenderObjects[i][j].push_back({ meshRenderer.GetMeshHandle(), subm, entity });
+								ShadowRenderObjects[i][j].push_back({ meshRenderer.GetMeshHandle(), subm, entity, static_cast<int>(ModelDataList.size() - 1) });
 							}
 						}
 					}
 				}
 			}
-#else
-			for (const auto& [entity, meshRenderer, transform] :
-				Application::Get().GetScene().GetEntityRegistry().view<MeshRendererComponent, TransformComponent>().each())
-			{
-				if (!meshRenderer.GetMeshHandle())
-					continue;
-
-				const MeshAsset* mesh = Application::Get().GetAssetManager().Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
-				const glm::mat4 modelMatrix = transform.GetWorldMatrix();
-
-				for (const auto& subm : mesh->GetSubMeshes())
-				{
-					MeshesInScene++;
-
-					BFAABB worldAABB = subm.SubBounds.Transform(modelMatrix);
-					CulledRenderObjects.push_back({ meshRenderer.GetMeshHandle(), subm, entity });
-
-					// Shadow culling
-					for (uint32_t i = 0; i < numLights; ++i)
-					{
-						for (int j = 0; j < shadowMaps[i].NumSlices; ++j)
-						{
-							ShadowRenderObjects[i][j].push_back({ meshRenderer.GetMeshHandle(), subm, entity });
-						}
-					}
-				}
-			}
-#endif
+			ModelDataBuffer->Write(ModelDataList.data(), sizeof(GPUModel) * static_cast<uint32_t>(ModelDataList.size()), 0);
 		}
 	};
 }

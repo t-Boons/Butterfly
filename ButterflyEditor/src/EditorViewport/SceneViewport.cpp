@@ -84,18 +84,13 @@ namespace Butterfly
 
 					for (const RenderObject& renderObject : viewport.GetRenderData().CulledRenderObjects)
 					{
-						if (!renderObject.MeshAsset)
-						{
-							continue;
-						}
-
 						AssetManager& as = Application::Get().GetAssetManager();
 						MeshAsset* mesh = as.Resolve<MeshAsset>(renderObject.MeshAsset);
 						ShaderVariables()
 							.Add(mesh->GPUPositions->SRV().View())
 							.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
-							.Add(viewport.GetRenderData().Models.SRV().View())
-							.Add(viewport.GetRenderData().Models.GetModelViewIndex(renderObject.MeshAsset))
+							.Add(viewport.GetRenderData().ModelDataBuffer->SRV().View())
+							.Add(renderObject.ModelDataArrayIndex)
 							.Add(static_cast<int>(renderObject.Entity)) // uint32_t Entity ID in registry.
 							.Submit(list);
 

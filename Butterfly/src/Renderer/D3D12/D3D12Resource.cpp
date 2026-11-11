@@ -36,15 +36,52 @@ namespace Butterfly
 		{
 			BF_PROFILE_EVENT();
 
-
-			if (CurrentResourceState == newState)
+			// TODO this might be a problem if we have multiple subresources with different states. We should probably track the state of each subresource separately.
+			if (CurrentResourceStates[SUBRESOURCE_ZERO] == newState)
 			{
 				return this;
 			}
 
-			D3D12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(HwResource, CurrentResourceState, newState);
+			D3D12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(HwResource, CurrentResourceStates[SUBRESOURCE_ZERO], newState);
 			cmdList.List()->ResourceBarrier(1, &transition);
-			CurrentResourceState = newState;
+
+			for (auto& [subresource, state] : CurrentResourceStates)
+			{
+				state = newState;
+			}
+
+			CurrentResourceStates[SUBRESOURCE_ZERO] = newState;
+			return this;
+		}
+
+		D3D12Resource* D3D12Resource::TransitionSubresource(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState, uint32_t mipslice, uint32_t arraySlice)
+		{
+			BF_PROFILE_EVENT();
+			uint32_t subresourceIndex = D3D12CalcSubresource(mipslice, arraySlice, 0, BufferDescription.MipLevels, BufferDescription.DepthOrArraySize);
+
+			auto it = CurrentResourceStates.find(subresourceIndex);
+
+			if (it == CurrentResourceStates.end())
+			{
+				CurrentResourceStates[subresourceIndex] = CurrentResourceStates[SUBRESOURCE_ZERO];
+				it = CurrentResourceStates.find(subresourceIndex);
+			}
+
+			if (it->second == newState)
+			{
+				return this;
+			}
+			D3D12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(HwResource, it->second, newState, subresourceIndex);
+			cmdList.List()->ResourceBarrier(1, &transition);
+			it->second = newState;
+			return this;
+		}
+
+		D3D12Resource* D3D12Resource::UAVBarrier(const D3D12CommandList& cmdList)
+		{
+			BF_PROFILE_EVENT();
+			D3D12_RESOURCE_BARRIER uavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(HwResource);
+			cmdList.List()->ResourceBarrier(1, &uavBarrier);
 			return this;
 		}
 
@@ -57,7 +94,7 @@ namespace Butterfly
 
 		D3D12Resource::D3D12Resource()
 			: BufferDescription(D3D12_RESOURCE_DESC()), HeapProperties(CD3DX12_HEAP_PROPERTIES()), HwResource(nullptr),
-			ClearValue(D3D12_CLEAR_VALUE()), DebugName("Resource"), CurrentResourceState(D3D12_RESOURCE_STATE_GENERIC_READ)
+			ClearValue(D3D12_CLEAR_VALUE()), DebugName("Resource")
 		{
 		}
 
@@ -86,7 +123,7 @@ namespace Butterfly
 				&HeapProperties,
 				D3D12_HEAP_FLAG_NONE,
 				&BufferDescription,
-				CurrentResourceState,
+				CurrentResourceStates[SUBRESOURCE_ZERO],
 				clearValue,
 				IID_PPV_ARGS(&HwResource)
 			));
@@ -122,7 +159,7 @@ namespace Butterfly
 			m_resource->HeapProperties = props;
 			m_resource->BufferDescription = resource->GetDesc();
 			m_resource->HwResource = resource;
-			m_resource->CurrentResourceState = state;
+			m_resource->CurrentResourceStates[SUBRESOURCE_ZERO] = state;
 			m_resource->HwResource->SetName(Utils::StringToWString(m_resource->DebugName).c_str());
 			return m_resource;
 		}
@@ -187,13 +224,13 @@ namespace Butterfly
 
 		DX12ResourceBuilder& DX12ResourceBuilder::Texture(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize, uint32_t numMips)
 		{
-			m_resource->BufferDescription = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, arraySize, 1);
+			m_resource->BufferDescription = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, arraySize, numMips);
 			return *this;
 		}
 
 		DX12ResourceBuilder& DX12ResourceBuilder::Texture3D(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t depth, uint32_t numMips)
 		{
-			m_resource->BufferDescription = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, depth, 1);
+			m_resource->BufferDescription = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, depth, numMips);
 			return *this;
 		}
 
@@ -213,7 +250,7 @@ namespace Butterfly
 
 		DX12ResourceBuilder& DX12ResourceBuilder::InitialState(const D3D12_RESOURCE_STATES& state)
 		{
-			m_resource->CurrentResourceState = state;
+			m_resource->CurrentResourceStates[SUBRESOURCE_ZERO] = state;
 			return *this;
 		}
 }

@@ -1,9 +1,9 @@
 #pragma once
 #include "Core/Common.hpp"
 #include "Scene/Registry/LightComponent.hpp"
-#include "Renderer/Light.hpp"
+#include "Renderer/RenderIncludes.hpp"
 
-#define MAX_SHADOW_MAPS MAX_LIGHTS
+#define MAX_SHADOW_MAPS 16
 
 namespace Butterfly
 {
@@ -18,6 +18,7 @@ namespace Butterfly
 		float Resolution = 0.0f;
 	};
 
+	class BFTexture;
 	struct ShadowMap
 	{
 		std::array<glm::mat4, CUBEMAP_SLICES> LightViewProjections;

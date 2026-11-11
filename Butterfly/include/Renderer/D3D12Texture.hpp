@@ -28,6 +28,21 @@ namespace Butterfly
 		const void* CPUCopySource = nullptr;
 	};
 
+	struct BFSRVTextureViewInfo
+	{
+		uint32_t FirstSlice = 0;
+		uint32_t LastSlice = 64;
+		uint32_t MipSlice = 0;
+		bool SRGB = false;
+	};
+
+	struct BFUAVTextureViewInfo
+	{
+		uint32_t FirstSlice = 0;
+		uint32_t LastSlice = 64;
+		uint32_t MipSlice = 0;
+	};
+
 	struct BFTextureDesc
 	{
 		BFTextureType Type = BFTextureType::Texture2D;
@@ -39,9 +54,8 @@ namespace Butterfly
 		uint32_t ArraySize = 1;
 		uint32_t ViewTypes = None;
 		std::string DebugName = "Texture";
-		bool SRGB = false;
-		uint32_t NumMips = 1; // 0 Means generate all.
-		//bool GenerateMips = false;
+		bool SRGBHint = false;
+		int NumMips = 1; // 0 Means generate all.
 
 		enum ViewType : uint32_t
 		{
@@ -67,8 +81,9 @@ namespace Butterfly
 		const BFDepthStencilView& DSVArraySlice(uint32_t slice);
 		const BFRenderTargetView& RTV() const;
 		const BFShaderResourceView& SRV();
-		const BFShaderResourceView& SRVArraySlice(uint32_t firstSlice, uint32_t lastSlice);
-		const BFUnorderedAccessView& UAV() const;
+		const BFShaderResourceView& SRV(const BFSRVTextureViewInfo& info);
+		const BFUnorderedAccessView& UAV();
+		const BFUnorderedAccessView& UAV(const BFUAVTextureViewInfo& info);
 
 		uint32_t Width() const { return m_desc.Width; }
 		uint32_t Height() const { return m_desc.Height; }
@@ -83,10 +98,10 @@ namespace Butterfly
 		D3D12Resource* m_resource = nullptr;
 		BFTextureDesc m_desc{};
 		BFRenderTargetView* m_rtv = nullptr;
-		BFUnorderedAccessView* m_uav = nullptr;
 
 		std::unordered_map<uint64_t, RefPtr<BFShaderResourceView>> m_srvSlices;
 		std::unordered_map<uint32_t, RefPtr<BFDepthStencilView>> m_dsvSlices;
+		std::unordered_map<uint64_t, RefPtr<BFUnorderedAccessView>> m_uavSlices;
 	};
 
 

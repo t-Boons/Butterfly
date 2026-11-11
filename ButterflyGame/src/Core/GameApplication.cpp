@@ -10,7 +10,7 @@ namespace Butterfly::Game
 		s_instance = this;
 		m_viewport = new GameViewport();
 
-		Application::Get().GetScene().LoadSceneFromFile("C:\\Users\\tygob\\Desktop\\Butterfly\\out\\build\\x64-debug\\ButterflyGame\\Assets\\Untitled Scene 15.bfscene");
+		Application::Get().GetScene().LoadSceneFromFile(Application::Get().GetAssetManager().GetAssetRegistry().GetRootDirectory() / "Untitled Scene 15.bfscene");
 	}
 
 	void GameApplication::OnTick()

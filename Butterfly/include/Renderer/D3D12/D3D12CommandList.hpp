@@ -37,6 +37,13 @@ namespace Butterfly
 	class D3D12CommandList : public CommandList
 	{
 	public:
+		enum class PassType
+		{
+			None,
+			Raster,
+			Compute
+		};
+
 		D3D12CommandList(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT);
 		~D3D12CommandList();
 
@@ -70,16 +77,12 @@ namespace Butterfly
 
 		void Dispatch(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ);
 
+		PassType CurrentPassType() const { return m_currentPassType; }
+
 		ID3D12GraphicsCommandList* List() const { return m_cmdList; }
 		D3D12_COMMAND_LIST_TYPE Type() const { return m_dxType; }
 
 	private:
-		enum class PassType
-		{
-			None,
-			Raster,
-			Compute
-		};
 
 		bool m_cmdListClosed;
 		bool m_hasExecuted;

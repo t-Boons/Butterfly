@@ -67,7 +67,7 @@ namespace Butterfly
 			.Add(outSDF->UAV().View())
 			.Add(triangleBufferGpu->SRV().View())
 			.Add(uniformBufferDesc.GetView(HASH("SDFUniforms"))->View())
-			.Submit(list, true);
+			.Submit(list);
 
 		list.SetComputePSO(pso);
 
@@ -115,6 +115,54 @@ namespace Butterfly
 		list.EndRenderPass();
 	}
 
+	void GraphicsCommands::GenerateMips(D3D12CommandList& list, BFTexture& texture)
+	{
+		BF_PROFILE_EVENT()
+
+		list.StartComputePass("Generate Mips: " + texture.Desc().DebugName);
+
+		BFComputePSOInfo psoInfo;
+		psoInfo.ComputeShader = BFShaderCache::GetOrCreate("assets/Shaders/Mip_cs.hlsl");
+
+		list.SetComputePSO(psoInfo);
+
+		texture.Resource()->Transition(list, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+		BFTextureDesc desc = texture.Desc();
+
+		for (uint32_t mip = 1; mip < desc.NumMips; mip++)
+		{
+			const uint32_t width = std::max(1u, desc.Width >> mip);
+			const uint32_t height = std::max(1u, desc.Height >> mip);
+
+			texture.Resource()->TransitionSubresource(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, mip, 0);
+
+
+			BFSRVTextureViewInfo srvView{};
+			srvView.SRGB = false;
+
+			BFUAVTextureViewInfo uavView{};
+			uavView.MipSlice = mip;
+
+			ShaderVariables()
+				.Add(texture.SRV(srvView).View())
+				.Add(texture.UAV(uavView).View())
+				.Add(width)
+				.Add(height)
+				.Add(static_cast<int>(mip - 1))
+				.Submit(list);
+
+			list.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+
+			// Ensure UAV writes are visible before the next mip reads them.
+			texture.Resource()->TransitionSubresource(list, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, mip, 0);
+		}
+
+		texture.Resource()->Transition(list, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+		list.EndComputePass();
+	}
+
 	void GraphicsCommands::EquirectangularToCubemap(D3D12CommandList& list, BFTexture& equirectangular, BFTexture& cubemap)
 	{
 		BF_PROFILE_EVENT()
@@ -140,7 +188,7 @@ namespace Butterfly
 			.Add(cubemap.UAV().View())
 			.Add(smp.View())
 			.Add(cubemap.Height())
-			.Submit(list, true);
+			.Submit(list);
 
 		list.SetComputePSO(pso);
 		const uint32_t groupsX = (cubemapSize + 7) / 8;

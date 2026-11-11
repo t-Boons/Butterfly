@@ -104,11 +104,8 @@ namespace Butterfly
 		filter.AllowList.pSeverityList = ALLOWED_MESSAGES;
 
 		ComPtr<ID3D12InfoQueue1> infoQueue;
-		if (SUCCEEDED(m_device->QueryInterface(IID_PPV_ARGS(&infoQueue)))) {
-			// The debug layer stores every message unless a limit is configured.
-			// Resizing creates a steady stream of validation messages, so leaving the
-			// default unlimited queue enabled grows the process's CPU memory forever.
-			// Keep enough recent diagnostics for debugging while bounding its storage.
+		if (SUCCEEDED(m_device->QueryInterface(IID_PPV_ARGS(&infoQueue))))
+		{
 			ThrowIfFailed(infoQueue->SetMessageCountLimit(1024));
 
 			infoQueue->PushStorageFilter(&filter);

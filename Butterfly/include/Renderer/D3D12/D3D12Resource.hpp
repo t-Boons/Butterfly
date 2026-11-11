@@ -1,6 +1,8 @@
 #pragma once
 #include "D3D12Common.hpp"
 
+#define SUBRESOURCE_ZERO 0
+
 namespace Butterfly
 {
 	class D3D12CommandList;
@@ -14,6 +16,8 @@ namespace Butterfly
 		void* Map();
 		void Unmap();
 		D3D12Resource* Transition(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState);
+		D3D12Resource* TransitionSubresource(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState, uint32_t mipslice, uint32_t arraySlice);
+		D3D12Resource* UAVBarrier(const D3D12CommandList& cmdList);
 
 		friend class DX12ResourceBuilder;
 
@@ -21,7 +25,7 @@ namespace Butterfly
 		ID3D12Resource2* HwResource;
 		D3D12_RESOURCE_DESC BufferDescription;
 		CD3DX12_HEAP_PROPERTIES HeapProperties;
-		D3D12_RESOURCE_STATES CurrentResourceState;
+		std::unordered_map<uint32_t, D3D12_RESOURCE_STATES> CurrentResourceStates;
 		std::string DebugName;
 
 	private:

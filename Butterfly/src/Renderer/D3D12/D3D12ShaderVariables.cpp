@@ -20,11 +20,10 @@ namespace Butterfly
 		return *this;
 	}
 
-    ShaderVariables& ShaderVariables::Submit(D3D12CommandList& list, bool compute)
+    ShaderVariables& ShaderVariables::Submit(D3D12CommandList& list)
     {
         BF_PROFILE_EVENT();
-
-        if (compute)
+        if (list.CurrentPassType() == D3D12CommandList::PassType::Compute)
         {
             list.List()->SetComputeRoot32BitConstants(
                 0u,

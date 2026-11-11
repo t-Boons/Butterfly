@@ -193,7 +193,8 @@ namespace Butterfly
 		desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
 		desc.DebugName = img.name;
 		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		desc.SRGB = isSRGB;
+		desc.SRGBHint = isSRGB;
+		desc.NumMips = 0; // Generate all mips
 
 		std::string name = (tex.name + "_" + attribName);
 		if (tex.name.empty())

@@ -67,8 +67,8 @@ namespace Butterfly
 								.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
 								.Add(viewport.GetRenderData().ShadowMaps.SRV().View())
 								.Add(shadowMapIndex)
-								.Add(viewport.GetRenderData().Models.SRV().View())
-								.Add(viewport.GetRenderData().Models.GetModelViewIndex(renderObject.MeshAsset))
+								.Add(viewport.GetRenderData().ModelDataBuffer->SRV().View())
+								.Add(renderObject.ModelDataArrayIndex)
 								.Add(slice)
 								.Submit(list);
 

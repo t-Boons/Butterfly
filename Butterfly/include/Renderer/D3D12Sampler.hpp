@@ -71,6 +71,16 @@ namespace Butterfly
 			desc.Desc.BorderColor[3] = 1.0f;
 			return desc;
 		}
+
+		static BFSamplerDesc PointClamp()
+		{
+			BFSamplerDesc desc;
+			desc.Desc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+			desc.Desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+			desc.Desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+			desc.Desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+			return desc;
+		}
 	};
 
 	class BFSamplerCache : public NonCopyableNonMoveable
