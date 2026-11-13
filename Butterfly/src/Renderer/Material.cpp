@@ -22,46 +22,56 @@ namespace Butterfly
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->ColorTexture);
 				data.ColorTexture = tex->Texture->SRV().View();
+				data.ColorTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
 			}
 			else
 			{
 				data.ColorTexture = -1;
+				data.ColorTextureSampler = -1;
 			}
 			if (material->NormalTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->NormalTexture);
 				data.NormalTexture = tex->Texture->SRV().View();
+				data.NormalTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
 			}
 			else
 			{
 				data.NormalTexture = -1;
+				data.NormalTextureSampler = -1;
 			}
 			if (material->MetallicRoughnessTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->MetallicRoughnessTexture);
 				data.MetallicRoughnessTexture = tex->Texture->SRV().View();
+				data.MetallicRoughnessTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
 			}
 			else
 			{
 				data.MetallicRoughnessTexture = -1;
+				data.MetallicRoughnessTextureSampler = -1;
 			}
 			if (material->EmissionTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->EmissionTexture);
 				data.EmissionTexture = tex->Texture->SRV().View();
+				data.EmissionTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
 			}
 			else
 			{
 				data.EmissionTexture = -1;
+				data.EmissionTextureSampler = -1;
 			}
 			if (material->AmbientOcclusionTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->AmbientOcclusionTexture);
 				data.AmbientOcclusionTexture = tex->Texture->SRV().View();
+				data.AmbientOcclusionTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
 			}
 			else
 			{
 				data.AmbientOcclusionTexture = -1;
+				data.AmbientOcclusionTextureSampler = -1;
 			}
 			return data;
 		}
@@ -171,8 +181,8 @@ namespace Butterfly
 			m_materialIndexMap.erase(it);
 		}
 
-	}
-
+	}\
+	
 	const BFStructuredBuffer& MaterialLibrary::GetMaterialBuffer() const
 	{
 		return *m_materialBuffer;

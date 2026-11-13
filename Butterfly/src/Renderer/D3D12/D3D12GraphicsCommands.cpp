@@ -44,16 +44,14 @@ namespace Butterfly
 			float Padding2;
 			glm::uvec3 Resolution;
 			uint32_t NumTriangles;
-		} data;
-		
-		data.MinBounds = bounds.Min;
-		data.MaxBounds = bounds.Max;
-		data.Resolution = glm::uvec3(outSDF->Width(), outSDF->Height(), outSDF->Depth());
-		data.NumTriangles = static_cast<uint32_t>(triangleBuffer.size());
+		};
 
-		BFUniformBuffer uniformBufferDesc(sizeof(SDFUniformData), "SDFUniforms");
-		uniformBufferDesc.GetOrCreateView(sizeof(SDFUniformData), HASH("SDFUniforms"));
-		uniformBufferDesc.Write(&data, sizeof(SDFUniformData), HASH("SDFUniforms"));
+		BFTypedConstantBuffer<SDFUniformData> sdfUniformBuffer;
+		sdfUniformBuffer.Data.MinBounds = bounds.Min;
+		sdfUniformBuffer.Data.MaxBounds = bounds.Max;
+		sdfUniformBuffer.Data.Resolution = glm::uvec3(outSDF->Width(), outSDF->Height(), outSDF->Depth());
+		sdfUniformBuffer.Data.NumTriangles = static_cast<uint32_t>(triangleBuffer.size());
+		sdfUniformBuffer.Write();
 
 		D3D12CommandList list(D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
@@ -66,7 +64,7 @@ namespace Butterfly
 		ShaderVariables()
 			.Add(outSDF->UAV().View())
 			.Add(triangleBufferGpu->SRV().View())
-			.Add(uniformBufferDesc.GetView(HASH("SDFUniforms"))->View())
+			.Add(sdfUniformBuffer.CBV().View())
 			.Submit(list);
 
 		list.SetComputePSO(pso);

@@ -88,7 +88,7 @@ namespace Butterfly
 						MeshAsset* mesh = as.Resolve<MeshAsset>(renderObject.MeshAsset);
 						ShaderVariables()
 							.Add(mesh->GPUPositions->SRV().View())
-							.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
+							.Add(viewport.GetRenderData().CameraDataBuffer->CBV().View())
 							.Add(viewport.GetRenderData().ModelDataBuffer->SRV().View())
 							.Add(renderObject.ModelDataArrayIndex)
 							.Add(static_cast<int>(renderObject.Entity)) // uint32_t Entity ID in registry.
@@ -237,7 +237,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		CameraData cameraData;
+		BFCameraData cameraData;
 		cameraData.ViewProjection = m_spectatorCam.GetCamera()->ViewProjectionMatrix();
 		cameraData.CameraPosition = m_spectatorCam.GetCamera()->Position();
 		cameraData.InverseView = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ViewMatrix()));

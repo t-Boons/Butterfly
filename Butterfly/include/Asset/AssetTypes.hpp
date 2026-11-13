@@ -80,6 +80,7 @@ namespace Butterfly
 	{
 		inline static const AssetType Type() { return { "Texture" }; }
 		RefPtr<BFTexture> Texture;
+		BFSamplerDesc Sampler;
 	};
 
 	struct ModelNode

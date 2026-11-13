@@ -58,7 +58,7 @@ namespace Butterfly
 				list.SetGraphicsPSO(psoInfo);
 
 				ShaderVariables()
-					.Add(event.Viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
+					.Add(event.Viewport.GetRenderData().CameraDataBuffer->CBV().View())
 					.Add(data.VertexBuffer->SRV().View())
 					.Submit(list);
 

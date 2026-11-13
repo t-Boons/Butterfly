@@ -9,7 +9,7 @@ namespace Butterfly
 
 	class BFTexture;
 	class BFStructuredBuffer;
-	class BFUniformBuffer;
+	class BFConstantBuffer;
 	class BFIndexBuffer;
 	class BFSampler;
 

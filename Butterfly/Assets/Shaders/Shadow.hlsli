@@ -6,6 +6,37 @@
 #define PCSS_LIGHT_SIZE 0.06
 #define PCSS_MIN_PENUMBRA_SIZE 0.00075
 
+struct ShadowMap
+{
+    float4x4 LightViewProjections[CUBEMAP_SLICES];
+    float CascadeSplits[MAX_CASCADES];
+    float TexelSizes[MAX_CASCADES];
+    int ShadowMapTextureIndex;
+    int NumSlices;
+    float Resolution;
+
+    int HasShadowMap()
+    {
+        return IsValid(ShadowMapTextureIndex);
+    }
+
+    Texture2DArray<float> ShadowMapTextureArray()
+    {
+        return ResourceDescriptorHeap[ShadowMapTextureIndex];
+    
+    }
+
+    TextureCube<float> ShadowMapTextureCube()
+    {
+        return ResourceDescriptorHeap[ShadowMapTextureIndex];
+    }
+
+    Texture2D<float> ShadowMapTexture2D()
+    {
+        return ResourceDescriptorHeap[ShadowMapTextureIndex];
+    }
+};
+
 // Samples taken from:
 // https://developer.download.nvidia.com/assets/gamedev/docs/PCSS_Integration.pdf 
 static const float2 PCSS_Poisson_Samples[POISSON_SAMPLE_COUNT] =

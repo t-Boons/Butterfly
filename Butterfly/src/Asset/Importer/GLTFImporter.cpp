@@ -205,6 +205,7 @@ namespace Butterfly
 		desc.DebugName = name;
 		RefPtr<TextureAsset> outAsset = MakeRef<TextureAsset>();
 		outAsset->Texture = MakeRef<BFTexture>(desc);
+		outAsset->Sampler = BFSamplerDesc::LinearWrap();
 
 		const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)
 			{

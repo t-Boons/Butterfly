@@ -6,58 +6,6 @@
 #define MAX_CASCADES 4
 #define CUBEMAP_SLICES 6
 
-struct CameraData
-{
-    float4x4 ViewProj;
-    float4x4 InvProj;
-    float4x4 InvView;
-    float3 Position;
-    float Near;
-    float Far;
-};
+#define INVALID -1
 
-struct ModelData
-{
-    float4x4 ModelMatrix;
-    float4x4 InverseModelMatrix;
-    float4x4 NormalMatrix;
-    float4 SDFBoundsMin;
-    float4 SDFBoundsSize;
-    float4 SDFResolution;
-    int SDFTextureIndex;
-};
-
-struct MaterialData
-{
-    float4 BaseColor;
-    float4 EmissiveColor;
-    float Metallic;
-    float Roughness;
-    float NormalScale;
-    int ColorTexture;
-    int NormalTexture;
-    int MetallicRoughnessTexture;
-    int EmissionTexture;
-    int AmbientOcclusionTexture;
-};
-
-struct Light
-{
-    uint Type;
-    float3 Color;
-    float3 Position;
-    float3 Direction;
-    float Range;
-    float InnerConeAngleCos;
-    float OuterConeAngleCos;
-};
-
-struct ShadowMap
-{
-    float4x4 LightViewProjections[CUBEMAP_SLICES];
-    float CascadeSplits[MAX_CASCADES];
-    float TexelSizes[MAX_CASCADES];
-    int ShadowMapTextureIndex;
-    int NumSlices;
-    float Resolution;
-};
+inline bool IsValid(int id) { return id >= 0; }

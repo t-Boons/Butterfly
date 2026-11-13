@@ -64,7 +64,7 @@ namespace Butterfly
 
 							ShaderVariables()
 								.Add(mesh->GPUPositions->SRV().View())
-								.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
+								.Add(viewport.GetRenderData().CameraDataBuffer->CBV().View())
 								.Add(viewport.GetRenderData().ShadowMaps.SRV().View())
 								.Add(shadowMapIndex)
 								.Add(viewport.GetRenderData().ModelDataBuffer->SRV().View())

@@ -15,10 +15,15 @@ namespace Butterfly
 		float Roughness = 0.5f;
 		float NormalScale = 1.0f;
 		int ColorTexture = -1;
+		int ColorTextureSampler = -1;
 		int NormalTexture = -1;
+		int NormalTextureSampler = -1;
 		int MetallicRoughnessTexture = -1;
+		int MetallicRoughnessTextureSampler = -1;
 		int EmissionTexture = -1;
+		int EmissionTextureSampler = -1;
 		int AmbientOcclusionTexture = -1;
+		int AmbientOcclusionTextureSampler = -1;
 	};
 
 	class MaterialLibrary
@@ -32,6 +37,7 @@ namespace Butterfly
 		const BFStructuredBuffer& GetMaterialBuffer() const;
 		int GetMaterialIndex(const UUID& id) const;
 		int GetFallbackMaterialIndex() const;
+		uint32_t GetNumMaterials() const { return static_cast<uint32_t>(m_materialData.size()); }
 
 	private:
 		std::queue<UUID> m_newMaterials;

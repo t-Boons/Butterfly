@@ -128,7 +128,7 @@ namespace Butterfly
 
 		bool m_castsShadows = true;
 
-		std::array<float, MAX_CASCADES> m_cascadeSplits = { 8, 15, 25, 45 };
+		std::array<float, MAX_CASCADES> m_cascadeSplits = { 10, 30, 60, 90 };
 		uint32_t m_numCascades = 4;
 		uint32_t m_shadowResolution = 1024;
 

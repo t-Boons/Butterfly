@@ -1,4 +1,6 @@
 #include "common.hlsli"
+#include "Model.hlsli"
+#include "Camera.hlsli"
 
 struct BufferIndices
 {

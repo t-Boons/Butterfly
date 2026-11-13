@@ -151,7 +151,7 @@ namespace Butterfly
 					shadow.NumSlices = lightComponent.GetNumCascades();
 					shadow.CascadeSplits = lightComponent.GetCascadeSplits();
 
-					const auto& cam = viewport.GetRenderData().UniformCameraData;
+					const auto& cam = viewport.GetRenderData().CameraData;
 					const auto corners = Utils::GetFrustumCorners(cam.ViewProjection);
 					Utils::GetCascadeSplitDirectionalLight(lightComponent.GetCascadeSplits(), corners, cam.Near, cam.Far, transform.GetForward(), lightComponent.GetShadowMapResolution(),
 						shadow.LightViewProjections, shadow.TexelSizes);

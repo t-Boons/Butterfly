@@ -42,6 +42,7 @@ namespace Butterfly
 
 		const BFShaderResourceView& SRV() const;
 		const std::array<ShadowMap, MAX_SHADOW_MAPS>& GetShadowMaps() const { return m_shadowMaps; }
+		uint32_t GetNumShadowMaps() const { return static_cast<uint32_t>(m_shadowMaps.size()); }
 
 	private:
 		RefPtr<BFStructuredBuffer> m_gpuShadowMapsBuffer;

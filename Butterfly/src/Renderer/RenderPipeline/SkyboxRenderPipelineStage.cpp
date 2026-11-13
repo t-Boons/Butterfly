@@ -137,7 +137,7 @@ namespace Butterfly
 				BFSampler& sampler = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
 
 				ShaderVariables()
-					.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
+					.Add(viewport.GetRenderData().CameraDataBuffer->CBV().View())
 					.Add(sampler.View())
 					.Add(m_skyboxTexture->SRV().View())
 					.Submit(list);

@@ -64,7 +64,7 @@ namespace Butterfly
 							.Add(mesh->GPUNormals->SRV().View())
 							.Add(mesh->GPUTangents->SRV().View())
 							.Add(mesh->GPUUVs->SRV().View())
-							.Add(viewport.GetRenderData().Uniforms->GetView(HASH("CameraData"))->View())
+							.Add(viewport.GetRenderData().CameraDataBuffer->CBV().View())
 							.Add(smp.View())
 							.Add(viewport.GetRenderData().ModelDataBuffer->SRV().View())
 							.Add(renderObject.ModelDataArrayIndex)

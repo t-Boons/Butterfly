@@ -1,0 +1,19 @@
+{
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+  "C_Cpp.default.intelliSenseMode": "windows-msvc-x64",
+
+  "C_Cpp.intelliSenseEngine": "default",
+  "C_Cpp.intelliSenseCacheSize": 2048,
+  "C_Cpp.workspaceParsingPriority": "low",
+
+  "C_Cpp.autocomplete": "default",
+
+  "files.watcherExclude": {
+    "**/out/build/**": true,
+    "**/.git/objects/**": true
+  },
+
+  "search.exclude": {
+    "**/out/build/**": true
+  }
+}

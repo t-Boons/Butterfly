@@ -43,24 +43,79 @@ namespace Butterfly
 		BFStructuredBufferDesc m_desc;
 	};
 
-	class BFUniformBuffer : public BFResource, private NonCopyable
+	struct BFTypedStructuredBufferDesc
+	{
+		uint32_t NumElements = 0;
+		void* Data = nullptr;
+		BFHeapType HeapType = BFHeapType::Default;
+	};
+
+	template <typename T>
+	class BFTypedStructuredBuffer
 	{
 	public:
-		BFUniformBuffer(uint32_t numBytes, const std::string& resourceTag);
-		~BFUniformBuffer();
+		BFTypedStructuredBuffer(const BFTypedStructuredBufferDesc& desc)
+		{
+			BFStructuredBufferDesc bufferDesc;
+			bufferDesc.NumElements = desc.NumElements;
+			bufferDesc.Stride = sizeof(T);
+			bufferDesc.Data = desc.Data;
+			bufferDesc.HeapType = desc.HeapType;
+			bufferDesc.DebugName = "TypedStructuredBuffer::" + std::string(typeid(T).name());
+			m_buffer = MakeRef<BFStructuredBuffer>(bufferDesc);
+		}
 
-		uint32_t GetOrCreateView(uint32_t sizeInBytes, uint32_t hashedName);
+		const BFShaderResourceView& SRV() const { return m_buffer->SRV(); }
+		uint32_t NumElements() const { return m_buffer->NumElements(); }
 
-		const RefPtr<BFUniformBufferView>& GetView(uint32_t viewName) const;
-		uint32_t GetViewOffset(uint32_t viewName) const;
-		void Write(const void* src, uint32_t numBytes, uint32_t viewName);
+		void Write()
+		{
+			m_buffer->Write(Data.data(), static_cast<uint32_t>(Data.size() * sizeof(T)), 0);
+		}
+
+		std::vector<T> Data;
+
+	private:
+		RefPtr<BFStructuredBuffer> m_buffer;
+	};
+
+	class BFConstantBuffer : public BFResource, private NonCopyable
+	{
+	public:
+		BFConstantBuffer(uint32_t numBytes, const std::string& resourceTag);
+		~BFConstantBuffer();
+
+		const BFUniformBufferView& CBV() const;
+		void Write(const void* src, uint32_t numBytes, uint32_t offset = 0);
+		void Write(const std::vector<uint8_t>& data, uint32_t offset = 0);
 
 	private:
 		uint32_t m_numBytes;
-		uint32_t m_bytesAllocated;
 		RefPtr<D3D12Resource> m_resource;
-		std::unordered_map<uint32_t, RefPtr<BFUniformBufferView>> m_cbvs;
 		uint8_t* m_mappedData;
+		RefPtr<BFUniformBufferView> m_cbv;
+	};
+
+	template <typename T>
+	class BFTypedConstantBuffer
+	{
+	public:
+		BFTypedConstantBuffer()
+			: m_buffer(sizeof(T), "TypedConstantBuffer::" + std::string(typeid(T).name()))
+		{
+		}
+
+		const BFUniformBufferView& CBV() const { return m_buffer.CBV(); }
+
+		void Write()
+		{
+			m_buffer.Write(&Data, sizeof(T));
+		}
+
+		T Data{};
+
+	private:
+		BFConstantBuffer m_buffer;
 	};
 
 	class BFIndexBuffer : public BFResource, private NonCopyable

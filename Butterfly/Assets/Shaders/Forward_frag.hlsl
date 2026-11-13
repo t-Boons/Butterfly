@@ -1,45 +1,35 @@
 #include "Brdf.hlsli"
 #include "Sdf.hlsli"
 #include "Shadow.hlsli"
-
-float3 MapNormal(float3 sampledNormal, float3 vertexNormal, float3 vertexTangent, float tangentSign)
-{
-    float3 N = normalize(vertexNormal);
-
-    float3 T = normalize(vertexTangent);
-    T = normalize(T - N * dot(N, T));
-
-    float3 B = cross(N, T) * tangentSign;
-
-    float3 tangentNormal = sampledNormal * 2.0 - 1.0;
-
-    return normalize(
-        T * tangentNormal.x +
-        B * tangentNormal.y +
-        N * tangentNormal.z
-    );
-}
+#include "Normal.hlsli"
+#include "Surface.hlsli"
+#include "FrameData.hlsli"
+#include "Camera.hlsli"
+#include "Model.hlsli"
+#include "Light.hlsli"
 
 struct BufferIndices
 {
-    int positionBuffer;
-    int normalBuffer;
-    int tangentBuffer;
-    int texcoordBuffer;
-    int uniformIndex;
-    int samplerIndex;
+    int frameDataIndex;
+
+    int meshIndex;
     int modelIndex;
-    int entityIndex;
-    int lightBuffer;
-    int numLights;
-    int shadowMapBufferIndex;
-    int materialBuffer;
     int materialIndex;
+
     int skyboxTextureIndex;
-    int numModels;
+
     int sdfSamplerIndex;
     int blockerSamplerIndex;
     int pcssShadowSamplerIndex;
+
+    SamplerComparisonState GetPCSSShadowSmp()
+    {
+        return SamplerDescriptorHeap[pcssShadowSamplerIndex];
+    }
+    SamplerState GetBlockerSmp()
+    {
+        return SamplerDescriptorHeap[blockerSamplerIndex];
+    }
 };
 
 ConstantBuffer<BufferIndices> resources : register(b0);
@@ -49,267 +39,203 @@ struct V2P
     float4 position : SV_Position;
     float3 fragPos : WORLDPOS;
     float3 normal : NORMAL;
-    float3 tangent : TANGENT;
-    nointerpolation float tangentW : TANGENTW;
+    float4 tangent : TANGENT;
     float2 texCoord : TEXCOORD0;
-    float3 eye : VIEWDIR;
-    float depth : DEPTH;
 };
+
+float3 EvaluteLight(Surface surface, Light light, float worldDepth, FrameData frameData, int i)
+{
+    if (light.Type == 0) // Directional Light
+    {
+        LightSample ls = MakeLightSample(surface, normalize(-light.Direction));
+
+        float3 brdf = EvaluateBRDF(surface, ls);
+        if (ls.NoL <= 0.0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+
+
+        float shadow = 1.0;
+
+#ifdef USE_PCSS_SHADOWS
+        ShadowMap shadowMap = frameData.GetShadowMap(i);
+        if (shadowMap.HasShadowMap())
+        {
+            Texture2DArray<float> shadowMapTexture = shadowMap.ShadowMapTextureArray();
+
+            uint cascadeIndex = 0;
+            for (uint i = 0; i < MAX_CASCADES; ++i)
+            {
+                if (worldDepth <= shadowMap.CascadeSplits[i])
+                {
+                    cascadeIndex = i;
+                    break;
+                }
+                cascadeIndex = i;
+            }
+
+            float4x4 lightVP = shadowMap.LightViewProjections[cascadeIndex];
+            float4 lightClip = mul(lightVP, float4(surface.WorldPos, 1.0));
+            float3 lightNDC = lightClip.xyz / lightClip.w;
+            float2 uv = float2(lightNDC.x * 0.5 + 0.5, -lightNDC.y * 0.5 + 0.5);
+
+            if (!(any(uv < 0.0) || any(uv > 1.0) || lightNDC.z < 0.0 || lightNDC.z > 1.0))
+            {
+                float bias = 0.0005f + 0.01f * (1.0f - ls.NoL);
+                float3 projectedPos = float3(uv, lightNDC.z - bias);
+
+                shadow = PCSS_Shadow(shadowMapTexture, cascadeIndex, resources.GetBlockerSmp(), resources.GetPCSSShadowSmp(), projectedPos, PCSS_LIGHT_SIZE, surface.WorldPos.xy);
+            }
+        }
+#endif
+
+        return brdf * light.Color * shadow;
+    }
+
+    float distance = length(light.Position - surface.WorldPos);
+    if (distance >= light.Range)
+    {
+        return float3(0.0, 0.0, 0.0);
+    }
+
+    float3 lightDir = normalize(light.Position - surface.WorldPos);
+    float inverseSquare = 1.0 / max(distance * distance, EPSILON);
+    float rangeFade = 1.0 - saturate(distance / light.Range);
+    rangeFade *= rangeFade;
+    float distanceAttenuation = inverseSquare * rangeFade;
+
+    if (light.Type == 1) // Point Light
+    {
+        if (distanceAttenuation <= 0.0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+
+        LightSample ls = MakeLightSample(surface, lightDir);
+
+        float3 brdf = EvaluateBRDF(surface, ls);
+        if (ls.NoL <= 0.0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+
+
+        float shadow = 1.0f;
+#ifdef USE_PCSS_SHADOWS
+        ShadowMap shadowMap = frameData.GetShadowMap(i);
+        if (shadowMap.HasShadowMap())
+        {
+            TextureCube<float> shadowMapTexture = shadowMap.ShadowMapTextureCube();
+
+            float3 direction = surface.WorldPos - light.Position;
+            float3 absDirection = abs(direction);
+            uint faceIndex;
+            if (absDirection.x >= absDirection.y && absDirection.x >= absDirection.z)
+                faceIndex = direction.x >= 0.0f ? 0 : 1;
+            else if (absDirection.y >= absDirection.x && absDirection.y >= absDirection.z)
+                faceIndex = direction.y >= 0.0f ? 2 : 3;
+            else
+                faceIndex = direction.z >= 0.0f ? 4 : 5;
+
+            float bias = 0.0008f + 0.01f * (1.0f - ls.NoL);
+            float4 lightClip = mul(shadowMap.LightViewProjections[faceIndex], float4(surface.WorldPos, 1.0));
+            float receiverDepth = lightClip.z / lightClip.w - bias;
+
+            shadow = PCSS_Shadow(shadowMapTexture, direction, resources.GetBlockerSmp(), resources.GetPCSSShadowSmp(), receiverDepth, PCSS_LIGHT_SIZE, surface.WorldPos.xy);
+
+            if (shadow <= 0.0)
+            {
+                return float3(0.0, 0.0, 0.0);
+            }
+        }
+#endif
+
+        return brdf * distanceAttenuation * light.Color * shadow;
+    }
+
+    if (light.Type == 2) // Spot light
+    {
+        float cone = smoothstep(light.OuterConeAngleCos, light.InnerConeAngleCos, dot(-lightDir, normalize(light.Direction)));
+        float attenuation = distanceAttenuation * cone;
+
+        if (attenuation <= 0.0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+
+        LightSample ls = MakeLightSample(surface, lightDir);
+
+        float3 brdf = EvaluateBRDF(surface, ls);
+        if (ls.NoL <= 0.0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+
+
+        float shadow = 1.0f;
+
+#ifdef USE_PCSS_SHADOWS
+        ShadowMap shadowMap = frameData.GetShadowMap(i);
+        if (shadowMap.HasShadowMap())
+        {
+            Texture2D<float> shadowMapTexture = shadowMap.ShadowMapTexture2D();
+            float bias = 0.0008f + 0.01f * (1.0f - ls.NoL);
+
+            float4x4 lightVP = shadowMap.LightViewProjections[0];
+            float4 lightClip = mul(lightVP, float4(surface.WorldPos, 1.0));
+            float3 lightNDC = lightClip.xyz / lightClip.w;
+            float2 uv = float2(lightNDC.x * 0.5 + 0.5, -lightNDC.y * 0.5 + 0.5);
+
+            if (!(any(uv < 0.0) || any(uv > 1.0) || lightNDC.z < 0.0 || lightNDC.z > 1.0))
+            {
+                float3 projectedPos = float3(uv, lightNDC.z - bias);
+
+                shadow = PCSS_Shadow(shadowMapTexture, resources.GetBlockerSmp(), resources.GetPCSSShadowSmp(), projectedPos, PCSS_LIGHT_SIZE, surface.WorldPos.xy);
+
+                if (shadow <= 0.0)
+                {
+                    return float3(0.0, 0.0, 0.0);
+                }
+            }
+        }
+#endif
+
+        return brdf * attenuation * light.Color * shadow;
+    }
+
+    return float3(0.0, 0.0, 0.0);
+}
 
 float4 main(V2P pixelInput) : SV_TARGET0
 {
-    SamplerState smp = SamplerDescriptorHeap[resources.samplerIndex];
-    StructuredBuffer<Light> lights = ResourceDescriptorHeap[resources.lightBuffer];
-    StructuredBuffer<MaterialData> materials = ResourceDescriptorHeap[resources.materialBuffer];
-    
-    MaterialData material = materials[resources.materialIndex];
-    
-    float3 normal = normalize(pixelInput.normal);
-    if (material.NormalTexture >= 0)
-    {
-        Texture2D<float4> normalTex = ResourceDescriptorHeap[material.NormalTexture];
-        float3 sampledNormal = normalTex.Sample(smp, pixelInput.texCoord).xyz;
-        normal = MapNormal(sampledNormal, normal, pixelInput.tangent, pixelInput.tangentW);
-    }
-    
-    float3 albedo = material.BaseColor.xyz;
-    if (material.ColorTexture >= 0)
-    {
-        Texture2D<float4> albedoTex = ResourceDescriptorHeap[material.ColorTexture];
-        albedo = albedoTex.Sample(smp, pixelInput.texCoord).xyz;
-    }
-    
-    float metallic = material.Metallic;
-    float perceptualRoughness = material.Roughness;
-    if (material.MetallicRoughnessTexture >= 0)
-    {
-        Texture2D<float4> metallicRoughnessTexture = ResourceDescriptorHeap[material.MetallicRoughnessTexture];
-        float4 metallicRoughnessSample = metallicRoughnessTexture.Sample(smp, pixelInput.texCoord);
-        metallic = metallicRoughnessSample.z;
-        perceptualRoughness = metallicRoughnessSample.y;
-    }
-    
-    metallic = saturate(metallic);
-    perceptualRoughness = max(perceptualRoughness, 0.045);
-    float alphaRoughness = perceptualRoughness * perceptualRoughness;
-    
-    float3 emissive = material.EmissiveColor.xyz;
-    if (material.EmissionTexture >= 0)
-    {
-        Texture2D<float4> emissiveTex = ResourceDescriptorHeap[material.EmissionTexture];
-        emissive = emissiveTex.Sample(smp, pixelInput.texCoord).xyz;
-    }
+    ConstantBuffer<FrameData> frameData = ResourceDescriptorHeap[resources.frameDataIndex];
 
-    float3 diffuseColor = albedo * (1.0 - metallic);
-    float3 lightDir = normalize(float3(0.5, 1.0, 0.0f));
-    
-    float3 N = normal;
-    float3 V = normalize(pixelInput.eye - pixelInput.fragPos);
-    float NoV = saturate(dot(N, V));
+    MaterialData material = frameData.GetMaterial(resources.materialIndex);
+    CameraData uniforms = frameData.GetCameraData();
+
+    Surface surface = GetSurface(material, pixelInput.fragPos, pixelInput.normal, pixelInput.tangent, pixelInput.texCoord, uniforms.Position);
 
     float3 ambient = float3(0.05, 0.05, 0.07);
-   
-    float3 lighting = ambient * diffuseColor;
-    
+
+    float3 lighting = ambient * (surface.Albedo.rgb * (1.0 - surface.Metallic));
+
     SamplerComparisonState pcssShadowSmp = SamplerDescriptorHeap[resources.pcssShadowSamplerIndex];
     SamplerState blockerSmp = SamplerDescriptorHeap[resources.blockerSamplerIndex];
-    
-    for (int i = 0; i < resources.numLights; i++)
+    float worldDepth = pixelInput.position.w;
+
+    for (int i = 0; i < frameData.GetNumLights(); i++)
     {
-        Light light = lights[i];
-        
-        if (light.Type == 0) // Directional Light
-        {
-            float3 L = normalize(-light.Direction);
-            float3 H = normalize(L + V);
-            float NoL = saturate(dot(N, L));
-            
-            if (NoL < 0.001)
-            {
-                continue;
-            }
-            
-            StructuredBuffer<ShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
-            ShadowMap shadowMap = shadowMaps[i];
-            
-            float shadow = 1.0f;
-            if (shadowMap.ShadowMapTextureIndex >= 0)
-            {
-                Texture2DArray<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
-
-                uint cascadeIndex = 0;
-                for (uint i = 0; i < MAX_CASCADES; ++i)
-                {
-                    if (pixelInput.depth <= shadowMap.CascadeSplits[i])
-                    {
-                        cascadeIndex = i;
-                        break;
-                    }
-                    cascadeIndex = i;
-                }
-
-                float4x4 lightVP = shadowMap.LightViewProjections[cascadeIndex];
-                float4 lightClip = mul(lightVP, float4(pixelInput.fragPos, 1.0));
-                float3 lightNDC = lightClip.xyz / lightClip.w;
-                float2 uv = float2(lightNDC.x * 0.5 + 0.5, -lightNDC.y * 0.5 + 0.5);
-    
-                if (!(any(uv < 0.0) || any(uv > 1.0) || lightNDC.z < 0.0 || lightNDC.z > 1.0))
-                {
-                    float bias = 0.0005f + 0.01f * (1.0f - NoL);
-                    float3 projectedPos = float3(uv, lightNDC.z - bias);
-
-                    shadow = PCSS_Shadow(shadowMapTexture, cascadeIndex, blockerSmp, pcssShadowSmp, projectedPos, PCSS_LIGHT_SIZE, pixelInput.position.xy);
-                }
-            }
-            
-            float NoH = saturate(dot(N, H));
-            float VoH = saturate(dot(V, H));
-            
-            float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
-            float3 F = F_Schlick(F0, VoH);
-            float D = D_GGX(alphaRoughness, NoH);
-            float Vis = V_GGX(alphaRoughness, NoV, NoL);
-
-            float3 specularBRDF = F * Vis * D;
-            float3 diffuseBRDF = diffuseColor / PI;
-
-            lighting += (diffuseBRDF + specularBRDF) * NoL * light.Color * shadow;
-            continue;
-        }
-        
-        float distance = length(light.Position - pixelInput.fragPos);
-        if (distance >= light.Range)
-        {
-            continue;
-        }
-        
-        float inverseSquare = 1.0 / max(distance * distance, EPSILON);
-        float rangeFade = 1.0 - saturate(distance / light.Range);
-        rangeFade *= rangeFade;
-
-        if (light.Type == 1) // Point Light
-        {
-            StructuredBuffer<ShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
-            ShadowMap shadowMap = shadowMaps[i];
-            
-            float shadow = 1.0f;
-
-            float3 L = normalize(light.Position - pixelInput.fragPos);
-            float NoL = saturate(dot(N, L));
-            
-            if (NoL < 0.001)
-            {
-                continue;
-            }
-            
-            if (shadowMap.ShadowMapTextureIndex >= 0)
-            {
-                TextureCube<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
-
-                float3 direction = pixelInput.fragPos - light.Position;
-                float3 absDirection = abs(direction);
-                uint faceIndex;
-                if (absDirection.x >= absDirection.y && absDirection.x >= absDirection.z)
-                    faceIndex = direction.x >= 0.0f ? 0 : 1;
-                else if (absDirection.y >= absDirection.x && absDirection.y >= absDirection.z)
-                    faceIndex = direction.y >= 0.0f ? 2 : 3;
-                else
-                    faceIndex = direction.z >= 0.0f ? 4 : 5;
-                
-                float bias = 0.0008f + 0.01f * (1.0f - NoL);
-                float4 lightClip = mul(shadowMap.LightViewProjections[faceIndex], float4(pixelInput.fragPos, 1.0));
-                float receiverDepth = lightClip.z / lightClip.w - bias;
-
-                shadow = PCSS_Shadow(shadowMapTexture, direction, blockerSmp, pcssShadowSmp, receiverDepth, PCSS_LIGHT_SIZE, pixelInput.position.xy);
-                
-                if (shadow <= 0.0)
-                {
-                    continue;
-                }
-            }
-            
-            float3 H = normalize(L + V);
-            float NoH = saturate(dot(N, H));
-            float VoH = saturate(dot(V, H));
-
-            float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
-            float3 F = F_Schlick(F0, VoH);
-            float D = D_GGX(alphaRoughness, NoH);
-            float Vis = V_GGX(alphaRoughness, NoV, NoL);
-
-            float3 specularBRDF = F * Vis * D;
-            float3 diffuseBRDF = diffuseColor / PI;
-
-            float attenuation = inverseSquare * rangeFade;
-            lighting += (diffuseBRDF + specularBRDF) * NoL * attenuation * light.Color * shadow;
-
-            continue;
-        }
-        
-        if (light.Type == 2) // Spot light
-        {
-            StructuredBuffer<ShadowMap> shadowMaps = ResourceDescriptorHeap[resources.shadowMapBufferIndex];
-            ShadowMap shadowMap = shadowMaps[i];
-            
-            float shadow = 1.0f;
-
-            float3 L = normalize(light.Position - pixelInput.fragPos);
-            float NoL = saturate(dot(N, L));
-            
-            if (NoL < 0.001)
-            {
-                continue;
-            }
-            
-            if (shadowMap.ShadowMapTextureIndex >= 0)
-            {
-                Texture2D<float> shadowMapTexture = ResourceDescriptorHeap[shadowMap.ShadowMapTextureIndex];
-                float bias = 0.0008f + 0.01f * (1.0f - NoL);
-
-                float4x4 lightVP = shadowMap.LightViewProjections[0];
-                float4 lightClip = mul(lightVP, float4(pixelInput.fragPos, 1.0));
-                float3 lightNDC = lightClip.xyz / lightClip.w;
-                float2 uv = float2(lightNDC.x * 0.5 + 0.5, -lightNDC.y * 0.5 + 0.5);
-    
-                if (!(any(uv < 0.0) || any(uv > 1.0) || lightNDC.z < 0.0 || lightNDC.z > 1.0))
-                {
-                    float3 projectedPos = float3(uv, lightNDC.z - bias);
-                
-                    shadow = PCSS_Shadow(shadowMapTexture, blockerSmp, pcssShadowSmp, projectedPos, PCSS_LIGHT_SIZE, pixelInput.fragPos.xy);
-                
-                    if (shadow <= 0.0)
-                    {
-                        continue;
-                    }
-                }
-            }
-            
-            float3 H = normalize(L + V);
-            float NoH = saturate(dot(N, H));
-            float VoH = saturate(dot(V, H));
-
-            float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
-            float3 F = F_Schlick(F0, VoH);
-            float D = D_GGX(alphaRoughness, NoH);
-            float Vis = V_GGX(alphaRoughness, NoV, NoL);
-            
-            float3 specularBRDF = F * Vis * D;
-            float3 diffuseBRDF = diffuseColor / PI;
-            
-            float cone = smoothstep(light.OuterConeAngleCos, light.InnerConeAngleCos, dot(-L, normalize(light.Direction)));
-            float attenuation = inverseSquare * rangeFade * cone;
-            lighting += (diffuseBRDF + specularBRDF) * NoL * attenuation * light.Color * shadow;
-            continue;
-        }
+        Light light = frameData.GetLight(i);
+        lighting += EvaluteLight(surface, light, worldDepth, frameData, i);
     }
-    
-    float3 fragColor = lighting.xyz + emissive * material.EmissiveColor.rgb;
-    
+
+    float3 fragColor = lighting.xyz + surface.Emissive * material.EmissiveColor.rgb;
+
 #if USE_SDF_SHADOWS
     SamplerState sdfSampler = SamplerDescriptorHeap[resources.sdfSamplerIndex];
     StructuredBuffer<ModelData> modelData = ResourceDescriptorHeap[resources.modelIndex];
-    
-    
+
     float shadow = 1.0;
     float k = 32.0;
     for (int i = 0; i < resources.numLights; i++)
@@ -324,10 +250,10 @@ float4 main(V2P pixelInput) : SV_TARGET0
                 ModelData model = modelData[m];
                 if (model.SDFTextureIndex < 0)
                     continue;
-    
+
                 float3 boundMin = model.SDFBoundsMin.xyz;
                 float3 boundSize = model.SDFBoundsSize.xyz;
-            
+
                 float3 originW = pixelInput.fragPos + pixelInput.normal * EPSILON;
                 float3 originM = mul(model.InverseModelMatrix, float4(originW, 1.0)).xyz;
                 float3 dirM = normalize(mul(model.InverseModelMatrix, float4(-light.Direction, 0.0)).xyz);
@@ -336,7 +262,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
                 float2 tNF = RayAABBIntersection(originM, dirM, boundMin - margin, boundMin + boundSize + margin);
 
                 bool isSelf = (m == resources.entityIndex);
-            
+
                 float fragmentDistanceToModel = SampleSDF(model.SDFTextureIndex, resources.sdfSamplerIndex, originM, boundMin, boundSize);
 
                 bool startsInContact = isSelf || fragmentDistanceToModel < 0.05;
@@ -344,7 +270,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
 
                 float minT = max(tNF.x, contactSkip);
                 float maxT = tNF.y;
-                
+
                 if (minT >= maxT)
                     continue;
 
@@ -352,16 +278,16 @@ float4 main(V2P pixelInput) : SV_TARGET0
 
                 if (isSelf)
                     s = lerp(1.0, s, smoothstep(0.0, 0.25, NoL));
-            
+
                 shadow *= s;
                 if (shadow <= EPSILON)
                     break;
             }
         }
-        
+
         fragColor = lerp(ambient * diffuseColor, fragColor, shadow);
     }
 #endif
-    
-    return float4(fragColor, 1.0);
+
+    return float4(fragColor, surface.Albedo.w);
 }
