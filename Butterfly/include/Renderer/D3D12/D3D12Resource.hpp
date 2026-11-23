@@ -18,6 +18,7 @@ namespace Butterfly
 		D3D12Resource* Transition(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState);
 		D3D12Resource* TransitionSubresource(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState, uint32_t mipslice, uint32_t arraySlice);
 		D3D12Resource* UAVBarrier(const D3D12CommandList& cmdList);
+		uint32_t NumSubresources();
 
 		friend class DX12ResourceBuilder;
 
@@ -26,6 +27,7 @@ namespace Butterfly
 		D3D12_RESOURCE_DESC BufferDescription;
 		CD3DX12_HEAP_PROPERTIES HeapProperties;
 		std::unordered_map<uint32_t, D3D12_RESOURCE_STATES> CurrentResourceStates;
+		D3D12_RESOURCE_STATES WholeState;
 		std::string DebugName;
 
 	private:

@@ -116,17 +116,17 @@ namespace Butterfly
 			BFSRVTextureViewInfo srvInfo;
 			if (type == LightType::Directional)
 			{
-				srvInfo.Type = BFTextureType::Texture2DArray;
+				srvInfo.Type = BFTextureUsage::Texture2DArray;
 			}
 
 			if (type == LightType::Point)
 			{
-				srvInfo.Type = BFTextureType::Cubemap;
+				srvInfo.Type = BFTextureUsage::Cubemap;
 			}
 
 			if (type == LightType::Spot)
 			{
-				srvInfo.Type = BFTextureType::Texture2D;
+				srvInfo.Type = BFTextureUsage::Texture2D;
 			}
 
 			gpuShadowMap.ShadowMapTextureIndex = shadowMap.ShadowMapTexture ? shadowMap.ShadowMapTexture->SRV(srvInfo).View() : -1;

@@ -106,7 +106,7 @@ namespace Butterfly
 
 		inline void SumHash(uint64_t& in, uint64_t val)
 		{
-			in ^= g_hasher(val);
+    		in ^= g_hasher(val) + 0x9e3779b97f4a7c15ull + (in << 6) + (in >> 2);
 		}
 
 		consteval uint32_t HashString(std::string_view str)

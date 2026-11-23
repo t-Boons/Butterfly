@@ -2,6 +2,8 @@
 #include "D3D12/D3D12Common.hpp"
 #include "Resource.hpp"
 
+#define MIPS_ALL 0
+
 namespace Butterfly
 {
 	class D3D12Resource;
@@ -16,7 +18,7 @@ namespace Butterfly
 		Texture3D,
 	};
 
-	enum class BFTextureType
+	enum class BFTextureUsage
 	{
 		Texture2D,
 		Texture2DArray,
@@ -38,9 +40,50 @@ namespace Butterfly
 	{
 		uint32_t FirstSlice = 0;
 		uint32_t LastSlice = 64;
-		uint32_t MipSlice = 0;
-		BFTextureType Type = BFTextureType::Texture2D;
+		uint32_t MostDetailedMip = 0;
+		uint32_t MipLevels = 64;
+
+		BFTextureUsage Type = BFTextureUsage::Texture2D;
 		bool SRGB = false;
+
+		static BFSRVTextureViewInfo Cubemap()
+		{
+			BFSRVTextureViewInfo info;
+			info.Type = BFTextureUsage::Cubemap;
+			return info;
+		}
+
+		static BFSRVTextureViewInfo Texture2DArray()
+		{
+			BFSRVTextureViewInfo info;
+			info.Type = BFTextureUsage::Texture2DArray;
+			info.FirstSlice = 0;
+			info.LastSlice = 64;
+			return info;
+		}
+
+		static BFSRVTextureViewInfo Texture2DArrayRange(uint32_t firstSlice, uint32_t lastSlice)
+		{
+			BFSRVTextureViewInfo info;
+			info.Type = BFTextureUsage::Texture2DArray;
+			info.FirstSlice = firstSlice;
+			info.LastSlice = lastSlice;
+			return info;
+		}
+
+		static BFSRVTextureViewInfo Texture2D()
+		{
+			BFSRVTextureViewInfo info;
+			info.Type = BFTextureUsage::Texture2D;
+			return info;
+		}
+
+		static BFSRVTextureViewInfo Texture3D()
+		{
+			BFSRVTextureViewInfo info;
+			info.Type = BFTextureUsage::Texture3D;
+			return info;
+		}
 	};
 
 	struct BFUAVTextureViewInfo
@@ -48,12 +91,30 @@ namespace Butterfly
 		uint32_t FirstSlice = 0;
 		uint32_t LastSlice = 64;
 		uint32_t MipSlice = 0;
-		BFTextureType Type = BFTextureType::Texture2D;
+		BFTextureUsage Type = BFTextureUsage::Texture2D;
+
+		static BFUAVTextureViewInfo Texture2DArray()
+		{
+			BFUAVTextureViewInfo info;
+			info.Type = BFTextureUsage::Texture2DArray;
+			info.FirstSlice = 0;
+			info.LastSlice = 64;
+			return info;
+		}
+
+		static BFUAVTextureViewInfo Texture2DArrayRange(uint32_t firstSlice, uint32_t lastSlice)
+		{
+			BFUAVTextureViewInfo info;
+			info.Type = BFTextureUsage::Texture2DArray;
+			info.FirstSlice = firstSlice;
+			info.LastSlice = lastSlice;
+			return info;
+		}
 	};
 
 	struct BFDSVTextureViewInfo
 	{
-		BFTextureType Type = BFTextureType::Texture2D;
+		BFTextureUsage Type = BFTextureUsage::Texture2D;
 		uint32_t MipSlice = 0;
 		uint32_t Slice = 0;
 		bool SRGB = false;
@@ -94,12 +155,12 @@ namespace Butterfly
 		const D3D12_CLEAR_VALUE* ClearValue() const;
 
 		const BFDepthStencilView& DSV();
-		const BFDepthStencilView& DSV(const BFDSVTextureViewInfo& info);
+		const BFDepthStencilView& DSV(BFDSVTextureViewInfo info);
 		const BFRenderTargetView& RTV() const;
 		const BFShaderResourceView& SRV();
 		const BFShaderResourceView& SRV(BFSRVTextureViewInfo info);
 		const BFUnorderedAccessView& UAV();
-		const BFUnorderedAccessView& UAV(const BFUAVTextureViewInfo& info);
+		const BFUnorderedAccessView& UAV(BFUAVTextureViewInfo info);
 
 		uint32_t Width() const { return m_desc.Width; }
 		uint32_t Height() const { return m_desc.Height; }

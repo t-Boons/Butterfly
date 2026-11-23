@@ -124,40 +124,41 @@ namespace Butterfly
 
 		list.SetComputePSO(psoInfo);
 
-		texture.Resource()->Transition(list, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-
-		BFTextureDesc desc = texture.Desc();
-
+		const BFTextureDesc desc = texture.Desc();
+		
 		for (uint32_t mip = 1; mip < desc.NumMips; mip++)
 		{
 			const uint32_t width = std::max(1u, desc.Width >> mip);
 			const uint32_t height = std::max(1u, desc.Height >> mip);
 
-			texture.Resource()->TransitionSubresource(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, mip, 0);
-
+			texture.Resource()->TransitionSubresource(list, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, mip - 1, face);
+			texture.Resource()->TransitionSubresource(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, mip, face);
 
 			BFSRVTextureViewInfo srvView{};
+			srvView.Type = BFTextureUsage::Texture2DArray;
 			srvView.SRGB = false;
 			srvView.FirstSlice = face;
-			srvView.LastSlice = desc.NumMips - 1;
+			srvView.LastSlice = face;
+			srvView.MostDetailedMip = mip - 1;
+			srvView.MipLevels = 1;
 
 			BFUAVTextureViewInfo uavView{};
-			uavView.MipSlice = mip;
+			uavView.Type = BFTextureUsage::Texture2DArray;
 			uavView.FirstSlice = face;
 			uavView.LastSlice = face;
+			uavView.MipSlice = mip;
 
 			ShaderVariables()
 				.Add(texture.SRV(srvView).View())
 				.Add(texture.UAV(uavView).View())
 				.Add(width)
 				.Add(height)
-				.Add(static_cast<int>(mip - 1))
 				.Submit(list);
 
 			list.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 
 			// Ensure UAV writes are visible before the next mip reads them.
-			texture.Resource()->TransitionSubresource(list, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, mip, 0);
+			texture.Resource()->TransitionSubresource(list, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, mip, face);
 		}
 
 		texture.Resource()->Transition(list, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -176,6 +177,7 @@ namespace Butterfly
 
 		list.StartComputePass("EquirectangularToCubemap");
 
+		equirectangular.Resource()->Transition(list, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		cubemap.Resource()->Transition(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 		const uint32_t cubemapSize = cubemap.Desc().Height;
@@ -186,7 +188,7 @@ namespace Butterfly
 		BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
 		ShaderVariables()
 			.Add(equirectangular.SRV().View())
-			.Add(cubemap.UAV().View())
+			.Add(cubemap.UAV(BFUAVTextureViewInfo::Texture2DArray()).View())
 			.Add(smp.View())
 			.Add(cubemap.Height())
 			.Submit(list);

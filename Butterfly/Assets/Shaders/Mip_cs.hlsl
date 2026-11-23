@@ -4,7 +4,6 @@ struct ButterIndices
     int dst;
     int resX;
     int resY;
-    int srcMip;
 };
 
 ConstantBuffer<ButterIndices> resources : register(b0);
@@ -17,11 +16,13 @@ void main(uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    Texture2D<float4> src = ResourceDescriptorHeap[resources.tex];
-    RWTexture2D<float4> dst = ResourceDescriptorHeap[resources.dst];
+    Texture2DArray<float4>   src = ResourceDescriptorHeap[resources.tex];
+    RWTexture2DArray<float4> dst = ResourceDescriptorHeap[resources.dst];
+
+    uint srcW, srcH, slices, levels;
+    src.GetDimensions(0, srcW, srcH, slices, levels);
 
     uint2 srcCoord = id.xy * 2;
-
     float4 result = 0.0;
 
     [unroll]
@@ -30,9 +31,10 @@ void main(uint3 id : SV_DispatchThreadID)
         [unroll]
         for (uint x = 0; x < 2; x++)
         {
-            result += src.Load(int3(srcCoord + uint2(x, y), resources.srcMip));
+            uint2 c = min(srcCoord + uint2(x, y), uint2(srcW - 1, srcH - 1));
+            result += src.Load(int4(c, 0, 0));
         }
     }
 
-    dst[id.xy] = result * 0.25;
+    dst[uint3(id.xy, 0)] = result * 0.25;
 }

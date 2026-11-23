@@ -55,6 +55,7 @@ namespace Butterfly
 			desc.Width = width;
 			desc.Height = height;
 			desc.ArraySize = 6;
+			desc.NumMips = MIPS_ALL;
 			desc.Format = format;
 			desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
 			desc.Dimention = BFTextureDimention::Texture2D;
@@ -76,6 +77,7 @@ namespace Butterfly
 			desc.Width = cubemapSize;
 			desc.Height = cubemapSize;
 			desc.ArraySize = 6;
+			desc.NumMips = MIPS_ALL;
 			desc.Format = asset->Texture->Desc().Format;
 			desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource | BFTextureDesc::ViewType::UnorderedAccess;
 			desc.DebugName = "SkyboxCubemap";
@@ -84,6 +86,11 @@ namespace Butterfly
 
 			D3D12CommandList list;
 			GraphicsCommands::EquirectangularToCubemap(list, *asset->Texture, *m_skyboxTexture);
+
+			for (uint32_t i = 0; i < 6; ++i)
+			{
+				GraphicsCommands::GenerateMips(list, *m_skyboxTexture, i);
+			}
 
 			list.Close();
 			D3D12API()->Queue(QueueType::Direct)->Execute(list);
@@ -138,7 +145,7 @@ namespace Butterfly
 				ShaderVariables()
 					.Add(viewport.GetRenderData().CameraDataBuffer->CBV().View())
 					.Add(sampler.View())
-					.Add(m_skyboxTexture->SRV().View())
+					.Add(m_skyboxTexture->SRV(BFSRVTextureViewInfo::Cubemap()).View())
 					.Submit(list);
 
 				list.DrawInstanced(6, 1, 0, 0);

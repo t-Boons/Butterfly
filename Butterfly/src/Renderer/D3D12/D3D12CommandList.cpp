@@ -166,7 +166,7 @@ namespace Butterfly
 		BFDSVTextureViewInfo info;
 		info.Slice = slice;
 		info.MipSlice = 0;
-		info.Type = BFTextureType::Texture2DArray;
+		info.Type = BFTextureUsage::Texture2DArray;
 		m_depthStencilView = depthStencil.DSV(info).Handle();
 		depthStencil.Resource()->Transition(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = m_depthStencilTexture ? &m_depthStencilView : nullptr;
@@ -188,7 +188,7 @@ namespace Butterfly
 		BFDSVTextureViewInfo info;
 		info.Slice = slice;
 		info.MipSlice = 0;
-		info.Type = BFTextureType::Texture2DArray;
+		info.Type = BFTextureUsage::Texture2DArray;
 
 		if(depthStencil.Format() == DXGI_FORMAT_D32_FLOAT)
 		{

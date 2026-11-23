@@ -32,7 +32,7 @@ namespace Butterfly
 		{
 			if (skyboxParams->SkyboxTexture)
 			{
-				skyboxTextureViewIndex = skyboxParams->SkyboxTexture->SRV().View();
+				skyboxTextureViewIndex = skyboxParams->SkyboxTexture->SRV(BFSRVTextureViewInfo::Cubemap()).View();
 			}
 		}
 

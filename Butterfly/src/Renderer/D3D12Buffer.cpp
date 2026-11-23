@@ -186,6 +186,7 @@ namespace Butterfly
 		m_numBytes = alignedSize;
         D3D12Resource* resource = DX12ResourceBuilder()
             .HeapType(D3D12_HEAP_TYPE_UPLOAD)
+            .InitialState(D3D12_RESOURCE_STATE_COMMON)
             .Buffer(alignedSize)
             .SetName(resourceTag)
             .Create();
