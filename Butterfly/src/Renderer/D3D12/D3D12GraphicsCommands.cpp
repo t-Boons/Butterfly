@@ -25,7 +25,7 @@ namespace Butterfly
 		sdfDesc.Format = DXGI_FORMAT_R16_FLOAT;
 		sdfDesc.ViewTypes = BFTextureDesc::ViewType::ShaderResource | BFTextureDesc::ViewType::UnorderedAccess;
 		sdfDesc.DebugName = "SDF";
-		sdfDesc.Type = BFTextureType::Texture3D;
+		sdfDesc.Dimention = BFTextureDimention::Texture3D;
 		RefPtr<BFTexture> outSDF = MakeRef<BFTexture>(sdfDesc);
 
 		BFStructuredBufferDesc triangleBufferDesc;
@@ -113,7 +113,7 @@ namespace Butterfly
 		list.EndRenderPass();
 	}
 
-	void GraphicsCommands::GenerateMips(D3D12CommandList& list, BFTexture& texture)
+	void GraphicsCommands::GenerateMips(D3D12CommandList& list, BFTexture& texture, uint32_t face)
 	{
 		BF_PROFILE_EVENT()
 
@@ -138,9 +138,13 @@ namespace Butterfly
 
 			BFSRVTextureViewInfo srvView{};
 			srvView.SRGB = false;
+			srvView.FirstSlice = face;
+			srvView.LastSlice = desc.NumMips - 1;
 
 			BFUAVTextureViewInfo uavView{};
 			uavView.MipSlice = mip;
+			uavView.FirstSlice = face;
+			uavView.LastSlice = face;
 
 			ShaderVariables()
 				.Add(texture.SRV(srvView).View())
@@ -169,7 +173,6 @@ namespace Butterfly
 		BF_CORE_ASSERT(cubemap.ViewTypes() & BFTextureDesc::ViewType::UnorderedAccess, "Destination texture must have the RenderTargettable flag set: %s", cubemap.Desc().DebugName.c_str());
 		BF_CORE_ASSERT(cubemap.Height() == cubemap.Width(), "Cubemap texture must be square: %s", cubemap.Desc().DebugName.c_str());
 		BF_CORE_ASSERT(cubemap.Height() == equirectangular.Height(), "Cubemap texture must have the same height as the equirectangular texture: %s -> %s", equirectangular.Desc().DebugName.c_str(), cubemap.Desc().DebugName.c_str());
-		BF_CORE_ASSERT(cubemap.Type() == BFTextureType::Cubemap, "Destination texture must be a cubemap: %s", cubemap.Desc().DebugName.c_str());
 
 		list.StartComputePass("EquirectangularToCubemap");
 

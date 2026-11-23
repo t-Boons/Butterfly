@@ -21,7 +21,7 @@ namespace Butterfly
 	public:
 		static RefPtr<BFTexture> CreateSDF(const std::vector<SDFTriangle>& triangleBuffer, const BFAABB& bounds, const glm::uvec3& resolution);
 		static void Blit(D3D12CommandList& list, BFTexture& src, BFTexture& dst);
-		static void GenerateMips(D3D12CommandList& list, BFTexture& texture);
+		static void GenerateMips(D3D12CommandList& list, BFTexture& texture, uint32_t face = 0);
 
 		static void EquirectangularToCubemap(D3D12CommandList& list, BFTexture& equirectangular, BFTexture& cubemap);
 		static void SetFullscreenViewportAndRect(D3D12CommandList& list, uint32_t width, uint32_t height);

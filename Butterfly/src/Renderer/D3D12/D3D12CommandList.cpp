@@ -163,10 +163,14 @@ namespace Butterfly
 		BF_PROFILE_EVENT();
 
 		m_depthStencilTexture = &depthStencil;
-		m_depthStencilView = depthStencil.DSVArraySlice(slice).Handle();
+		BFDSVTextureViewInfo info;
+		info.Slice = slice;
+		info.MipSlice = 0;
+		info.Type = BFTextureType::Texture2DArray;
+		m_depthStencilView = depthStencil.DSV(info).Handle();
 		depthStencil.Resource()->Transition(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = m_depthStencilTexture ? &m_depthStencilView : nullptr;
-		m_cmdList->OMSetRenderTargets(static_cast<uint32_t>(m_colorTextureView.size()), m_colorTextureView.data(), false, &m_depthStencilView);
+		m_cmdList->OMSetRenderTargets(static_cast<uint32_t>(m_colorTextureView.size()), m_colorTextureView.data(), false, dsvHandle);
 	}
 
 	void D3D12CommandList::ClearRenderTarget(BFTexture& color, const glm::vec4& clearColor)
@@ -181,9 +185,14 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
+		BFDSVTextureViewInfo info;
+		info.Slice = slice;
+		info.MipSlice = 0;
+		info.Type = BFTextureType::Texture2DArray;
+
 		if(depthStencil.Format() == DXGI_FORMAT_D32_FLOAT)
 		{
-			m_cmdList->ClearDepthStencilView(depthStencil.DSVArraySlice(slice).Handle(), D3D12_CLEAR_FLAG_DEPTH, depthValue, stencilValue, 0, nullptr);
+			m_cmdList->ClearDepthStencilView(depthStencil.DSV(info).Handle(), D3D12_CLEAR_FLAG_DEPTH, depthValue, stencilValue, 0, nullptr);
 		}
 		else
 		{

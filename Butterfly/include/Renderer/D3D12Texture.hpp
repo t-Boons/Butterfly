@@ -10,6 +10,12 @@ namespace Butterfly
 	class BFShaderResourceView;
 	class BFUnorderedAccessView;
 
+	enum class BFTextureDimention
+	{
+		Texture2D,
+		Texture3D,
+	};
+
 	enum class BFTextureType
 	{
 		Texture2D,
@@ -33,6 +39,7 @@ namespace Butterfly
 		uint32_t FirstSlice = 0;
 		uint32_t LastSlice = 64;
 		uint32_t MipSlice = 0;
+		BFTextureType Type = BFTextureType::Texture2D;
 		bool SRGB = false;
 	};
 
@@ -41,11 +48,19 @@ namespace Butterfly
 		uint32_t FirstSlice = 0;
 		uint32_t LastSlice = 64;
 		uint32_t MipSlice = 0;
+		BFTextureType Type = BFTextureType::Texture2D;
+	};
+
+	struct BFDSVTextureViewInfo
+	{
+		BFTextureType Type = BFTextureType::Texture2D;
+		uint32_t MipSlice = 0;
+		uint32_t Slice = 0;
+		bool SRGB = false;
 	};
 
 	struct BFTextureDesc
 	{
-		BFTextureType Type = BFTextureType::Texture2D;
 		BFTextureUploadData UploadData;
 		DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
 		uint32_t Width = 0;
@@ -53,6 +68,7 @@ namespace Butterfly
 		uint32_t Depth = 1;
 		uint32_t ArraySize = 1;
 		uint32_t ViewTypes = None;
+		BFTextureDimention Dimention = BFTextureDimention::Texture2D;
 		std::string DebugName = "Texture";
 		bool SRGBHint = false;
 		int NumMips = 1; // 0 Means generate all.
@@ -78,10 +94,10 @@ namespace Butterfly
 		const D3D12_CLEAR_VALUE* ClearValue() const;
 
 		const BFDepthStencilView& DSV();
-		const BFDepthStencilView& DSVArraySlice(uint32_t slice);
+		const BFDepthStencilView& DSV(const BFDSVTextureViewInfo& info);
 		const BFRenderTargetView& RTV() const;
 		const BFShaderResourceView& SRV();
-		const BFShaderResourceView& SRV(const BFSRVTextureViewInfo& info);
+		const BFShaderResourceView& SRV(BFSRVTextureViewInfo info);
 		const BFUnorderedAccessView& UAV();
 		const BFUnorderedAccessView& UAV(const BFUAVTextureViewInfo& info);
 
@@ -90,7 +106,6 @@ namespace Butterfly
 		uint32_t Depth() const { return m_desc.Depth; }
 		uint32_t NumMips() const { return m_desc.NumMips; }
 		uint32_t ViewTypes() const { return m_desc.ViewTypes; }
-		BFTextureType Type() const { return m_desc.Type; }
 		D3D12Resource* Resource() { return m_resource; }
 		const D3D12Resource* Resource() const { return m_resource; }
 

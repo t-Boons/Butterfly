@@ -57,7 +57,7 @@ namespace Butterfly
 			desc.ArraySize = 6;
 			desc.Format = format;
 			desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
-			desc.Type = BFTextureType::Cubemap;
+			desc.Dimention = BFTextureDimention::Texture2D;
 			desc.DebugName = "SkyboxCubemap";
 			desc.UploadData.CubemapFacesSource = textures;
 
@@ -78,7 +78,6 @@ namespace Butterfly
 			desc.ArraySize = 6;
 			desc.Format = asset->Texture->Desc().Format;
 			desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource | BFTextureDesc::ViewType::UnorderedAccess;
-			desc.Type = BFTextureType::Cubemap;
 			desc.DebugName = "SkyboxCubemap";
 			m_skyboxTexture = MakeRef<BFTexture>(desc);
 

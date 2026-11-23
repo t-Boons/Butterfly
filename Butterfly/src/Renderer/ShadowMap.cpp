@@ -20,19 +20,16 @@ namespace Butterfly
 
 			if (type == LightType::Directional)
 			{
-				desc.Type = BFTextureType::Texture2DArray;
 				desc.ArraySize = MAX_CASCADES;
 			}
 
 			if (type == LightType::Point)
 			{
-				desc.Type = BFTextureType::Cubemap;
 				desc.ArraySize = CUBEMAP_SLICES;
 			}
 
 			if (type == LightType::Spot)
 			{
-				desc.Type = BFTextureType::Texture2D;
 				desc.ArraySize = 1;
 			}
 
@@ -111,11 +108,28 @@ namespace Butterfly
 		}
 
 
-		void ToGPUShadowMap(const ShadowMap& shadowMap, GPUShadowMap& gpuShadowMap)
+		void ToGPUShadowMap(const ShadowMap& shadowMap, GPUShadowMap& gpuShadowMap, LightType type)
 		{
 			gpuShadowMap.NumSlices = shadowMap.NumSlices;
 			gpuShadowMap.Resolution = shadowMap.Resolution;
-			gpuShadowMap.ShadowMapTextureIndex = shadowMap.ShadowMapTexture ? shadowMap.ShadowMapTexture->SRV().View() : -1;
+
+			BFSRVTextureViewInfo srvInfo;
+			if (type == LightType::Directional)
+			{
+				srvInfo.Type = BFTextureType::Texture2DArray;
+			}
+
+			if (type == LightType::Point)
+			{
+				srvInfo.Type = BFTextureType::Cubemap;
+			}
+
+			if (type == LightType::Spot)
+			{
+				srvInfo.Type = BFTextureType::Texture2D;
+			}
+
+			gpuShadowMap.ShadowMapTextureIndex = shadowMap.ShadowMapTexture ? shadowMap.ShadowMapTexture->SRV(srvInfo).View() : -1;
 			gpuShadowMap.CascadeSplits = shadowMap.CascadeSplits;
 			gpuShadowMap.TexelSizes = shadowMap.TexelSizes;
 			gpuShadowMap.LightViewProjections = shadowMap.LightViewProjections;
@@ -136,10 +150,13 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
+		std::vector<LightType> lightTypes;
+		lightTypes.reserve(MAX_SHADOW_MAPS);
 		uint32_t entityIndex = 0;
 		for (const auto& [entity, lightComponent, transform] : Application::Get().GetScene().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
 		{
 			ShadowMap& shadow = m_shadowMaps[entityIndex];
+			lightTypes.push_back(lightComponent.GetType());
 			entityIndex++;
 
 			shadow.Resolution = static_cast<float>(lightComponent.GetShadowMapResolution());
@@ -204,7 +221,7 @@ namespace Butterfly
 
 		for (uint32_t i = 0; i < entityIndex; i++)
 		{
-			Utils::ToGPUShadowMap(m_shadowMaps[i], m_gpuShadowMaps[i]);
+			Utils::ToGPUShadowMap(m_shadowMaps[i], m_gpuShadowMaps[i], lightTypes[i]);
 		}
 
 		m_gpuShadowMapsBuffer->Write(m_gpuShadowMaps.data(), static_cast<uint32_t>(m_gpuShadowMaps.size() * sizeof(GPUShadowMap)));

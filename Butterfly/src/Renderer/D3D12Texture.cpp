@@ -167,7 +167,7 @@ namespace Butterfly
 			return rtvDesc;
 		}
 
-		inline const D3D12_DEPTH_STENCIL_VIEW_DESC CreateDsvDescFromHWTextureDesc(const BFTextureDesc& desc, uint32_t slice = 0)
+		inline const D3D12_DEPTH_STENCIL_VIEW_DESC CreateDsvDescFromHWTextureDesc(const BFTextureDesc& desc, const BFDSVTextureViewInfo& info)
 		{
 			BF_PROFILE_EVENT();
 
@@ -175,19 +175,20 @@ namespace Butterfly
 
 			dsvDesc.Format = desc.Format;
 
-			if (desc.Type == BFTextureType::Texture2D)
+			if (info.Type == BFTextureType::Texture2D)
 			{
 				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+				dsvDesc.Texture2D.MipSlice = info.MipSlice;
 			}
 
-			if (desc.Type == BFTextureType::Texture2DArray || desc.Type == BFTextureType::Cubemap)
+			if (info.Type == BFTextureType::Texture2DArray || info.Type == BFTextureType::Cubemap)
 			{
 				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 
-				dsvDesc.Texture2DArray.MipSlice = 0;
-				dsvDesc.Texture2DArray.FirstArraySlice = slice;
+				dsvDesc.Texture2DArray.MipSlice = info.MipSlice;
+				dsvDesc.Texture2DArray.FirstArraySlice = info.Slice;
 				dsvDesc.Texture2DArray.ArraySize = 1;
 			}
 
@@ -212,7 +213,7 @@ namespace Butterfly
 			srvDesc.Texture2D.PlaneSlice = 0;
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-			if (desc.Type == BFTextureType::Texture2DArray)
+			if (info.Type == BFTextureType::Texture2DArray)
 			{
 				BF_CORE_ASSERT(desc.ArraySize > 1, "Texture2DArray must have ArraySize > 1.");
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
@@ -223,7 +224,7 @@ namespace Butterfly
 				srvDesc.Texture2DArray.MipLevels = desc.NumMips;
 			}
 
-			if (desc.Type == BFTextureType::Cubemap)
+			if (info.Type == BFTextureType::Cubemap)
 			{
 				BF_CORE_ASSERT(desc.ArraySize == 6, "Cubemap must have 6 faces.");
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
@@ -231,7 +232,7 @@ namespace Butterfly
 				srvDesc.TextureCube.MipLevels = desc.NumMips;
 				srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 			}
-			if (desc.Type == BFTextureType::Texture3D)
+			if (info.Type == BFTextureType::Texture3D)
 			{
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
 				srvDesc.Texture3D.MostDetailedMip = 0;
@@ -252,7 +253,7 @@ namespace Butterfly
 			uavDesc.Texture2D.MipSlice = info.MipSlice;
 			uavDesc.Texture2D.PlaneSlice = 0;
 
-			if (desc.Type == BFTextureType::Texture2DArray)
+			if (info.Type == BFTextureType::Texture2DArray)
 			{
 				BF_CORE_ASSERT(desc.ArraySize > 1, "Texture2DArray must have ArraySize > 1.");
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
@@ -260,7 +261,7 @@ namespace Butterfly
 				uavDesc.Texture2DArray.FirstArraySlice = info.FirstSlice;
 				uavDesc.Texture2DArray.MipSlice = info.MipSlice;
 			}
-			if (desc.Type == BFTextureType::Cubemap)
+			if (info.Type == BFTextureType::Cubemap)
 			{
 				BF_CORE_ASSERT(desc.ArraySize == 6, "Cubemap must have 6 faces.");
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
@@ -268,7 +269,7 @@ namespace Butterfly
 				uavDesc.Texture2DArray.FirstArraySlice = info.FirstSlice;
 				uavDesc.Texture2DArray.MipSlice = info.MipSlice;
 			}
-			if (desc.Type == BFTextureType::Texture3D)
+			if (info.Type == BFTextureType::Texture3D)
 			{
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 				uavDesc.Texture3D.MipSlice = info.MipSlice;
@@ -293,8 +294,6 @@ namespace Butterfly
 
 		if (m_desc.ViewTypes & BFTextureDesc::ViewType::RenderTargettable)
 		{
-			BF_CORE_ASSERT(m_desc.Type != BFTextureType::Cubemap, "RenderTargettable textures cannot be Cubemaps.");
-			BF_CORE_ASSERT(m_desc.Type != BFTextureType::Texture2DArray, "RenderTargettable textures cannot be Texture2DArray.");
 			BF_CORE_ASSERT(m_desc.ArraySize == 1, "RenderTargettable textures cannot be Texture2DArray.");
 
 			float col[] = { 0,0,0,0 };
@@ -324,7 +323,7 @@ namespace Butterfly
 			DX12ResourceBuilder builder;
 			builder.HeapType(D3D12_HEAP_TYPE_DEFAULT);
 
-			if (m_desc.Type == BFTextureType::Texture3D)
+			if (m_desc.Dimention == BFTextureDimention::Texture3D)
 				builder.Texture3D(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.Depth, m_desc.NumMips);
 			else
 				builder.Texture(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.ArraySize, m_desc.NumMips);
@@ -346,7 +345,7 @@ namespace Butterfly
 			Utils::CopyTextureFromCPU(m_resource, m_desc);
 		}
 
-		if (m_desc.Type == BFTextureType::Cubemap && m_desc.UploadData.HasValidFace())
+		if (m_desc.UploadData.HasValidFace())
 		{
 			BF_CORE_ASSERT(m_desc.ArraySize == 6, "Cubemap must have 6 faces.");
 			Utils::CopyGPUTexturesToCubemap(m_desc.UploadData.CubemapFacesSource, m_resource);
@@ -391,20 +390,28 @@ namespace Butterfly
 
 	const BFDepthStencilView& BFTexture::DSV()
 	{
-		return DSVArraySlice(0);
+		BFDSVTextureViewInfo info;
+		info.Slice = 0;
+		info.MipSlice = 0;
+		return DSV(info);
 	}
 
-	const BFDepthStencilView& BFTexture::DSVArraySlice(uint32_t slice)
+	const BFDepthStencilView& BFTexture::DSV(const BFDSVTextureViewInfo& info)
 	{
-		BF_CORE_ASSERT(slice < m_desc.ArraySize, "Slice index out of bounds for DSV array slice.");
+		BF_CORE_ASSERT(info.Slice < m_desc.ArraySize, "Slice index out of bounds for DSV array slice.");
 
-		auto it = m_dsvSlices.find(slice);
+		uint64_t key = 1;
+		Utils::SumHash(key, info.Slice);
+		Utils::SumHash(key, info.MipSlice);
+		Utils::SumHash(key, static_cast<uint64_t>(info.SRGB + 1));
+
+		auto it = m_dsvSlices.find(key);
 
 		if (it == m_dsvSlices.end())
 		{
-			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = Utils::CreateDsvDescFromHWTextureDesc(m_desc, slice);
-			m_dsvSlices[slice] = MakeRef<BFDepthStencilView>(*m_resource, dsvDesc);
-			it = m_dsvSlices.find(slice);
+			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = Utils::CreateDsvDescFromHWTextureDesc(m_desc, info);
+			m_dsvSlices[key] = MakeRef<BFDepthStencilView>(*m_resource, dsvDesc);
+			it = m_dsvSlices.find(key);
 		}
 
 		return *it->second;
@@ -420,12 +427,12 @@ namespace Butterfly
 		return SRV(info);
 	}
 
-	const BFShaderResourceView& BFTexture::SRV(const BFSRVTextureViewInfo& info)
+	const BFShaderResourceView& BFTexture::SRV(BFSRVTextureViewInfo info)
 	{
 		BF_CORE_ASSERT(info.FirstSlice < m_desc.ArraySize, "Slice index out of bounds for SRV array slice.");
 
 		const uint32_t lastSlice = std::min(info.LastSlice, m_desc.ArraySize - 1);
-
+		info.LastSlice = lastSlice;
 		uint64_t key = 1;
 		Utils::SumHash(key, info.FirstSlice);
 		Utils::SumHash(key, lastSlice);
