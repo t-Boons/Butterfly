@@ -1,49 +1,26 @@
 #pragma once
 #include "D3D12Common.hpp"
 #include "Renderer/D3D12/D3D12CommandList.hpp"
+#include "Renderer/D3D12/D3D12View.hpp"
+#include "Renderer/D3D12Sampler.hpp"
 
 namespace Butterfly
 {
 	class D3D12CommandList;
 
-	class ShaderVariables
+	class BFShaderVariableBuilder
 	{
 	public:
-		ShaderVariables();
-		ShaderVariables& Add(int index);
-		ShaderVariables& Submit(D3D12CommandList& list);
-		ShaderVariables& Reset();
+		BFShaderVariableBuilder(D3D12CommandList& list)
+		: m_list(list) {}
+
+		BFShaderVariableBuilder& Add(const BFView& view);
+		BFShaderVariableBuilder& Add(const BFSampler& sampler);
+		BFShaderVariableBuilder& Add(int index);
+		void Submit();
 
 	private:
-		uint32_t numDwords = 0;
-		std::vector<int> m_bufferIndices;
-	};
-
-	struct ShaderVariablesFromStruct
-	{
-		public:
-			template <typename T>
-			static void Submit(const T& value, D3D12CommandList& list)
-			{
-				BF_PROFILE_EVENT();
-				if (list.CurrentPassType() == D3D12CommandList::PassType::Compute)
-				{
-					list.List()->SetComputeRoot32BitConstants(
-						0u,
-						sizeof(T) / 4,
-						&value,
-						0u
-					);
-				}
-				else
-				{
-					list.List()->SetGraphicsRoot32BitConstants(
-						0u,
-						sizeof(T) / 4,
-						&value,
-						0u
-					);
-				}
-			}
+		D3D12CommandList& m_list;
+		std::vector<int> m_data;
 	};
 }

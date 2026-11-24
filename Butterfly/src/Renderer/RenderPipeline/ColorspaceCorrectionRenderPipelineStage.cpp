@@ -39,11 +39,11 @@ namespace Butterfly
 
 				list.SetGraphicsPSO(pso);
 
-				viewport.GetRenderTarget().Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				ShaderVariables()
-					.Add(viewport.GetRenderTarget().SRV().View())
+				viewport.GetRenderTarget().Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				BFShaderVariableBuilder(list)
+					.Add(viewport.GetRenderTarget().SRV())
 					.Add(static_cast<int>(m_colorSpace))
-					.Submit(list);
+					.Submit();
 
 				list.DrawInstanced(6, 1, 0, 0);
 

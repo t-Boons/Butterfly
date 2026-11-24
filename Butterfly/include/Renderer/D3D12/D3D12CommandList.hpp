@@ -72,6 +72,10 @@ namespace Butterfly
 
 		void SetViewport(const RenderViewport& viewport);
 
+		void SetRootConstants(const void* data, uint32_t numDWords);
+
+		void PrepareForUse(const BFView& view);
+
 		void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation);
 		void DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation);
 

@@ -1,8 +1,7 @@
 #pragma once
 #include "D3D12/D3D12Common.hpp"
+#include "Renderer/D3D12/D3D12SubresourceRange.hpp"
 #include "Resource.hpp"
-
-#define MIPS_ALL 0
 
 namespace Butterfly
 {
@@ -38,86 +37,59 @@ namespace Butterfly
 
 	struct BFSRVTextureViewInfo
 	{
-		uint32_t FirstSlice = 0;
-		uint32_t LastSlice = 64;
-		uint32_t MostDetailedMip = 0;
-		uint32_t MipLevels = 64;
-
 		BFTextureUsage Type = BFTextureUsage::Texture2D;
+		D3D12SubresourceRange Range{};
 		bool SRGB = false;
 
-		static BFSRVTextureViewInfo Cubemap()
-		{
-			BFSRVTextureViewInfo info;
-			info.Type = BFTextureUsage::Cubemap;
-			return info;
-		}
+		static BFSRVTextureViewInfo Texture2D()      { return { BFTextureUsage::Texture2D }; }
+		static BFSRVTextureViewInfo Texture2DArray() { return { BFTextureUsage::Texture2DArray }; }
+		static BFSRVTextureViewInfo Texture3D()      { return { BFTextureUsage::Texture3D }; }
+		static BFSRVTextureViewInfo Cubemap()        { return { BFTextureUsage::Cubemap }; }
 
-		static BFSRVTextureViewInfo Texture2DArray()
-		{
-			BFSRVTextureViewInfo info;
-			info.Type = BFTextureUsage::Texture2DArray;
-			info.FirstSlice = 0;
-			info.LastSlice = 64;
-			return info;
-		}
-
-		static BFSRVTextureViewInfo Texture2DArrayRange(uint32_t firstSlice, uint32_t lastSlice)
-		{
-			BFSRVTextureViewInfo info;
-			info.Type = BFTextureUsage::Texture2DArray;
-			info.FirstSlice = firstSlice;
-			info.LastSlice = lastSlice;
-			return info;
-		}
-
-		static BFSRVTextureViewInfo Texture2D()
-		{
-			BFSRVTextureViewInfo info;
-			info.Type = BFTextureUsage::Texture2D;
-			return info;
-		}
-
-		static BFSRVTextureViewInfo Texture3D()
-		{
-			BFSRVTextureViewInfo info;
-			info.Type = BFTextureUsage::Texture3D;
-			return info;
-		}
+		BFSRVTextureViewInfo& Mips(uint32_t first, uint32_t count)   { Range.MipRange(first, count); return *this; }
+		BFSRVTextureViewInfo& Slices(uint32_t first, uint32_t count) { Range.SliceRange(first, count); return *this; }
+		BFSRVTextureViewInfo& AsSRGB(bool srgb = true)               { SRGB = srgb; return *this; }
 	};
 
 	struct BFUAVTextureViewInfo
 	{
-		uint32_t FirstSlice = 0;
-		uint32_t LastSlice = 64;
-		uint32_t MipSlice = 0;
 		BFTextureUsage Type = BFTextureUsage::Texture2D;
+		D3D12SubresourceRange Range = D3D12SubresourceRange().MipRange(0, 1);
 
-		static BFUAVTextureViewInfo Texture2DArray()
-		{
-			BFUAVTextureViewInfo info;
-			info.Type = BFTextureUsage::Texture2DArray;
-			info.FirstSlice = 0;
-			info.LastSlice = 64;
-			return info;
-		}
+		static BFUAVTextureViewInfo Texture2D()      { return { BFTextureUsage::Texture2D }; }
+		static BFUAVTextureViewInfo Texture2DArray() { return { BFTextureUsage::Texture2DArray }; }
+		static BFUAVTextureViewInfo Texture3D()      { return { BFTextureUsage::Texture3D }; }
 
-		static BFUAVTextureViewInfo Texture2DArrayRange(uint32_t firstSlice, uint32_t lastSlice)
-		{
-			BFUAVTextureViewInfo info;
-			info.Type = BFTextureUsage::Texture2DArray;
-			info.FirstSlice = firstSlice;
-			info.LastSlice = lastSlice;
-			return info;
-		}
+		BFUAVTextureViewInfo& Mip(uint32_t mip)                      { Range.MipRange(mip, 1); return *this; }
+		BFUAVTextureViewInfo& Slices(uint32_t first, uint32_t count) { Range.SliceRange(first, count); return *this; }
+	};
+
+	struct BFRTVTextureViewInfo
+	{
+		BFTextureUsage Type = BFTextureUsage::Texture2D;
+		D3D12SubresourceRange Range = D3D12SubresourceRange().MipRange(0, 1);
+		bool SRGB = false;
+
+		static BFRTVTextureViewInfo Texture2D()      { return { BFTextureUsage::Texture2D }; }
+		static BFRTVTextureViewInfo Texture2DArray() { return { BFTextureUsage::Texture2DArray }; }
+		static BFRTVTextureViewInfo Texture3D()      { return { BFTextureUsage::Texture3D }; }
+
+		BFRTVTextureViewInfo& Mip(uint32_t mip)                      { Range.MipRange(mip, 1); return *this; }
+		BFRTVTextureViewInfo& Slices(uint32_t first, uint32_t count) { Range.SliceRange(first, count); return *this; }
+		BFRTVTextureViewInfo& AsSRGB(bool srgb = true)               { SRGB = srgb; return *this; }
 	};
 
 	struct BFDSVTextureViewInfo
 	{
+	public:
 		BFTextureUsage Type = BFTextureUsage::Texture2D;
-		uint32_t MipSlice = 0;
-		uint32_t Slice = 0;
-		bool SRGB = false;
+		D3D12SubresourceRange Range = D3D12SubresourceRange().MipRange(0, 1);
+
+		static BFDSVTextureViewInfo Texture2D()      { return { BFTextureUsage::Texture2D }; }
+		static BFDSVTextureViewInfo Texture2DArray() { return { BFTextureUsage::Texture2DArray }; }
+
+		BFDSVTextureViewInfo& Mip(uint32_t mip)                      { Range.MipRange(mip, 1); return *this; }
+		BFDSVTextureViewInfo& Slices(uint32_t first, uint32_t count) { Range.SliceRange(first, count); return *this; }
 	};
 
 	struct BFTextureDesc
@@ -132,7 +104,7 @@ namespace Butterfly
 		BFTextureDimention Dimention = BFTextureDimention::Texture2D;
 		std::string DebugName = "Texture";
 		bool SRGBHint = false;
-		int NumMips = 1; // 0 Means generate all.
+		uint32_t NumMips = 1; // BF_ALL Means generate all.
 
 		enum ViewType : uint32_t
 		{

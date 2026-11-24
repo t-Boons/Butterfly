@@ -54,14 +54,14 @@ namespace Butterfly
 
             D3D12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
 
-            m_resource->Transition(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
+            m_resource->TransitionAll(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
             copyList.List()->CopyResource(m_resource->HwResource, uploadResource->HwResource);
             copyList.Close();
             D3D12API()->Queue(QueueType::Copy)->Execute(copyList);
             D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
             D3D12CommandList transitionList;
-            m_resource->Transition(transitionList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            m_resource->TransitionAll(transitionList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
             transitionList.Close();
             D3D12API()->Queue(QueueType::Direct)->Execute(transitionList);
@@ -147,14 +147,14 @@ namespace Butterfly
 
         D3D12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
 
-        m_resource->Transition(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
+        m_resource->TransitionAll(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
         copyList.List()->CopyResource(m_resource->HwResource, uploadResource->HwResource);
         copyList.Close();
         D3D12API()->Queue(QueueType::Copy)->Execute(copyList);
         D3D12API()->Queue(QueueType::Copy)->WaitForFence();
 
         D3D12CommandList transitionList;
-        m_resource->Transition(transitionList, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+        m_resource->TransitionAll(transitionList, D3D12_RESOURCE_STATE_INDEX_BUFFER);
 
         transitionList.Close();
         D3D12API()->Queue(QueueType::Direct)->Execute(transitionList);

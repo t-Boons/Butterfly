@@ -12,6 +12,8 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxcompiler.lib")
 
+#define BF_ALL UINT32_MAX
+
 using namespace Microsoft::WRL;
 
 #define COM_FREE(p)     \

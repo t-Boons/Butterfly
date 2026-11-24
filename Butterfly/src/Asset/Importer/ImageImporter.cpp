@@ -65,6 +65,7 @@ namespace Butterfly
 		textureDesc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
 		textureDesc.Format = format;
 		textureDesc.UploadData.CPUCopySource = pixels;
+		textureDesc.NumMips = BF_ALL; // Generate all mips
 
 		RefPtr<TextureAsset> textureAsset = MakeRef<TextureAsset>();
 		textureAsset->Texture = MakeRef<BFTexture>(textureDesc);

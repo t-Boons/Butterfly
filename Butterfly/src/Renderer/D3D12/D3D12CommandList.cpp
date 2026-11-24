@@ -149,7 +149,7 @@ namespace Butterfly
 		m_colorTextureView.clear();
 		for (auto& c : color)
 		{
-			c->Resource()->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			c->Resource()->TransitionAll(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			m_colorTexture.push_back(c);
 			m_colorTextureView.push_back(c->RTV().Handle());
 		}
@@ -163,21 +163,38 @@ namespace Butterfly
 		BF_PROFILE_EVENT();
 
 		m_depthStencilTexture = &depthStencil;
-		BFDSVTextureViewInfo info;
-		info.Slice = slice;
-		info.MipSlice = 0;
-		info.Type = BFTextureUsage::Texture2DArray;
-		m_depthStencilView = depthStencil.DSV(info).Handle();
-		depthStencil.Resource()->Transition(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+		m_depthStencilView = depthStencil.DSV(BFDSVTextureViewInfo::Texture2DArray().Mip(0).Slices(slice, 1)).Handle();
+		depthStencil.Resource()->TransitionAll(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = m_depthStencilTexture ? &m_depthStencilView : nullptr;
 		m_cmdList->OMSetRenderTargets(static_cast<uint32_t>(m_colorTextureView.size()), m_colorTextureView.data(), false, dsvHandle);
+	}
+
+	void D3D12CommandList::SetRootConstants(const void* data, uint32_t numDWords)
+	{
+		BF_PROFILE_EVENT();
+
+		BF_CORE_ASSERT(data != nullptr, "D3D12CommandList::SetRootConstants called with null data.");
+		BF_CORE_ASSERT(numDWords > 0, "D3D12CommandList::SetRootConstants called with numDWords <= 0.");
+
+		if(m_currentPassType == PassType::Raster)
+			m_cmdList->SetGraphicsRoot32BitConstants(0, numDWords, data, 0);
+		else if(m_currentPassType == PassType::Compute)
+			m_cmdList->SetComputeRoot32BitConstants(0, numDWords, data, 0);
+	}
+
+	void D3D12CommandList::PrepareForUse(const BFView& view)
+	{
+		BF_PROFILE_EVENT();
+
+		view.Resource().TransitionRange(*this, view.RequiredState(), view.SubresourceRange());
 	}
 
 	void D3D12CommandList::ClearRenderTarget(BFTexture& color, const glm::vec4& clearColor)
 	{
 		BF_PROFILE_EVENT();
 
-		color.Resource()->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		color.Resource()->TransitionAll(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		m_cmdList->ClearRenderTargetView(color.RTV().Handle(), &clearColor[0], 0, nullptr);
 	}
 
@@ -185,18 +202,13 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
-		BFDSVTextureViewInfo info;
-		info.Slice = slice;
-		info.MipSlice = 0;
-		info.Type = BFTextureUsage::Texture2DArray;
-
 		if(depthStencil.Format() == DXGI_FORMAT_D32_FLOAT)
 		{
-			m_cmdList->ClearDepthStencilView(depthStencil.DSV(info).Handle(), D3D12_CLEAR_FLAG_DEPTH, depthValue, stencilValue, 0, nullptr);
+			m_cmdList->ClearDepthStencilView(depthStencil.DSV(BFDSVTextureViewInfo::Texture2DArray().Slices(slice, 1)).Handle(), D3D12_CLEAR_FLAG_DEPTH, depthValue, stencilValue, 0, nullptr);
 		}
 		else
 		{
-			m_cmdList->ClearDepthStencilView(depthStencil.DSV().Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depthValue, stencilValue, 0, nullptr);
+			m_cmdList->ClearDepthStencilView(depthStencil.DSV(BFDSVTextureViewInfo::Texture2DArray().Slices(slice, 1)).Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depthValue, stencilValue, 0, nullptr);
 		}
 	}
 

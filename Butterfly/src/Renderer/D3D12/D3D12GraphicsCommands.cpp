@@ -57,15 +57,14 @@ namespace Butterfly
 
 		list.StartComputePass("CreateSDF");
 
-		outSDF->Resource()->Transition(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		BFComputePSOInfo pso;
 		pso.ComputeShader = BFShaderCache::GetOrCreate("assets/Shaders/CreateSDF_cs.hlsl");
 
-		ShaderVariables()
-			.Add(outSDF->UAV().View())
-			.Add(triangleBufferGpu->SRV().View())
-			.Add(sdfUniformBuffer.CBV().View())
-			.Submit(list);
+		BFShaderVariableBuilder(list)
+			.Add(outSDF->UAV())
+			.Add(triangleBufferGpu->SRV())
+			.Add(sdfUniformBuffer.CBV())
+			.Submit();
 
 		list.SetComputePSO(pso);
 
@@ -102,11 +101,9 @@ namespace Butterfly
 
 		list.SetGraphicsPSO(psoInfo);
 
-		src.Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-		ShaderVariables()
-			.Add(src.SRV().View())
-			.Submit(list);
+		BFShaderVariableBuilder(list)
+			.Add(src.SRV())
+			.Submit();
 
 
 		list.DrawInstanced(6, 1, 0, 0);
@@ -125,43 +122,21 @@ namespace Butterfly
 		list.SetComputePSO(psoInfo);
 
 		const BFTextureDesc desc = texture.Desc();
-		
+
 		for (uint32_t mip = 1; mip < desc.NumMips; mip++)
 		{
 			const uint32_t width = std::max(1u, desc.Width >> mip);
 			const uint32_t height = std::max(1u, desc.Height >> mip);
 
-			texture.Resource()->TransitionSubresource(list, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, mip - 1, face);
-			texture.Resource()->TransitionSubresource(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, mip, face);
-
-			BFSRVTextureViewInfo srvView{};
-			srvView.Type = BFTextureUsage::Texture2DArray;
-			srvView.SRGB = false;
-			srvView.FirstSlice = face;
-			srvView.LastSlice = face;
-			srvView.MostDetailedMip = mip - 1;
-			srvView.MipLevels = 1;
-
-			BFUAVTextureViewInfo uavView{};
-			uavView.Type = BFTextureUsage::Texture2DArray;
-			uavView.FirstSlice = face;
-			uavView.LastSlice = face;
-			uavView.MipSlice = mip;
-
-			ShaderVariables()
-				.Add(texture.SRV(srvView).View())
-				.Add(texture.UAV(uavView).View())
+			BFShaderVariableBuilder(list)
+				.Add(texture.SRV(BFSRVTextureViewInfo::Texture2DArray().Mips(mip - 1, 1).Slices(face, 1)))
+				.Add(texture.UAV(BFUAVTextureViewInfo::Texture2DArray().Mip(mip).Slices(face, 1)))
 				.Add(width)
 				.Add(height)
-				.Submit(list);
+				.Submit();
 
 			list.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
-
-			// Ensure UAV writes are visible before the next mip reads them.
-			texture.Resource()->TransitionSubresource(list, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, mip, face);
 		}
-
-		texture.Resource()->Transition(list, D3D12_RESOURCE_STATE_GENERIC_READ);
 
 		list.EndComputePass();
 	}
@@ -177,28 +152,23 @@ namespace Butterfly
 
 		list.StartComputePass("EquirectangularToCubemap");
 
-		equirectangular.Resource()->Transition(list, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		cubemap.Resource()->Transition(list, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
 		const uint32_t cubemapSize = cubemap.Desc().Height;
 		BFComputePSOInfo pso;
 		pso.ComputeShader = BFShaderCache::GetOrCreate("assets/Shaders/EquirectangularToCubemap_cs.hlsl");
 
 
 		BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
-		ShaderVariables()
-			.Add(equirectangular.SRV().View())
-			.Add(cubemap.UAV(BFUAVTextureViewInfo::Texture2DArray()).View())
-			.Add(smp.View())
+		BFShaderVariableBuilder(list)
+			.Add(equirectangular.SRV())
+			.Add(cubemap.UAV(BFUAVTextureViewInfo::Texture2DArray()))
+			.Add(smp)
 			.Add(cubemap.Height())
-			.Submit(list);
+			.Submit();
 
 		list.SetComputePSO(pso);
 		const uint32_t groupsX = (cubemapSize + 7) / 8;
 		const uint32_t groupsY = (cubemapSize + 7) / 8;
 		list.Dispatch(groupsX, groupsY, 6);
-
-		cubemap.Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 		list.EndComputePass();
 	}

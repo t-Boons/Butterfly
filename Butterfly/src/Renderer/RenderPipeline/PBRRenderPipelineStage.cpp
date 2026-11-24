@@ -84,11 +84,12 @@ namespace Butterfly
 					{
 						continue;
 					}
+
 					AssetManager& as = Application::Get().GetAssetManager();
 					MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
 					if (mesh->GetSDF())
 					{
-						mesh->GetSDF()->GetSDFTexture()->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+						mesh->GetSDF()->GetSDFTexture()->Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 					}
 				}
 
@@ -100,31 +101,19 @@ namespace Butterfly
 
 					list.SetIndexBuffer(*mesh->GPUIndices);
 
-					struct BufferIndices
-					{
-						int frameDataView;
+					BFShaderVariableBuilder(list)
+					.Add(viewport.GetRenderData().FrameDataBuffer->CBV())
 
-						int meshIndex;
-						int modelIndex;
-						int materialIndex;
+					.Add(renderObject.ModelDataArrayIndex)
+					.Add(renderObject.ModelDataArrayIndex)
+					.Add(viewport.GetRenderData().Materials.GetMaterialIndex(renderObject.SubMesh.Material.GetID()))
 
-						int skyboxTextureIndex;
+					.Add(skyboxTextureViewIndex)
 
-						int sdfSamplerIndex;
-						int blockerSamplerIndex;
-						int pcssShadowSamplerIndex;
-					} views;
-
-					views.frameDataView = viewport.GetRenderData().FrameDataBuffer->CBV().View();
-					views.meshIndex = renderObject.ModelDataArrayIndex;
-					views.modelIndex = renderObject.ModelDataArrayIndex;
-					views.materialIndex = viewport.GetRenderData().Materials.GetMaterialIndex(renderObject.SubMesh.Material.GetID());
-					views.skyboxTextureIndex = skyboxTextureViewIndex;
-					views.sdfSamplerIndex = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()).View();
-					views.blockerSamplerIndex = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearBorder()).View();
-					views.pcssShadowSamplerIndex = pcssShadowMapSampler.View();
-
-					ShaderVariablesFromStruct::Submit(views, list);
+					.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()))
+					.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearBorder()))
+					.Add(pcssShadowMapSampler)
+					.Submit();
 
 					list.DrawIndexedInstanced(renderObject.SubMesh.IndexCount, 1, renderObject.SubMesh.IndexOffset, 0, 0);
 

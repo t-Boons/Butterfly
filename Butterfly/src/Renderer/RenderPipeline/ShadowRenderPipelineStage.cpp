@@ -62,15 +62,15 @@ namespace Butterfly
 
 							list.SetIndexBuffer(*mesh->GPUIndices);
 
-							ShaderVariables()
-								.Add(mesh->GPUPositions->SRV().View())
-								.Add(viewport.GetRenderData().CameraDataBuffer->CBV().View())
-								.Add(viewport.GetRenderData().ShadowMaps.SRV().View())
+							BFShaderVariableBuilder(list)
+								.Add(mesh->GPUPositions->SRV())
+								.Add(viewport.GetRenderData().CameraDataBuffer->CBV())
+								.Add(viewport.GetRenderData().ShadowMaps.SRV())
 								.Add(shadowMapIndex)
-								.Add(viewport.GetRenderData().ModelDataBuffer->SRV().View())
+								.Add(viewport.GetRenderData().ModelDataBuffer->SRV())
 								.Add(renderObject.ModelDataArrayIndex)
 								.Add(slice)
-								.Submit(list);
+								.Submit();
 
 							list.DrawIndexedInstanced(renderObject.SubMesh.IndexCount, 1, renderObject.SubMesh.IndexOffset, 0, 0);
 						}
@@ -87,7 +87,7 @@ namespace Butterfly
 					}
 					for (uint32_t cascadeIndex = 0; cascadeIndex < shadowMap.NumSlices; cascadeIndex++)
 					{
-						shadowMap.ShadowMapTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+						shadowMap.ShadowMapTexture->Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 					}
 				}
 

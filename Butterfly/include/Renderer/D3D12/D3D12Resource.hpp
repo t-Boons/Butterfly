@@ -1,7 +1,6 @@
 #pragma once
 #include "D3D12Common.hpp"
-
-#define SUBRESOURCE_ZERO 0
+#include "Renderer/D3D12/D3D12SubresourceRange.hpp"
 
 namespace Butterfly
 {
@@ -13,12 +12,14 @@ namespace Butterfly
 		~D3D12Resource();
 
 		D3D12Resource* Write(const void* src, uint32_t numBytes, uint32_t offset = 0);
+		uint32_t ArraySize() const;
 		void* Map();
 		void Unmap();
-		D3D12Resource* Transition(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState);
+		D3D12Resource* TransitionAll(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState);
 		D3D12Resource* TransitionSubresource(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState, uint32_t mipslice, uint32_t arraySlice);
-		D3D12Resource* UAVBarrier(const D3D12CommandList& cmdList);
-		uint32_t NumSubresources();
+		void TransitionRange(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState, const D3D12SubresourceRange& range);
+		uint32_t NumSubresources() const;
+		uint32_t MipCount() const;
 
 		friend class DX12ResourceBuilder;
 
@@ -29,6 +30,7 @@ namespace Butterfly
 		std::unordered_map<uint32_t, D3D12_RESOURCE_STATES> CurrentResourceStates;
 		D3D12_RESOURCE_STATES WholeState;
 		std::string DebugName;
+		bool IsTransitionable;
 
 	private:
 		D3D12Resource();

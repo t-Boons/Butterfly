@@ -45,7 +45,7 @@ namespace Butterfly
 				GraphicsCommands::GenerateMips(list, *cubemap, i);
 			}
 
-			cubemap->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			cubemap->Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 			list.Close();
 
@@ -110,7 +110,7 @@ namespace Butterfly
 				dstLocation.SubresourceIndex = slice;
 
 
-				newTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_COPY_DEST);
+				newTexture->Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_COPY_DEST);
 
 				list.List()->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
 			}
@@ -120,7 +120,7 @@ namespace Butterfly
 				GraphicsCommands::GenerateMips(list, *newTexture);
 			}
 
-			newTexture->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			newTexture->Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 			list.Close();
 
@@ -196,7 +196,7 @@ namespace Butterfly
 			{
 				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-				dsvDesc.Texture2D.MipSlice = info.MipSlice;
+				dsvDesc.Texture2D.MipSlice = info.Range.FirstMip;
 			}
 
 			if (info.Type == BFTextureUsage::Texture2DArray || info.Type == BFTextureUsage::Cubemap)
@@ -204,9 +204,9 @@ namespace Butterfly
 				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 
-				dsvDesc.Texture2DArray.MipSlice = info.MipSlice;
-				dsvDesc.Texture2DArray.FirstArraySlice = info.Slice;
-				dsvDesc.Texture2DArray.ArraySize = 1;
+				dsvDesc.Texture2DArray.MipSlice = info.Range.FirstMip;
+				dsvDesc.Texture2DArray.FirstArraySlice = info.Range.FirstSlice;
+				dsvDesc.Texture2DArray.ArraySize = info.Range.SliceCount;
 			}
 
 			return dsvDesc;
@@ -225,18 +225,18 @@ namespace Butterfly
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MostDetailedMip = info.MostDetailedMip;
-		srvDesc.Texture2D.MipLevels = info.MipLevels;
+		srvDesc.Texture2D.MostDetailedMip = info.Range.FirstMip;
+		srvDesc.Texture2D.MipLevels = info.Range.MipCount;
 		srvDesc.Texture2D.PlaneSlice = 0;
 		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
 		if (info.Type == BFTextureUsage::Texture2DArray)
 		{
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-			srvDesc.Texture2DArray.MostDetailedMip = info.MostDetailedMip;
-			srvDesc.Texture2DArray.MipLevels = info.MipLevels;
-			srvDesc.Texture2DArray.FirstArraySlice = info.FirstSlice;
-			srvDesc.Texture2DArray.ArraySize = info.LastSlice - info.FirstSlice + 1;
+			srvDesc.Texture2DArray.MostDetailedMip = info.Range.FirstMip;
+			srvDesc.Texture2DArray.MipLevels = info.Range.MipCount;
+			srvDesc.Texture2DArray.FirstArraySlice = info.Range.FirstSlice;
+			srvDesc.Texture2DArray.ArraySize = info.Range.SliceCount;
 			srvDesc.Texture2DArray.PlaneSlice = 0;
 			srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
 		}
@@ -245,16 +245,16 @@ namespace Butterfly
 		{
 			BF_CORE_ASSERT(desc.ArraySize == 6, "Cubemap must have 6 faces.");
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-			srvDesc.TextureCube.MostDetailedMip = info.MostDetailedMip;
-			srvDesc.TextureCube.MipLevels = info.MipLevels;
+			srvDesc.TextureCube.MostDetailedMip = info.Range.FirstMip;
+			srvDesc.TextureCube.MipLevels = info.Range.MipCount;
 			srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 		}
 
 		if (info.Type == BFTextureUsage::Texture3D)
 		{
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-			srvDesc.Texture3D.MostDetailedMip = info.MostDetailedMip;
-			srvDesc.Texture3D.MipLevels = info.MipLevels;
+			srvDesc.Texture3D.MostDetailedMip = info.Range.FirstMip;
+			srvDesc.Texture3D.MipLevels = info.Range.MipCount;
 			srvDesc.Texture3D.ResourceMinLODClamp = 0.0f;
 		}
 
@@ -268,28 +268,28 @@ namespace Butterfly
 			uavDesc.Format = desc.Format;
 
 			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-			uavDesc.Texture2D.MipSlice = info.MipSlice;
+			uavDesc.Texture2D.MipSlice = info.Range.FirstMip;
 			uavDesc.Texture2D.PlaneSlice = 0;
 
 			if (info.Type == BFTextureUsage::Texture2DArray)
 			{
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-				uavDesc.Texture2DArray.ArraySize = info.LastSlice - info.FirstSlice + 1;
-				uavDesc.Texture2DArray.FirstArraySlice = info.FirstSlice;
-				uavDesc.Texture2DArray.MipSlice = info.MipSlice;
+				uavDesc.Texture2DArray.ArraySize = info.Range.SliceCount;
+				uavDesc.Texture2DArray.FirstArraySlice = info.Range.FirstSlice;
+				uavDesc.Texture2DArray.MipSlice = info.Range.FirstMip;
 			}
 			if (info.Type == BFTextureUsage::Cubemap)
 			{
 				BF_CORE_ASSERT(desc.ArraySize == 6, "Cubemap must have 6 faces.");
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-				uavDesc.Texture2DArray.ArraySize = info.LastSlice - info.FirstSlice + 1;
-				uavDesc.Texture2DArray.FirstArraySlice = info.FirstSlice;
-				uavDesc.Texture2DArray.MipSlice = info.MipSlice;
+				uavDesc.Texture2DArray.ArraySize = info.Range.SliceCount;
+				uavDesc.Texture2DArray.FirstArraySlice = info.Range.FirstSlice;
+				uavDesc.Texture2DArray.MipSlice = info.Range.FirstMip;
 			}
 			if (info.Type == BFTextureUsage::Texture3D)
 			{
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
-				uavDesc.Texture3D.MipSlice = info.MipSlice;
+				uavDesc.Texture3D.MipSlice = info.Range.FirstMip;
 				uavDesc.Texture3D.FirstWSlice = 0;
 				uavDesc.Texture3D.WSize = desc.Depth;
 			}
@@ -304,7 +304,7 @@ namespace Butterfly
 		BF_CORE_ASSERT(desc.ArraySize > 0, "Texture array size must be greater than 0");
 		BF_CORE_ASSERT(desc.ViewTypes != BFTextureDesc::None, "Texture view types must be specified");
 
-		if (m_desc.NumMips == MIPS_ALL)
+		if (m_desc.NumMips == BF_ALL)
 		{
 			m_desc.NumMips = Utils::MaxMips(desc.Width, desc.Height);
 		}
@@ -398,19 +398,22 @@ namespace Butterfly
 	const BFDepthStencilView& BFTexture::DSV()
 	{
 		BFDSVTextureViewInfo info;
-		info.Slice = 0;
-		info.MipSlice = 0;
+		info.Range.FirstSlice = 0;
+		info.Range.FirstMip = 0;
+		info.Range.SliceCount = BF_ALL;
+		info.Range.MipCount = BF_ALL;
 		return DSV(info);
 	}
 
 	const BFDepthStencilView& BFTexture::DSV(BFDSVTextureViewInfo info)
 	{
-		BF_CORE_ASSERT(info.Slice < m_desc.ArraySize, "Slice index out of bounds for DSV array slice.");
+		BF_CORE_ASSERT(info.Range.FirstSlice < m_desc.ArraySize, "Slice index out of bounds for DSV array slice.");
 
 		uint64_t key = 1;
-		Utils::SumHash(key, info.Slice);
-		Utils::SumHash(key, info.MipSlice);
-		Utils::SumHash(key, static_cast<uint64_t>(info.SRGB + 1));
+		Utils::SumHash(key, info.Range.FirstSlice);
+		Utils::SumHash(key, info.Range.FirstMip);
+		Utils::SumHash(key, info.Range.SliceCount);
+		Utils::SumHash(key, info.Range.MipCount);
 
 		auto it = m_dsvSlices.find(key);
 
@@ -427,38 +430,43 @@ namespace Butterfly
 	const BFShaderResourceView& BFTexture::SRV()
 	{
 		BFSRVTextureViewInfo info;
-		info.FirstSlice = 0;
-		info.LastSlice = m_desc.ArraySize - 1;
-		info.MostDetailedMip = 0;
-		info.MipLevels = m_desc.NumMips;
+		info.Range.FirstSlice = 0;
+		info.Range.SliceCount = BF_ALL;
+		info.Range.FirstMip = 0;
+		info.Range.MipCount = BF_ALL;
 		info.SRGB = m_desc.SRGBHint;
 		return SRV(info);
 	}
 
 	const BFShaderResourceView& BFTexture::SRV(BFSRVTextureViewInfo info)
 	{
-		BF_CORE_ASSERT(info.FirstSlice < m_desc.ArraySize, "Slice index out of bounds for SRV array slice.");
+		const uint32_t mipCount   = m_resource->MipCount();
+		const uint32_t sliceCount = m_resource->ArraySize();
 
-		const uint32_t lastSlice = std::min(info.LastSlice, m_desc.ArraySize - 1);
-		info.LastSlice = lastSlice;
-		info.MipLevels = std::min(info.MipLevels, static_cast<uint32_t>(m_desc.NumMips));
-		info.MostDetailedMip = std::min(info.MostDetailedMip, static_cast<uint32_t>(m_desc.NumMips) - 1u);
+		D3D12SubresourceRange& range = info.Range;
+
+		BF_CORE_ASSERT(range.FirstMip < mipCount, "First mip out of bounds for SRV.");
+		BF_CORE_ASSERT(range.FirstSlice < sliceCount, "First slice out of bounds for SRV.");
+		BF_CORE_ASSERT(range.MipCount == BF_ALL || range.FirstMip + range.MipCount <= mipCount, "Mip range out of bounds for SRV.");
+		BF_CORE_ASSERT(range.SliceCount == BF_ALL || range.FirstSlice + range.SliceCount <= sliceCount, "Slice range out of bounds for SRV.");
+
+		// Resolve BF_ALL to the real remaining count.
+		range.MipCount   = std::min(range.MipCount, mipCount - range.FirstMip);
+		range.SliceCount = std::min(range.SliceCount, sliceCount - range.FirstSlice);
 
 		uint64_t key = 1;
-		Utils::SumHash(key, info.FirstSlice);
-		Utils::SumHash(key, lastSlice);
-		Utils::SumHash(key, info.MostDetailedMip);
-		Utils::SumHash(key, info.MipLevels);
-		Utils::SumHash(key, static_cast<uint64_t>(info.SRGB + 1));
+		Utils::SumHash(key, range.FirstMip);
+		Utils::SumHash(key, range.MipCount);
+		Utils::SumHash(key, range.FirstSlice);
+		Utils::SumHash(key, range.SliceCount);
+		Utils::SumHash(key, static_cast<uint32_t>(info.SRGB));
 		Utils::SumHash(key, static_cast<uint32_t>(info.Type));
 
 		auto it = m_srvSlices.find(key);
-
 		if (it == m_srvSlices.end())
 		{
-			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = Utils::CreateSrvFromHWTextureDesc(m_desc, info);
-			m_srvSlices[key] = MakeRef<BFShaderResourceView>(*m_resource, srvDesc);
-			it = m_srvSlices.find(key);
+			const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = Utils::CreateSrvFromHWTextureDesc(m_desc, info);
+			it = m_srvSlices.emplace(key, MakeRef<BFShaderResourceView>(*m_resource, srvDesc)).first;
 		}
 
 		return *it->second;
@@ -466,23 +474,30 @@ namespace Butterfly
 
 	const BFUnorderedAccessView& BFTexture::UAV(BFUAVTextureViewInfo info)
 	{
-		BF_CORE_ASSERT(info.FirstSlice < m_desc.ArraySize, "Slice index out of bounds for UAV array slice.");
+		const uint32_t mipCount   = m_resource->MipCount();
+		const uint32_t sliceCount = m_resource->ArraySize();
 
-		const uint32_t lastSlice = std::min(info.LastSlice, m_desc.ArraySize - 1);
-		info.LastSlice = lastSlice;
+		D3D12SubresourceRange& range = info.Range;
+
+		BF_CORE_ASSERT(range.FirstMip < mipCount, "Mip out of bounds for UAV.");
+		BF_CORE_ASSERT(range.MipCount == 1, "UAV can only target one mip.");
+		BF_CORE_ASSERT(range.FirstSlice < sliceCount, "First slice out of bounds for UAV.");
+		BF_CORE_ASSERT(range.SliceCount == BF_ALL || range.FirstSlice + range.SliceCount <= sliceCount, "Slice range out of bounds for UAV.");
+
+		// Resolve SliceCount into the real number of slices remaining
+		range.SliceCount = std::min(range.SliceCount, sliceCount - range.FirstSlice);
+
 		uint64_t key = 1;
-		Utils::SumHash(key, info.FirstSlice);
-		Utils::SumHash(key, lastSlice);
-		Utils::SumHash(key, info.MipSlice);
-
+		Utils::SumHash(key, range.FirstMip);
+		Utils::SumHash(key, range.FirstSlice);
+		Utils::SumHash(key, range.SliceCount);
+		Utils::SumHash(key, static_cast<uint32_t>(info.Type));
 
 		auto it = m_uavSlices.find(key);
-
 		if (it == m_uavSlices.end())
 		{
-			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = Utils::CreateUavFromHWTextureDesc(m_desc, info);
-			m_uavSlices[key] = MakeRef<BFUnorderedAccessView>(*m_resource, uavDesc);
-			it = m_uavSlices.find(key);
+			const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = Utils::CreateUavFromHWTextureDesc(m_desc, info);
+			it = m_uavSlices.emplace(key, MakeRef<BFUnorderedAccessView>(*m_resource, uavDesc)).first;
 		}
 
 		return *it->second;
@@ -491,9 +506,10 @@ namespace Butterfly
 	const BFUnorderedAccessView& BFTexture::UAV()
 	{
 		BFUAVTextureViewInfo info;
-		info.FirstSlice = 0;
-		info.LastSlice = m_desc.ArraySize - 1;
-		info.MipSlice = 0;
+		info.Range.FirstSlice = 0;
+		info.Range.SliceCount = BF_ALL;
+		info.Range.FirstMip = 0;
+		info.Range.MipCount = BF_ALL;
 		return UAV(info);
 	}
 
@@ -581,7 +597,7 @@ namespace Butterfly
 
 		D3D12Resource* src = texture.Resource();
 
-		src->Transition(list, D3D12_RESOURCE_STATE_COPY_SOURCE);
+		src->TransitionAll(list, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
 
 		D3D12_TEXTURE_COPY_LOCATION source{};

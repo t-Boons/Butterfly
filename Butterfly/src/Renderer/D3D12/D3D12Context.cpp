@@ -157,8 +157,8 @@ namespace Butterfly
 		{
 			list.BeginGPUMarker("Copy to backbuffer index: " + std::to_string(m_backBufferIndex));
 
-			backBuffer.Transition(list, D3D12_RESOURCE_STATE_COPY_DEST);
-			toDisplay.Transition(list, D3D12_RESOURCE_STATE_COPY_SOURCE);
+			backBuffer.TransitionAll(list, D3D12_RESOURCE_STATE_COPY_DEST);
+			toDisplay.TransitionAll(list, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
 			D3D12_BOX srcBox = {};
 			srcBox.left = 0;
@@ -186,7 +186,7 @@ namespace Butterfly
 				&srcBox        
 			);
 
-			backBuffer.Transition(list, D3D12_RESOURCE_STATE_PRESENT);
+			backBuffer.TransitionAll(list, D3D12_RESOURCE_STATE_PRESENT);
 			list.EndGPUMarker();
 		}
 	}

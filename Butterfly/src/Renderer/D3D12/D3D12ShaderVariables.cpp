@@ -4,53 +4,25 @@
 
 namespace Butterfly
 {
-	ShaderVariables::ShaderVariables()
-	{
-		BF_PROFILE_EVENT();
-
-		m_bufferIndices.reserve(8);
-	}
-
-	ShaderVariables& ShaderVariables::Add(int index)
-	{
-		BF_PROFILE_EVENT();
-
-		m_bufferIndices.push_back(index);
-		numDwords++;
-		return *this;
-	}
-
-    ShaderVariables& ShaderVariables::Submit(D3D12CommandList& list)
+    BFShaderVariableBuilder &BFShaderVariableBuilder::Add(const BFView &view)
     {
-        BF_PROFILE_EVENT();
-        if (list.CurrentPassType() == D3D12CommandList::PassType::Compute)
-        {
-            list.List()->SetComputeRoot32BitConstants(
-                0u,
-                numDwords,
-                m_bufferIndices.data(),
-                0u
-            );
-        }
-        else
-        {
-            list.List()->SetGraphicsRoot32BitConstants(
-                0u,
-                numDwords,
-                m_bufferIndices.data(),
-                0u
-            );
-        }
+        m_list.PrepareForUse(view);
+        return Add(view.View());
+    }
 
+    BFShaderVariableBuilder &BFShaderVariableBuilder::Add(const BFSampler &sampler)
+    {
+        return Add(sampler.View());
+    }
+
+    BFShaderVariableBuilder &BFShaderVariableBuilder::Add(int index)
+    {
+        m_data.push_back(index);
         return *this;
     }
 
-	ShaderVariables& ShaderVariables::Reset()
-	{
-		BF_PROFILE_EVENT();
-
-		numDwords = 0;
-		m_bufferIndices.clear();
-		return *this;
-	}
+    void BFShaderVariableBuilder::Submit()
+    {
+        m_list.SetRootConstants(m_data.data(), static_cast<uint32_t>(m_data.size()));
+    }
 }

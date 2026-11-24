@@ -86,13 +86,13 @@ namespace Butterfly
 					{
 						AssetManager& as = Application::Get().GetAssetManager();
 						MeshAsset* mesh = as.Resolve<MeshAsset>(renderObject.MeshAsset);
-						ShaderVariables()
-							.Add(mesh->GPUPositions->SRV().View())
-							.Add(viewport.GetRenderData().CameraDataBuffer->CBV().View())
-							.Add(viewport.GetRenderData().ModelDataBuffer->SRV().View())
+						BFShaderVariableBuilder(list)
+							.Add(mesh->GPUPositions->SRV())
+							.Add(viewport.GetRenderData().CameraDataBuffer->CBV())
+							.Add(viewport.GetRenderData().ModelDataBuffer->SRV())
 							.Add(renderObject.ModelDataArrayIndex)
 							.Add(static_cast<int>(renderObject.Entity)) // uint32_t Entity ID in registry.
-							.Submit(list);
+							.Submit();
 
 						list.SetIndexBuffer(*mesh->GPUIndices);
 						list.DrawIndexedInstanced(renderObject.SubMesh.IndexCount, 1, renderObject.SubMesh.IndexOffset, 0, 0);

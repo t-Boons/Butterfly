@@ -1,9 +1,36 @@
 #include "Renderer/D3D12/D3D12Resource.hpp"
 #include "Renderer/D3D12/D3D12CommandList.hpp"
 #include "Renderer/D3D12/D3D12GraphicsAPI.hpp"
+#include "Renderer/D3D12/D3D12SubresourceRange.hpp"
 
 namespace Butterfly
 {
+	namespace Utils
+	{
+		constexpr D3D12_RESOURCE_STATES WriteStates =
+			D3D12_RESOURCE_STATE_RENDER_TARGET |
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS |
+			D3D12_RESOURCE_STATE_DEPTH_WRITE |
+			D3D12_RESOURCE_STATE_COPY_DEST |
+			D3D12_RESOURCE_STATE_RESOLVE_DEST |
+			D3D12_RESOURCE_STATE_STREAM_OUT;
+
+		bool IsReadOnly(D3D12_RESOURCE_STATES state)
+		{
+			return state != D3D12_RESOURCE_STATE_COMMON && (state & WriteStates) == 0;
+		}
+
+		D3D12_RESOURCE_STATES ResolveState(D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES requested)
+		{
+			if (IsReadOnly(before) && IsReadOnly(requested))
+			{
+				return before | requested;
+			}
+			
+			return requested;
+		}
+	}
+
 		D3D12Resource* D3D12Resource::Write(const void* src, uint32_t numBytes, uint32_t offset)
 		{
 			std::stringstream ss;
@@ -32,70 +59,158 @@ namespace Butterfly
 			HwResource->Unmap(0, nullptr);
 		}
 
-		uint32_t D3D12Resource::NumSubresources()
+		uint32_t D3D12Resource::MipCount() const
 		{
-			return BufferDescription.MipLevels * BufferDescription.DepthOrArraySize;
+			return BufferDescription.MipLevels;
+		}
+
+		uint32_t D3D12Resource::ArraySize() const
+		{
+			return BufferDescription.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? 1u :BufferDescription.DepthOrArraySize;
+		}
+
+		uint32_t D3D12Resource::NumSubresources() const
+		{
+			return BufferDescription.MipLevels * ArraySize();
+		}
+
+		void D3D12Resource::TransitionRange(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState, const D3D12SubresourceRange& range)
+		{
+			BF_PROFILE_EVENT();
+
+			if(!IsTransitionable)
+			{
+				return;
+			}
+
+			if (range.IsAll())
+			{
+				TransitionAll(cmdList, newState);
+				return;
+			}
+
+			const uint32_t mipCount = BufferDescription.MipLevels;
+			const uint32_t sliceCount = ArraySize();
+
+			const uint32_t mipEnd = (range.MipCount == BF_ALL) ? mipCount : range.FirstMip + range.MipCount;
+			const uint32_t sliceEnd = (range.SliceCount == BF_ALL) ? sliceCount : range.FirstSlice + range.SliceCount;
+
+			for (uint32_t slice = range.FirstSlice; slice < sliceEnd; ++slice)
+			{
+				for (uint32_t mip = range.FirstMip; mip < mipEnd; ++mip)
+				{
+					TransitionSubresource(cmdList, newState, mip, slice);
+				}
+			}
 		}
 
 		D3D12Resource* D3D12Resource::TransitionSubresource(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState, uint32_t mipslice, uint32_t arraySlice)
 		{
 			BF_PROFILE_EVENT();
+
+			if (!IsTransitionable)
+			{
+				return this;
+			}
 			const uint32_t subresourceIndex = D3D12CalcSubresource(mipslice, arraySlice, 0, BufferDescription.MipLevels, BufferDescription.DepthOrArraySize);
 
 			auto it = CurrentResourceStates.find(subresourceIndex);
 			const D3D12_RESOURCE_STATES before = (it != CurrentResourceStates.end()) ? it->second : WholeState;
+			const D3D12_RESOURCE_STATES after = Utils::ResolveState(before, newState);
 
-			if (before == newState)
+			if (before == after)
+			{
+				if (after == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+				{
+					D3D12_RESOURCE_BARRIER uavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(HwResource);
+					cmdList.List()->ResourceBarrier(1, &uavBarrier);
+				}
+
+				return this;
+			}
+
+			D3D12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(HwResource, before, after, subresourceIndex);
+			cmdList.List()->ResourceBarrier(1, &transition);
+			CurrentResourceStates[subresourceIndex] = after;
+			return this;
+		}
+
+		D3D12Resource* D3D12Resource::TransitionAll(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState)
+		{
+			BF_PROFILE_EVENT();
+
+			if (!IsTransitionable)
 			{
 				return this;
 			}
 
-			D3D12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(HwResource, before, newState, subresourceIndex);
-			cmdList.List()->ResourceBarrier(1, &transition);
-			CurrentResourceStates[subresourceIndex] = newState;
-			return this;
-		}
-
-		D3D12Resource* D3D12Resource::Transition(const D3D12CommandList& cmdList, const D3D12_RESOURCE_STATES& newState)
-		{
-			BF_PROFILE_EVENT();
-			std::vector<D3D12_RESOURCE_BARRIER> barriers;
-
+			// The resource has not been divided into subresources.
 			if (CurrentResourceStates.empty())
 			{
-				if (WholeState != newState)
+				const D3D12_RESOURCE_STATES after = Utils::ResolveState(WholeState, newState);
+
+				if (WholeState == after)
 				{
-					barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(HwResource, WholeState, newState));
-				}
-			}
-			else
-			{
-				for (uint32_t i = 0; i < NumSubresources(); ++i)
-				{
-					auto it = CurrentResourceStates.find(i);
-					const D3D12_RESOURCE_STATES before = (it != CurrentResourceStates.end()) ? it->second : WholeState;
-					if (before != newState)
+					if (after == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
 					{
-						barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(HwResource, before, newState, i));
+						D3D12_RESOURCE_BARRIER uavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(HwResource);
+						cmdList.List()->ResourceBarrier(1, &uavBarrier);
 					}
+					return this;
 				}
-				CurrentResourceStates.clear();
+
+				D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(HwResource, WholeState, after);
+				cmdList.List()->ResourceBarrier(1, &barrier);
+				WholeState = after;
+				return this;
 			}
 
-			WholeState = newState;
+			std::vector<D3D12_RESOURCE_BARRIER> barriers;
+			std::vector<D3D12_RESOURCE_STATES> afterStates(NumSubresources());
+			bool needsUAVBarrier = false;
+
+			for (uint32_t i = 0; i < NumSubresources(); ++i)
+			{
+				auto it = CurrentResourceStates.find(i);
+				const D3D12_RESOURCE_STATES before = (it != CurrentResourceStates.end()) ? it->second : WholeState;
+				const D3D12_RESOURCE_STATES after = Utils::ResolveState(before, newState);
+
+				if (before != after)
+				{
+					barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(HwResource, before, after, i));
+				}
+				else if (after == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+				{
+					needsUAVBarrier = true;
+				}
+
+				afterStates[i] = after;
+			}
+
+			if (needsUAVBarrier)
+			{
+				barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(HwResource));
+			}
 
 			if (!barriers.empty())
 			{
 				cmdList.List()->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
 			}
-			return this;
-		}
 
-		D3D12Resource* D3D12Resource::UAVBarrier(const D3D12CommandList& cmdList)
-		{
-			BF_PROFILE_EVENT();
-			D3D12_RESOURCE_BARRIER uavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(HwResource);
-			cmdList.List()->ResourceBarrier(1, &uavBarrier);
+			// If everything ended up in the same state, go back to using the WholeState;
+			CurrentResourceStates.clear();
+			const bool allSame = std::all_of(afterStates.begin(), afterStates.end(), [&](D3D12_RESOURCE_STATES s) { return s == afterStates[0]; });
+			if (allSame)
+			{
+				WholeState = afterStates[0];
+			}
+			else
+			{
+				for (uint32_t i = 0; i < NumSubresources(); ++i)
+				{
+					CurrentResourceStates[i] = afterStates[i];
+				}
+			}
 			return this;
 		}
 
@@ -132,6 +247,8 @@ namespace Butterfly
 				clearValue = nullptr;
 			}
 
+			IsTransitionable = HeapProperties.Type != D3D12_HEAP_TYPE_UPLOAD && HeapProperties.Type != D3D12_HEAP_TYPE_READBACK;
+
 			// Create the DX12 resource.
 			ThrowIfFailed(D3D12API()->Device()->CreateCommittedResource(
 				&HeapProperties,
@@ -141,6 +258,8 @@ namespace Butterfly
 				clearValue,
 				IID_PPV_ARGS(&HwResource)
 			));
+
+			BufferDescription = HwResource->GetDesc();
 
 			// Set its debug name.
 			HwResource->SetName(Utils::StringToWString(DebugName).c_str());

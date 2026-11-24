@@ -57,10 +57,10 @@ namespace Butterfly
 				psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/DebugLines_frag.hlsl");
 				list.SetGraphicsPSO(psoInfo);
 
-				ShaderVariables()
-					.Add(event.Viewport.GetRenderData().CameraDataBuffer->CBV().View())
-					.Add(data.VertexBuffer->SRV().View())
-					.Submit(list);
+				BFShaderVariableBuilder(list)
+					.Add(event.Viewport.GetRenderData().CameraDataBuffer->CBV())
+					.Add(data.VertexBuffer->SRV())
+					.Submit();
 
 				list.DrawInstanced(data.NumVertices, 1, 0, 0);
 

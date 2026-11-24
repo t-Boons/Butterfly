@@ -223,7 +223,7 @@ namespace Butterfly
 
 				if (viewport.HasRenderTarget())
 				{
-					viewport.GetRenderTarget().Resource()->Transition(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_GENERIC_READ);
+					viewport.GetRenderTarget().Resource()->TransitionAll(m_frameData.GetCmdList(), D3D12_RESOURCE_STATE_GENERIC_READ);
 				}
 			}
 		}

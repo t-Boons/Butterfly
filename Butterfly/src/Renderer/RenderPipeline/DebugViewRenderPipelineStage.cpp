@@ -52,29 +52,29 @@ namespace Butterfly
 					int sdf = -1;
 					if (mesh->GetSDF())
 					{
-						mesh->GetSDF()->GetSDFTexture()->Resource()->Transition(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+						mesh->GetSDF()->GetSDFTexture()->Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 						sdf = mesh->GetSDF()->GetSDFTexture()->SRV().View();
 					}
 
 					BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
 					for (const auto& subMesh : mesh->GetSubMeshes())
 					{
-						ShaderVariables()
-							.Add(mesh->GPUPositions->SRV().View())
-							.Add(mesh->GPUNormals->SRV().View())
-							.Add(mesh->GPUTangents->SRV().View())
-							.Add(mesh->GPUUVs->SRV().View())
-							.Add(viewport.GetRenderData().CameraDataBuffer->CBV().View())
+						BFShaderVariableBuilder(list)
+							.Add(mesh->GPUPositions->SRV())
+							.Add(mesh->GPUNormals->SRV())
+							.Add(mesh->GPUTangents->SRV())
+							.Add(mesh->GPUUVs->SRV())
+							.Add(viewport.GetRenderData().CameraDataBuffer->CBV())
 							.Add(smp.View())
-							.Add(viewport.GetRenderData().ModelDataBuffer->SRV().View())
+							.Add(viewport.GetRenderData().ModelDataBuffer->SRV())
 							.Add(renderObject.ModelDataArrayIndex)
-							.Add(viewport.GetRenderData().Lights.SRV().View())
+							.Add(viewport.GetRenderData().Lights.SRV())
 							.Add(static_cast<uint32_t>(viewport.GetRenderData().Lights.GetLights().size()))
-							.Add(viewport.GetRenderData().Materials.GetMaterialBuffer().SRV().View())
+							.Add(viewport.GetRenderData().Materials.GetMaterialBuffer().SRV())
 							.Add(viewport.GetRenderData().Materials.GetMaterialIndex(subMesh.Material.GetID()))
 							.Add(static_cast<int>(m_debugViewType))
 							.Add(sdf)
-							.Submit(list);
+							.Submit();
 
 						list.DrawIndexedInstanced(subMesh.IndexCount, 1, subMesh.IndexOffset, 0, 0);
 					}
