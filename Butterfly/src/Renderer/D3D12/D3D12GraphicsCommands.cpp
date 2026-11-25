@@ -61,7 +61,7 @@ namespace Butterfly
 		pso.ComputeShader = BFShaderCache::GetOrCreate("assets/Shaders/CreateSDF_cs.hlsl");
 
 		BFShaderVariableBuilder(list)
-			.Add(outSDF->UAV())
+			.Add(outSDF->UAV(BFUAVTextureViewInfo::Texture3D()))
 			.Add(triangleBufferGpu->SRV())
 			.Add(sdfUniformBuffer.CBV())
 			.Submit();
@@ -102,7 +102,7 @@ namespace Butterfly
 		list.SetGraphicsPSO(psoInfo);
 
 		BFShaderVariableBuilder(list)
-			.Add(src.SRV())
+			.Add(src.SRV(BFSRVTextureViewInfo::Texture2D()))
 			.Submit();
 
 
@@ -159,7 +159,7 @@ namespace Butterfly
 
 		BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
 		BFShaderVariableBuilder(list)
-			.Add(equirectangular.SRV())
+			.Add(equirectangular.SRV(BFSRVTextureViewInfo::Texture2D()))
 			.Add(cubemap.UAV(BFUAVTextureViewInfo::Texture2DArray()))
 			.Add(smp)
 			.Add(cubemap.Height())

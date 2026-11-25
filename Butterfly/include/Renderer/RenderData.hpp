@@ -198,7 +198,7 @@ namespace Butterfly
 				if (mesh->GetSDF())
 				{
 					model.SDFResolution = glm::vec4(mesh->GetSDF()->GetSDFResolution(), 0.0f);
-					model.SDFTextureIndex = mesh->GetSDF()->GetSDFTexture()->SRV().View();
+					model.SDFTextureIndex = mesh->GetSDF()->GetSDFTexture()->SRV(BFSRVTextureViewInfo::Texture2D()).View();
 					model.SDFBoundsMin = glm::vec4(mesh->GetSDF()->GetSDFBounds().Min, 0.0f);
 					model.SDFBoundsSize = glm::vec4(mesh->GetSDF()->GetSDFBounds().GetSize(), 0.0f);
 				}

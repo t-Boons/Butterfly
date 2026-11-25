@@ -54,7 +54,7 @@ namespace Butterfly
 			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 			rtvDesc.Format = desc.Format;
 
-			if (desc.SRGBHint)
+			if (info.SRGB)
 			{
 				rtvDesc.Format = GetSRGBFormat(rtvDesc.Format);
 			}
@@ -254,16 +254,6 @@ namespace Butterfly
 		return m_resource->ClearValue();
 	}
 
-	const BFRenderTargetView& BFTexture::RTV()
-	{
-		BFRTVTextureViewInfo info;
-		info.Range.FirstSlice = 0;
-		info.Range.FirstMip = 0;
-		info.Range.SliceCount = BF_ALL;
-		info.Range.MipCount = BF_ALL;
-		return RTV(info);
-	}
-
 	const BFRenderTargetView &BFTexture::RTV(BFRTVTextureViewInfo info)
 	{
 		const uint32_t mipCount   = m_resource->MipCount();
@@ -297,16 +287,6 @@ namespace Butterfly
 		return *it->second;
 	}
 
-	const BFDepthStencilView& BFTexture::DSV()
-	{
-		BFDSVTextureViewInfo info;
-		info.Range.FirstSlice = 0;
-		info.Range.FirstMip = 0;
-		info.Range.SliceCount = BF_ALL;
-		info.Range.MipCount = BF_ALL;
-		return DSV(info);
-	}
-
 	const BFDepthStencilView& BFTexture::DSV(BFDSVTextureViewInfo info)
 	{
 		BF_CORE_ASSERT(info.Range.FirstSlice < m_desc.ArraySize, "Slice index out of bounds for DSV array slice.");
@@ -334,17 +314,6 @@ namespace Butterfly
 		}
 
 		return *it->second;
-	}
-
-	const BFShaderResourceView& BFTexture::SRV()
-	{
-		BFSRVTextureViewInfo info;
-		info.Range.FirstSlice = 0;
-		info.Range.SliceCount = BF_ALL;
-		info.Range.FirstMip = 0;
-		info.Range.MipCount = BF_ALL;
-		info.SRGB = m_desc.SRGBHint;
-		return SRV(info);
 	}
 
 	const BFShaderResourceView& BFTexture::SRV(BFSRVTextureViewInfo info)
@@ -410,16 +379,6 @@ namespace Butterfly
 		}
 
 		return *it->second;
-	}
-
-	const BFUnorderedAccessView& BFTexture::UAV()
-	{
-		BFUAVTextureViewInfo info;
-		info.Range.FirstSlice = 0;
-		info.Range.SliceCount = BF_ALL;
-		info.Range.FirstMip = 0;
-		info.Range.MipCount = BF_ALL;
-		return UAV(info);
 	}
 
 	BFTextureReadback::BFTextureReadback()

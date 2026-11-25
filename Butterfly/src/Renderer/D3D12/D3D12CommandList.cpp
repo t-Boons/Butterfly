@@ -123,7 +123,7 @@ namespace Butterfly
 
 			if (info.RenderTargetLoadOp == LoadOP::Clear)
 			{
-				m_cmdList->ClearRenderTargetView(info.RenderTarget->RTV().Handle(), &info.ClearColor[0], 0, nullptr);
+				m_cmdList->ClearRenderTargetView(info.RenderTarget->RTV(BFRTVTextureViewInfo::Texture2D()).Handle(), &info.ClearColor[0], 0, nullptr);
 			}
 		}
 
@@ -133,7 +133,7 @@ namespace Butterfly
 
 			if (info.DepthStencilLoadOp == LoadOP::Clear)
 			{
-				m_cmdList->ClearDepthStencilView(info.DepthStencil->DSV().Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, info.DepthValue, 0, 0, nullptr);
+				m_cmdList->ClearDepthStencilView(info.DepthStencil->DSV(BFDSVTextureViewInfo::Texture2D()).Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, info.DepthValue, 0, 0, nullptr);
 			}
 		}
 	}
@@ -151,7 +151,7 @@ namespace Butterfly
 		{
 			c->Resource()->TransitionAll(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			m_colorTexture.push_back(c);
-			m_colorTextureView.push_back(c->RTV().Handle());
+			m_colorTextureView.push_back(c->RTV(BFRTVTextureViewInfo::Texture2D()).Handle());
 		}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = m_depthStencilTexture ? &m_depthStencilView : nullptr;
@@ -195,7 +195,7 @@ namespace Butterfly
 		BF_PROFILE_EVENT();
 
 		color.Resource()->TransitionAll(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		m_cmdList->ClearRenderTargetView(color.RTV().Handle(), &clearColor[0], 0, nullptr);
+		m_cmdList->ClearRenderTargetView(color.RTV(BFRTVTextureViewInfo::Texture2D()).Handle(), &clearColor[0], 0, nullptr);
 	}
 
 	void D3D12CommandList::ClearDepthStencilTarget(BFTexture& depthStencil, float depthValue, uint8_t stencilValue, uint32_t slice)

@@ -21,7 +21,7 @@ namespace Butterfly
 			if (material->ColorTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->ColorTexture);
-				data.ColorTexture = tex->Texture->SRV().View();
+				data.ColorTexture = tex->Texture->SRV(BFSRVTextureViewInfo::Texture2D().AsSRGB(tex->Texture->IsSRGB())).View();
 				data.ColorTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
 			}
 			else
@@ -32,7 +32,7 @@ namespace Butterfly
 			if (material->NormalTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->NormalTexture);
-				data.NormalTexture = tex->Texture->SRV().View();
+				data.NormalTexture = tex->Texture->SRV(BFSRVTextureViewInfo::Texture2D()).View();
 				data.NormalTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
 			}
 			else
@@ -43,7 +43,7 @@ namespace Butterfly
 			if (material->MetallicRoughnessTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->MetallicRoughnessTexture);
-				data.MetallicRoughnessTexture = tex->Texture->SRV().View();
+				data.MetallicRoughnessTexture = tex->Texture->SRV(BFSRVTextureViewInfo::Texture2D()).View();
 				data.MetallicRoughnessTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
 			}
 			else
@@ -54,7 +54,7 @@ namespace Butterfly
 			if (material->EmissionTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->EmissionTexture);
-				data.EmissionTexture = tex->Texture->SRV().View();
+				data.EmissionTexture = tex->Texture->SRV(BFSRVTextureViewInfo::Texture2D().AsSRGB(tex->Texture->IsSRGB())).View();
 				data.EmissionTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
 			}
 			else
@@ -65,7 +65,7 @@ namespace Butterfly
 			if (material->AmbientOcclusionTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->AmbientOcclusionTexture);
-				data.AmbientOcclusionTexture = tex->Texture->SRV().View();
+				data.AmbientOcclusionTexture = tex->Texture->SRV(BFSRVTextureViewInfo::Texture2D()).View();
 				data.AmbientOcclusionTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
 			}
 			else

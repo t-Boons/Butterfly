@@ -53,7 +53,7 @@ namespace Butterfly
 					if (mesh->GetSDF())
 					{
 						mesh->GetSDF()->GetSDFTexture()->Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-						sdf = mesh->GetSDF()->GetSDFTexture()->SRV().View();
+						sdf = mesh->GetSDF()->GetSDFTexture()->SRV(BFSRVTextureViewInfo::Texture2D()).View();
 					}
 
 					BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());

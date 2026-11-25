@@ -41,7 +41,7 @@ namespace Butterfly
 
 				viewport.GetRenderTarget().Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				BFShaderVariableBuilder(list)
-					.Add(viewport.GetRenderTarget().SRV())
+					.Add(viewport.GetRenderTarget().SRV(BFSRVTextureViewInfo::Texture2D()))
 					.Add(static_cast<int>(m_colorSpace))
 					.Submit();
 

@@ -92,7 +92,7 @@ namespace Butterfly
 		uint32_t ViewTypes = None;
 		BFTextureDimention Dimention = BFTextureDimention::Texture2D;
 		std::string DebugName = "Texture";
-		bool SRGBHint = false;
+		bool IsSRGB = false;
 		uint32_t NumMips = 1; // BF_ALL Means generate all.
 
 		enum ViewType : uint32_t
@@ -115,13 +115,9 @@ namespace Butterfly
 		DXGI_FORMAT Format() const { return m_desc.Format; }
 		D3D12_CLEAR_VALUE ClearValue() const;
 
-		const BFDepthStencilView& DSV();
 		const BFDepthStencilView& DSV(BFDSVTextureViewInfo info);
-		const BFRenderTargetView& RTV();
 		const BFRenderTargetView& RTV(BFRTVTextureViewInfo info);
-		const BFShaderResourceView& SRV();
 		const BFShaderResourceView& SRV(BFSRVTextureViewInfo info);
-		const BFUnorderedAccessView& UAV();
 		const BFUnorderedAccessView& UAV(BFUAVTextureViewInfo info);
 
 		uint32_t Width() const { return m_desc.Width; }
@@ -131,6 +127,8 @@ namespace Butterfly
 		uint32_t ViewTypes() const { return m_desc.ViewTypes; }
 		D3D12Resource* Resource() { return m_resource; }
 		const D3D12Resource* Resource() const { return m_resource; }
+
+		bool IsSRGB() const { return m_desc.IsSRGB; }
 
 	private:
 		D3D12Resource* m_resource = nullptr;

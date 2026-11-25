@@ -134,7 +134,7 @@ namespace Butterfly
 		}
 
 
-		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(viewport->GetRenderTarget().SRV().View()).ptr;
+		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(viewport->GetRenderTarget().SRV(BFSRVTextureViewInfo::Texture2D()).View()).ptr;
 		ImGui::Image(textureID, { size.x, size.y });
 	}
 
