@@ -13,6 +13,7 @@ struct BufferIndices
     int materialIndex;
 
     int skyboxTextureIndex;
+    int irradianceTextureIndex;
 
     int sdfSamplerIndex;
     int blockerSamplerIndex;

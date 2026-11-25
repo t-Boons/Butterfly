@@ -28,16 +28,18 @@ namespace Butterfly
 		ForwardRenderer* params = builder.AllocParameters<ForwardRenderer>();
 
 		int skyboxTextureViewIndex = -1;
+		int irradianceTextureViewIndex = -1;
 		if (SkyboxPassParams* skyboxParams = builder.GetPassData<ForwardRenderer, SkyboxPassParams>())
 		{
 			if (skyboxParams->SkyboxTexture)
 			{
 				skyboxTextureViewIndex = skyboxParams->SkyboxTexture->SRV(BFSRVTextureViewInfo::Cubemap()).View();
+				irradianceTextureViewIndex = skyboxParams->IrradianceTexture->SRV(BFSRVTextureViewInfo::Cubemap()).View();
 			}
 		}
 
 		builder.AddPass<ForwardRenderer>("Forward Model",
-			[this, viewport, skyboxTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
+			[this, viewport, skyboxTextureViewIndex, irradianceTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
 
@@ -109,6 +111,7 @@ namespace Butterfly
 					.Add(viewport.GetRenderData().Materials.GetMaterialIndex(renderObject.SubMesh.Material.GetID()))
 
 					.Add(skyboxTextureViewIndex)
+					.Add(irradianceTextureViewIndex)
 
 					.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()))
 					.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearBorder()))

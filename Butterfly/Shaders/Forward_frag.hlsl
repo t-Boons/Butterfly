@@ -17,6 +17,7 @@ struct BufferIndices
     int materialIndex;
 
     int skyboxTextureIndex;
+    int irradianceTextureIndex;
 
     int sdfSamplerIndex;
     int blockerSamplerIndex;
@@ -29,6 +30,18 @@ struct BufferIndices
     SamplerState GetBlockerSmp()
     {
         return SamplerDescriptorHeap[blockerSamplerIndex];
+    }
+
+    float4 SampleIrradianceTexture(float3 dir)
+    {
+        TextureCube<float4> irradianceTexture = ResourceDescriptorHeap[irradianceTextureIndex];
+        SamplerState linearClamp = SamplerDescriptorHeap[sdfSamplerIndex];
+        return irradianceTexture.Sample(linearClamp, dir);
+    }
+
+    TextureCube<float4> GetSkyboxTexture()
+    {
+        return ResourceDescriptorHeap[skyboxTextureIndex];
     }
 };
 
@@ -216,9 +229,20 @@ float4 main(V2P pixelInput) : SV_TARGET0
 
     Surface surface = GetSurface(material, pixelInput.fragPos, pixelInput.normal, pixelInput.tangent, pixelInput.texCoord, uniforms.Position);
 
-    float3 ambient = float3(0.05, 0.05, 0.07);
+    float3 F = F_SchlickRoughness(surface.F0, surface.NoV, surface.Roughness);
+    float3 kD = (1.0 - F) * (1.0 - surface.Metallic);
 
-    float3 lighting = ambient * (surface.Albedo.rgb * (1.0 - surface.Metallic));
+    float3 lighting = float3(0.05, 0.05, 0.07);
+
+    if(resources.irradianceTextureIndex >= 0)
+    {
+        float3 irradiance = resources.SampleIrradianceTexture(surface.Normal).rgb;
+        lighting = kD * irradiance * surface.Albedo.rgb;
+    }
+    else
+    {
+        lighting *= (surface.Albedo.rgb * kD);
+    }
 
     SamplerComparisonState pcssShadowSmp = SamplerDescriptorHeap[resources.pcssShadowSamplerIndex];
     SamplerState blockerSmp = SamplerDescriptorHeap[resources.blockerSamplerIndex];

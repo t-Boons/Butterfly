@@ -392,6 +392,9 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT();
 
+		BF_CORE_ASSERT(viewport.Width > 0 && viewport.Height > 0, "Viewport dimensions must be greater than zero.");
+		BF_CORE_ASSERT(m_currentPassType == PassType::Raster, "D3D12CommandList::SetViewport can only be called during a graphics pass.");
+
 		D3D12_VIEWPORT vp;
 		vp.TopLeftX = 0.0f;
 		vp.TopLeftY = 0.0f;

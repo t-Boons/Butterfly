@@ -12,7 +12,7 @@ namespace Butterfly
 	{
 		if (component)
 		{
-			if (static_cast<int>(component->m_version) > m_skyboxVersion)
+			if (static_cast<int>(component->m_version) != m_skyboxVersion)
 			{
 				m_skyboxVersion = component->m_version;
 				LoadSkybox(*component);
@@ -27,12 +27,12 @@ namespace Butterfly
 
 	void SkyboxRenderPipelineStage::LoadSkybox(const SkyboxComponent& component)
 	{
-		uint32_t width, height = 0;
+		uint32_t width = 0, height = 0;
 		DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
 		if (component.GetType() == SkyboxType::Cubemap)
 		{
 
-			std::array<BFTexture*, 6> textures;
+			std::array<BFTexture*, 6> textures{};
 			for (uint32_t i = 0; i < 6; ++i)
 			{
 				TextureAsset* asset = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.GetTextureHandle(i));
@@ -50,6 +50,8 @@ namespace Butterfly
 
 			if (std::all_of(textures.begin(), textures.end(), [](const BFTexture* tex) { return !tex; }))
 			{
+				BF_CORE_LOG_WARN("No valid textures found for skybox cubemap. Skipping load & Unloading.");
+				UnloadSkybox();
 				return;
 			};
 
@@ -66,6 +68,16 @@ namespace Butterfly
 
 			m_skyboxTexture = MakeRef<BFTexture>(desc);
 			GraphicsCommands::UploadTextureCubeResource(*m_skyboxTexture, textures);
+
+			D3D12CommandList list;
+			for (uint32_t i = 0; i < 6; ++i)
+			{
+				GraphicsCommands::GenerateMips(list, *m_skyboxTexture, i);
+			}
+
+			list.Close();
+			D3D12API()->Queue(QueueType::Direct)->Execute(list);
+			D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 		}
 		else
 		{
@@ -86,6 +98,7 @@ namespace Butterfly
 			desc.DebugName = "SkyboxCubemap";
 			m_skyboxTexture = MakeRef<BFTexture>(desc);
 
+			format = asset->Texture->Format();
 
 			D3D12CommandList list;
 			GraphicsCommands::EquirectangularToCubemap(list, *asset->Texture, *m_skyboxTexture);
@@ -97,14 +110,30 @@ namespace Butterfly
 
 			list.Close();
 			D3D12API()->Queue(QueueType::Direct)->Execute(list);
-			D3D12API()->Queue(QueueType::Direct)->WaitForFence();
+			D3D12API()->Queue(QueueType::Direct)->WaitForFence();			
+		}
 
+		if(format != DXGI_FORMAT_UNKNOWN)
+		{
+			BFTextureDesc irradianceDesc;
+			irradianceDesc.Format = format;
+			irradianceDesc.Dimention = BFTextureDimention::Texture2D;
+			irradianceDesc.Width = 32;
+			irradianceDesc.Height = 32;
+			irradianceDesc.ArraySize = 6;
+			irradianceDesc.NumMips = 1;
+			irradianceDesc.ViewTypes = BFTextureDesc::ShaderResource | BFTextureDesc::UnorderedAccess;
+			irradianceDesc.DebugName = "SkyboxIrradiance";
+			m_irradianceTexture = MakeRef<BFTexture>(irradianceDesc);
+
+			GraphicsCommands::GenerateIrradiance(*m_skyboxTexture, *m_irradianceTexture, 32);
 		}
 	}
 
 	void SkyboxRenderPipelineStage::UnloadSkybox()
 	{
 		m_skyboxTexture.reset();
+		m_irradianceTexture.reset();
 	}
 
 	void SkyboxRenderPipelineStage::OnRecordPass(const ViewportRenderEvent& ev)
@@ -119,6 +148,7 @@ namespace Butterfly
 
 		SkyboxPassParams* params = builder.AllocParameters<SkyboxPassParams>();
 		params->SkyboxTexture = m_skyboxTexture.get();
+		params->IrradianceTexture = m_irradianceTexture.get();
 
 		builder.AddPass<SkyboxPassParams>("Skybox",
 			[viewport, this](const SkyboxPassParams& params, D3D12CommandList& list)

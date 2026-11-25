@@ -21,6 +21,7 @@ namespace Butterfly
 	struct SkyboxPassParams
 	{
 		BFTexture* SkyboxTexture;
+		BFTexture* IrradianceTexture;
 	};
 
 
@@ -36,6 +37,7 @@ namespace Butterfly
 		void UnloadSkybox();
 		bool IsSkyboxLoaded() const { return m_skyboxTexture != nullptr; }
 		RefPtr<BFTexture> m_skyboxTexture;
+		RefPtr<BFTexture> m_irradianceTexture;
 		int m_skyboxVersion = -1;
 	};
 }

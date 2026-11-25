@@ -7,6 +7,11 @@ float3 F_Schlick(float3 F0, float VoH)
     return F0 + (1.0 - F0) * pow(1.0 - VoH, 5.0);
 }
 
+float3 F_SchlickRoughness(float3 F0, float NoV, float roughness)
+{
+    return F0 + (max((1.0 - roughness).xxx, F0) - F0) * pow(saturate(1.0 - NoV), 5.0);
+}
+
 float D_GGX(float alphaRoughness, float NoH)
 {
     float alphaRoughnessSq = alphaRoughness * alphaRoughness;

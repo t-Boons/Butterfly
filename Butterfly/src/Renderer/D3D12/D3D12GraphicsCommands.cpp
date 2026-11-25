@@ -264,7 +264,13 @@ namespace Butterfly
 	void GraphicsCommands::UploadTextureCubeResource(BFTexture &dest, const std::array<BFTexture *, 6> &cubemapFacesSource, bool generateMips)
 	{
 		BF_PROFILE_EVENT();
+
+		BF_CORE_ASSERT(dest.ArraySize() == 6, "Destination cubemap must have 6 faces: %s", dest.Desc().DebugName.c_str());
+
 		D3D12CommandList list;
+
+
+		dest.Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_COPY_DEST);
 
 		for (uint32_t face = 0; face < 6; ++face)
 		{
@@ -274,6 +280,10 @@ namespace Butterfly
 				continue;
 			}
 
+			D3D12SubresourceRange range;
+			range.SliceRange(0, 1).MipRange(0, 1);
+			cubemapFacesSource[face]->Resource()->TransitionRange(list, D3D12_RESOURCE_STATE_COPY_SOURCE, range);
+
 			D3D12_TEXTURE_COPY_LOCATION src = {};
 			src.pResource = cubemapFacesSource[face]->Resource()->HWResource();
 			src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
@@ -282,7 +292,7 @@ namespace Butterfly
 			D3D12_TEXTURE_COPY_LOCATION dst = {};
 			dst.pResource = dest.Resource()->HWResource();
 			dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			dst.SubresourceIndex = face;
+			dst.SubresourceIndex = D3D12CalcSubresource(0, face, 0, dest.NumMips(), 6);
 
 			list.List()->CopyTextureRegion(
 				&dst,
@@ -297,6 +307,43 @@ namespace Butterfly
 		}
 
 		dest.Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+		list.Close();
+
+		D3D12API()->Queue(QueueType::Direct)->Execute(list);
+		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
+	}
+
+	void GraphicsCommands::GenerateIrradiance(BFTexture& cubemapAtmosphere, BFTexture& irradiance, uint32_t size)
+	{
+		BF_PROFILE_EVENT();
+
+		BF_CORE_ASSERT(size == irradiance.Width(), "Irradiance size must be equal to the specified size: %d", size);
+		BF_CORE_ASSERT(size == irradiance.Height(), "Irradiance size must be equal to the specified size: %d", size);
+		BF_CORE_ASSERT(cubemapAtmosphere.ArraySize() == irradiance.ArraySize(), "Source and destination textures must have the same dimensions: %s -> %s", cubemapAtmosphere.Desc().DebugName.c_str(), irradiance.Desc().DebugName.c_str());
+		BF_CORE_ASSERT(cubemapAtmosphere.Desc().ViewTypes & BFTextureDesc::ViewType::ShaderResource, "Source texture must have the ShaderResource flag set: %s", cubemapAtmosphere.Desc().DebugName.c_str());
+		BF_CORE_ASSERT(irradiance.Desc().ViewTypes & BFTextureDesc::ViewType::UnorderedAccess, "Destination texture must have the UnorderedAccess flag set: %s", irradiance.Desc().DebugName.c_str());
+		
+		D3D12CommandList list;
+
+		list.StartComputePass("GenerateIrradiance: " + cubemapAtmosphere.Desc().DebugName + " -> " + irradiance.Desc().DebugName);
+
+		BFComputePSOInfo psoInfo;
+		psoInfo.ComputeShader = BFShaderCache::GetOrCreate("Irradiance_cs.hlsl");
+
+		list.SetComputePSO(psoInfo);
+
+		BFShaderVariableBuilder(list)
+			.Add(cubemapAtmosphere.SRV(BFSRVTextureViewInfo::Cubemap()))
+			.Add(irradiance.UAV(BFUAVTextureViewInfo::Texture2DArray()))
+			.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()))
+			.Submit();
+
+		list.Dispatch((size + 7) / 8, (size + 7) / 8, 6);
+
+		irradiance.Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+		list.EndComputePass();
 
 		list.Close();
 

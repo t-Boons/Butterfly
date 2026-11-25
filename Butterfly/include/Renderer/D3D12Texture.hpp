@@ -123,6 +123,7 @@ namespace Butterfly
 		uint32_t Width() const { return m_desc.Width; }
 		uint32_t Height() const { return m_desc.Height; }
 		uint32_t Depth() const { return m_desc.Depth; }
+		uint32_t ArraySize() const { return m_desc.ArraySize; }
 		uint32_t NumMips() const { return m_desc.NumMips; }
 		uint32_t ViewTypes() const { return m_desc.ViewTypes; }
 		D3D12Resource* Resource() { return m_resource; }
