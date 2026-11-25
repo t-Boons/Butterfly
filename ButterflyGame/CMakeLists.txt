@@ -12,5 +12,9 @@ add_custom_command(TARGET ButterflyGame POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/Butterfly/lib/dxc/bin/dxcompiler.dll" "$<TARGET_FILE_DIR:ButterflyGame>/dxcompiler.dll"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/Butterfly/lib/dxc/bin/dxil.dll" "$<TARGET_FILE_DIR:ButterflyGame>/dxil.dll"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:optick>" "$<TARGET_FILE_DIR:ButterflyGame>"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory    "${CMAKE_SOURCE_DIR}/Butterfly/Assets" "$<TARGET_FILE_DIR:ButterflyGame>/Assets"
+    
+    COMMAND ${CMAKE_COMMAND} -E copy_directory    "${CMAKE_SOURCE_DIR}/Butterfly/Assets" "$<TARGET_FILE_DIR:ButterflyGame>/Assets/Engine/Assets"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory    "${CMAKE_SOURCE_DIR}/Butterfly/Shaders" "$<TARGET_FILE_DIR:ButterflyGame>/Shaders"
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory    "${CMAKE_CURRENT_SOURCE_DIR}/Assets" "$<TARGET_FILE_DIR:ButterflyGame>/Assets"
 )

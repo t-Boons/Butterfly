@@ -10,6 +10,14 @@
 namespace Butterfly
 {
 	class BFTexture;
+
+	struct BFEnviromentMap
+	{
+		RefPtr<BFTexture> Enviroment;
+		RefPtr<BFTexture> Irradiance;
+		RefPtr<BFTexture> Prefiltered;
+	};
+
 	struct SkyboxPassParams
 	{
 		BFTexture* SkyboxTexture;

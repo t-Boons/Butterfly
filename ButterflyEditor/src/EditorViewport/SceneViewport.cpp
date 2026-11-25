@@ -78,8 +78,8 @@ namespace Butterfly
 					list.SetViewport(RenderViewport::FromTexture(*data.RenderTarget));
 
 					BFGraphicsPSOInfo psoInfo;
-					psoInfo.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/ObjectPicker_vert.hlsl");
-					psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/ObjectPicker_frag.hlsl");
+					psoInfo.VertexShader = BFShaderCache::GetOrCreate("ObjectPicker_vert.hlsl");
+					psoInfo.PixelShader = BFShaderCache::GetOrCreate("ObjectPicker_frag.hlsl");
 					list.SetGraphicsPSO(psoInfo);
 
 					for (const RenderObject& renderObject : viewport.GetRenderData().CulledRenderObjects)

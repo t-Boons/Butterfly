@@ -33,8 +33,8 @@ namespace Butterfly
 
 				BFGraphicsPSOInfo pso;
 				pso.Rasterizer.CullMode = D3D12_CULL_MODE_NONE;
-				pso.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/Fullscreen_vert.hlsl");
-				pso.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/CopyToSRGB_frag.hlsl");
+				pso.VertexShader = BFShaderCache::GetOrCreate("Fullscreen_vert.hlsl");
+				pso.PixelShader = BFShaderCache::GetOrCreate("CopyToSRGB_frag.hlsl");
 				pso.DepthStencil.EnableDepth = false;
 
 				list.SetGraphicsPSO(pso);

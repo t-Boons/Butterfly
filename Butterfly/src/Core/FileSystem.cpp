@@ -143,6 +143,21 @@ namespace Butterfly
         return std::filesystem::current_path();
     }
 
+    std::filesystem::path FileSystem::ShaderDirectory()
+    {
+        return FileSystem::WorkingDirectory() / "Shaders";
+    }
+
+    std::filesystem::path FileSystem::AssetDirectory()
+    {
+        return FileSystem::WorkingDirectory() / "Assets";
+    }
+
+    std::filesystem::path FileSystem::EngineAssetDirectory()
+    {
+        return FileSystem::WorkingDirectory() / "Assets/Engine/Assets";
+    }
+
     std::filesystem::path FileSystem::ReplaceExtention(const std::filesystem::path& path, const std::string& extention)
     {
         return path.parent_path() / (path.stem().string() + extention);

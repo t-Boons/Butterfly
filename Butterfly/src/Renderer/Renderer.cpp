@@ -7,6 +7,7 @@
 #include "Renderer/D3D12Texture.hpp"
 #include "Renderer/RenderData.hpp"
 #include "Renderer/RenderPipeline/RenderPipeline.hpp"
+#include "Core/FileSystem.hpp"
 
 namespace Butterfly
 {
@@ -31,15 +32,15 @@ namespace Butterfly
 			ImFontConfig config;
 			config.PixelSnapH = true;
 
-			const std::string filepath = "Assets/Fonts/Roboto-Regular.ttf";
+			const std::filesystem::path filepath = FileSystem::EngineAssetDirectory() / "Fonts/Roboto-Regular.ttf";
 
 			BF_CORE_ASSERT(
-				std::filesystem::exists(filepath),
+				FileSystem::Exists(filepath),
 				"Renderer::Renderer: Font file does not exist: %s",
 				filepath.c_str()
 			);
 
-			io.Fonts->AddFontFromFileTTF(filepath.c_str(), 14.0f, &config);
+			io.Fonts->AddFontFromFileTTF(filepath.string().c_str(), 14.0f, &config);
 		}
 
 		{
@@ -48,11 +49,11 @@ namespace Butterfly
 
 			static const ImWchar iconRanges[] = { 0xf000, 0xf8ff, 0 };
 
-			const std::string filepath = "Assets/Fonts/Font_Awesome_7_Free-Solid-900.otf";
+			const std::filesystem::path filepath = FileSystem::EngineAssetDirectory() / "Fonts/Font_Awesome_7_Free-Solid-900.otf";
 			BF_CORE_ASSERT(std::filesystem::exists(filepath), "Renderer::Renderer: Font file does not exist: %s", filepath.c_str());
 
-			io.Fonts->AddFontFromFileTTF(filepath.c_str(), 9.0f, &config, iconRanges);
-			io.Fonts->AddFontFromFileTTF(filepath.c_str(), 128.0f, &config, iconRanges);
+			io.Fonts->AddFontFromFileTTF(filepath.string().c_str(), 9.0f, &config, iconRanges);
+			io.Fonts->AddFontFromFileTTF(filepath.string().c_str(), 128.0f, &config, iconRanges);
 		}
 
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;

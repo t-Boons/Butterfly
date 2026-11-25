@@ -14,6 +14,9 @@ namespace Butterfly
 		static bool Copy(const std::filesystem::path& source, const std::filesystem::path& dest);
 		static std::filesystem::path ReplaceExtention(const std::filesystem::path& path, const std::string& extention);
 		static std::filesystem::path WorkingDirectory();
+		static std::filesystem::path ShaderDirectory();
+		static std::filesystem::path AssetDirectory();
+		static std::filesystem::path EngineAssetDirectory();
 		static std::vector<std::filesystem::path> WalkDirectoryRecursive(const std::filesystem::path& rootDir);
 		static bool Delete(const std::filesystem::path& path);
 		static bool Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);

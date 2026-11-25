@@ -21,7 +21,10 @@ add_custom_command(TARGET ButterflyEditor POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/Butterfly/lib/dxc/bin/dxcompiler.dll" "$<TARGET_FILE_DIR:ButterflyEditor>/dxcompiler.dll"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/Butterfly/lib/dxc/bin/dxil.dll" "$<TARGET_FILE_DIR:ButterflyEditor>/dxil.dll"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:optick>" "$<TARGET_FILE_DIR:ButterflyEditor>"
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory    "${CMAKE_SOURCE_DIR}/Butterfly/Assets" "$<TARGET_FILE_DIR:ButterflyEditor>/Assets/Engine/Assets"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory    "${CMAKE_SOURCE_DIR}/Butterfly/Shaders" "$<TARGET_FILE_DIR:ButterflyEditor>/Shaders"
+    
     COMMAND ${CMAKE_COMMAND} -E copy_directory    "${CMAKE_CURRENT_SOURCE_DIR}/Assets" "$<TARGET_FILE_DIR:ButterflyEditor>/Assets"
     COMMAND ${CMAKE_COMMAND} -E copy_directory    "${CMAKE_CURRENT_SOURCE_DIR}/Editor" "$<TARGET_FILE_DIR:ButterflyEditor>/Editor"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/Butterfly/Assets" "$<TARGET_FILE_DIR:ButterflyEditor>/Assets"
 )

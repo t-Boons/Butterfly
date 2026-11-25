@@ -58,7 +58,7 @@ namespace Butterfly
 		list.StartComputePass("CreateSDF");
 
 		BFComputePSOInfo pso;
-		pso.ComputeShader = BFShaderCache::GetOrCreate("assets/Shaders/CreateSDF_cs.hlsl");
+		pso.ComputeShader = BFShaderCache::GetOrCreate("CreateSDF_cs.hlsl");
 
 		BFShaderVariableBuilder(list)
 			.Add(outSDF->UAV(BFUAVTextureViewInfo::Texture3D()))
@@ -94,8 +94,8 @@ namespace Butterfly
 
 		list.SetViewport(RenderViewport::FromTexture(dst));
 		BFGraphicsPSOInfo psoInfo;
-		psoInfo.VertexShader = BFShaderCache::GetOrCreate("assets/Shaders/Fullscreen_vert.hlsl");
-		psoInfo.PixelShader = BFShaderCache::GetOrCreate("assets/Shaders/Blit_frag.hlsl");
+		psoInfo.VertexShader = BFShaderCache::GetOrCreate("Fullscreen_vert.hlsl");
+		psoInfo.PixelShader = BFShaderCache::GetOrCreate("Blit_frag.hlsl");
 		psoInfo.DepthStencil.EnableDepth = false;
 		psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_NONE;
 
@@ -117,7 +117,7 @@ namespace Butterfly
 		list.StartComputePass("Generate Mips: " + texture.Desc().DebugName);
 
 		BFComputePSOInfo psoInfo;
-		psoInfo.ComputeShader = BFShaderCache::GetOrCreate("assets/Shaders/Mip_cs.hlsl");
+		psoInfo.ComputeShader = BFShaderCache::GetOrCreate("Mip_cs.hlsl");
 
 		list.SetComputePSO(psoInfo);
 
@@ -154,7 +154,7 @@ namespace Butterfly
 
 		const uint32_t cubemapSize = cubemap.Desc().Height;
 		BFComputePSOInfo pso;
-		pso.ComputeShader = BFShaderCache::GetOrCreate("assets/Shaders/EquirectangularToCubemap_cs.hlsl");
+		pso.ComputeShader = BFShaderCache::GetOrCreate("EquirectangularToCubemap_cs.hlsl");
 
 
 		BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());

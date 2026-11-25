@@ -9,7 +9,7 @@ namespace Butterfly
 	AssetRegistry::AssetRegistry(AssetManager* manager)
 	{
 		m_manager = manager;
-		m_assetPath = FileSystem::WorkingDirectory() / "Assets";
+		m_assetPath = FileSystem::AssetDirectory();
 
 		BF_CORE_LOG_TRACE("Asset root path: %s", m_assetPath.string().c_str());
 

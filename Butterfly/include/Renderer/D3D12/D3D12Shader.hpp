@@ -37,13 +37,16 @@ namespace Butterfly
 		uint32_t NumBytes() const { return m_numBytes; }
 
 	private:
-		BFShader(const std::string& filePath, const std::vector<BFShaderMacro>& macros = {});
+		BFShader(const std::filesystem::path& filePath, const std::vector<BFShaderMacro>& macros = {});
 
 		friend class BFShaderCache;
 		friend class BFPipelineCache;
 		ShaderType m_type;
 		ComPtr<IDxcBlob> m_shaderBlob;
 		uint32_t m_numBytes;
+
+		inline static std::filesystem::path s_shaderDirectory{};
+		inline static std::vector<std::wstring> s_includeDirectories{};
 	};
 
 	class BFShaderCache

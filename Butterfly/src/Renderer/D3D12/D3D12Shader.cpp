@@ -1,5 +1,6 @@
 #include "Renderer/D3D12/D3D12Shader.hpp"
 #include "Renderer/D3D12/D3D12GraphicsAPI.hpp"
+#include "Core/FileSystem.hpp"
 
 namespace Butterfly
 {
@@ -39,8 +40,8 @@ namespace Butterfly
 		}
 	}
 
-	BFShader::BFShader(const std::string& filePath, const std::vector<BFShaderMacro>& macros)
-		: m_type(Utils::ShaderTypeFromFilePath(filePath))
+	BFShader::BFShader(const std::filesystem::path& filePath, const std::vector<BFShaderMacro>& macros)
+		: m_type(Utils::ShaderTypeFromFilePath(filePath.string()))
 	{
 		BF_PROFILE_EVENT();
 
@@ -48,32 +49,40 @@ namespace Butterfly
 		bool success = false;
 		while (!success)
 		{
+			// Only run this initialization once to set up the shader directory and include directories.
+			if(s_shaderDirectory.empty())
+			{
+				s_shaderDirectory = FileSystem::ShaderDirectory();
+				const std::wstring prefix = L"-I";
+				s_includeDirectories.push_back(prefix + s_shaderDirectory.wstring());
+			}
+			const std::filesystem::path shaderFilePath = s_shaderDirectory / filePath.filename();
+
 			uint32_t codePage = CP_UTF8;
 			ComPtr<IDxcBlobEncoding> sourceBlob;
-			ThrowIfFailed(D3D12API()->ShaderUtils()->LoadFile(Utils::StringToWString(filePath).c_str(), &codePage, &sourceBlob));
+			ThrowIfFailed(D3D12API()->ShaderUtils()->LoadFile(shaderFilePath.wstring().c_str(), &codePage, &sourceBlob));
 			const std::filesystem::path shaderPath(filePath);
-			const std::wstring includeDirectory = shaderPath.parent_path().wstring();
-
 
 			ComPtr<IDxcCompilerArgs> args;
+
 #ifdef BUTTERFLY_DEBUG
-			LPCWSTR customArgs[] =
+			std::vector<LPCWSTR> includeArgs
 			{
 				L"-all_resources_bound",
 				L"-Zi",
 				L"-Qembed_debug",
-				L"-I",
-				includeDirectory.c_str()
 			};
 #else
-				LPCWSTR customArgs[] =
+			std::vector<LPCWSTR> includeArgs
 			{
-				L"-all_resources_bound",
-				L"-I",
-				includeDirectory.c_str()
+				L"-all_resources_bound"
 			};
+#endif
+			for (const auto& dir : s_includeDirectories)
+			{
+				includeArgs.push_back(dir.c_str());
+			}
 
-#endif	
 			std::vector<DxcDefine> defines(macros.size());
 			std::vector<std::wstring> macroNames(macros.size());
 			std::vector<std::wstring> macroValues(macros.size());
@@ -92,11 +101,11 @@ namespace Butterfly
 			}
 				
 			ThrowIfFailed(D3D12API()->ShaderUtils()->BuildArguments(
-				Utils::StringToWString(filePath).c_str(),
+				shaderFilePath.wstring().c_str(),
 				L"main",
 				Utils::ShaderTypeToTargetProfile(m_type),
-				customArgs,
-				_countof(customArgs),
+				includeArgs.data(),
+				includeArgs.size(),
 				defines.data(),
 				defines.size(),
 				&args));
