@@ -190,6 +190,120 @@ namespace Butterfly
 		list.List()->RSSetViewports(1, &vp);
 	}
 
+	void GraphicsCommands::UploadTextureResource(BFTexture &dest, const void *data, bool generateMips)
+	{
+		BF_CORE_ASSERT(data, "If you want to copy data from CPU, you need to provide data");
+
+		const D3D12_RESOURCE_DESC textureDesc = dest.Resource()->HWResource()->GetDesc();
+		const uint32_t numSubresources = textureDesc.DepthOrArraySize;
+
+		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numSubresources);
+		std::vector<UINT> numRows(numSubresources);
+		std::vector<UINT64> rowSizes(numSubresources);
+
+		uint64_t totalSize = 0;
+
+		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
+
+		D3D12Resource *uploadResource = new D3D12Resource(
+			D3D12ResourceDescription::Buffer(totalSize)
+				.HeapType(D3D12_HEAP_TYPE_UPLOAD)
+				.InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
+				.SetName("Intermediate texture."));
+
+		const uint32_t sourceRowPitch = dest.Width() * GetBytesPerPixel(dest.Format());
+
+		for (uint32_t slice = 0; slice < numSubresources; ++slice)
+		{
+			const uint8_t *src = static_cast<const uint8_t *>(data) + slice * dest.Height() * sourceRowPitch;
+			const auto &footprint = footprints[slice];
+
+			const uint32_t dstRowPitch = footprint.Footprint.RowPitch;
+			const uint32_t copyRowSize = static_cast<uint32_t>(rowSizes[slice]);
+
+			for (uint32_t y = 0; y < dest.Height(); ++y)
+			{
+				uploadResource->Write(src + y * sourceRowPitch, copyRowSize, static_cast<uint32_t>(footprint.Offset + y * dstRowPitch));
+			}
+		}
+
+		D3D12CommandList list;
+
+		for (uint32_t slice = 0; slice < numSubresources; ++slice)
+		{
+			D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+			srcLocation.pResource = uploadResource->HWResource();
+			srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			srcLocation.PlacedFootprint = footprints[slice];
+
+			D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+			dstLocation.pResource = dest.Resource()->HWResource();
+			dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			dstLocation.SubresourceIndex = slice;
+
+			dest.Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_COPY_DEST);
+
+			list.List()->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+		}
+
+		if (dest.NumMips() > 1 && generateMips)
+		{
+			GraphicsCommands::GenerateMips(list, dest);
+		}
+
+		dest.Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+		list.Close();
+
+		D3D12API()->Queue(QueueType::Direct)->Execute(list);
+		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
+
+		delete uploadResource;
+	}
+
+	void GraphicsCommands::UploadTextureCubeResource(BFTexture &dest, const std::array<BFTexture *, 6> &cubemapFacesSource, bool generateMips)
+	{
+		BF_PROFILE_EVENT();
+		D3D12CommandList list;
+
+		for (uint32_t face = 0; face < 6; ++face)
+		{
+			if (!cubemapFacesSource[face])
+			{
+				BF_CORE_LOG_WARN("Face %d of cubemap is null or has no resource. Skipping copy.", face);
+				continue;
+			}
+
+			D3D12_TEXTURE_COPY_LOCATION src = {};
+			src.pResource = cubemapFacesSource[face]->Resource()->HWResource();
+			src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			src.SubresourceIndex = 0;
+
+			D3D12_TEXTURE_COPY_LOCATION dst = {};
+			dst.pResource = dest.Resource()->HWResource();
+			dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			dst.SubresourceIndex = face;
+
+			list.List()->CopyTextureRegion(
+				&dst,
+				0, 0, 0,
+				&src,
+				nullptr);
+		}
+
+		for (uint32_t i = 0; i < 6; ++i)
+		{
+			GraphicsCommands::GenerateMips(list, dest, i);
+		}
+
+		dest.Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+		list.Close();
+
+		D3D12API()->Queue(QueueType::Direct)->Execute(list);
+		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
+	}
+
 	void GraphicsCommands::SetBindlessDescriptorHeapsAndRootSignature(D3D12CommandList& list, bool isCompute)
 	{
 		BF_PROFILE_EVENT();

@@ -63,9 +63,9 @@ namespace Butterfly
 			desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
 			desc.Dimention = BFTextureDimention::Texture2D;
 			desc.DebugName = "SkyboxCubemap";
-			desc.UploadData.CubemapFacesSource = textures;
 
 			m_skyboxTexture = MakeRef<BFTexture>(desc);
+			GraphicsCommands::UploadTextureCubeResource(*m_skyboxTexture, textures);
 		}
 		else
 		{

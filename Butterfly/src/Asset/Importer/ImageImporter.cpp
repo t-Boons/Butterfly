@@ -64,11 +64,12 @@ namespace Butterfly
 		textureDesc.DebugName = std::filesystem::path(meta.Path).filename().string();
 		textureDesc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
 		textureDesc.Format = format;
-		textureDesc.UploadData.CPUCopySource = pixels;
 		textureDesc.NumMips = BF_ALL; // Generate all mips
 
 		RefPtr<TextureAsset> textureAsset = MakeRef<TextureAsset>();
 		textureAsset->Texture = MakeRef<BFTexture>(textureDesc);
+
+		GraphicsCommands::UploadTextureResource(*textureAsset->Texture, pixels);
 
 		manager.AddAssetEntry<TextureAsset>(AssetEntry{ meta.RootAssetID, TextureAsset::Type(), StaticCastRef<void>(textureAsset) });
 

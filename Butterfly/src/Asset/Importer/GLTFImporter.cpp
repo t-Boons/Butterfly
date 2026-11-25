@@ -187,7 +187,6 @@ namespace Butterfly
 
 
 		BFTextureDesc desc;
-		desc.UploadData.CPUCopySource = static_cast<const void*>(img.image.data());
 		desc.Width = img.width;
 		desc.Height = img.height;
 		desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
@@ -205,6 +204,7 @@ namespace Butterfly
 		desc.DebugName = name;
 		RefPtr<TextureAsset> outAsset = MakeRef<TextureAsset>();
 		outAsset->Texture = MakeRef<BFTexture>(desc);
+		GraphicsCommands::UploadTextureResource(*outAsset->Texture, img.image.data());
 		outAsset->Sampler = BFSamplerDesc::LinearWrap();
 
 		const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)

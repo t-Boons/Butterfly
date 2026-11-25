@@ -82,18 +82,8 @@ namespace Butterfly
 		BFDSVTextureViewInfo& Slices(uint32_t first, uint32_t count) { Range.SliceRange(first, count); return *this; }
 	};
 
-	class BFTexture;
-	struct BFTextureUploadData
-	{
-		bool HasValidFace() const { return std::any_of(CubemapFacesSource.begin(), CubemapFacesSource.end(), [](const BFTexture* face) { return face != nullptr; }); }
-
-		std::array<BFTexture*, 6> CubemapFacesSource{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
-		const void* CPUCopySource = nullptr;
-	};
-
 	struct BFTextureDesc
 	{
-		BFTextureUploadData UploadData;
 		DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
 		uint32_t Width = 0;
 		uint32_t Height = 0;
