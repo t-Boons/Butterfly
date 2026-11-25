@@ -68,13 +68,13 @@ namespace Butterfly
 
 		BF_CORE_ASSERT(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap has overflown.");
 		BF_CORE_ASSERT(numBytes % 256 == 0, "CBV NumBytes must be 256 byte aligned.");
-		BF_CORE_ASSERT(numBytes <= resource.BufferDescription.Width,
+		BF_CORE_ASSERT(numBytes <= resource.BufferDescription().Width,
 			"CBV Virtual address overflow. Max NumBytes: %llu Requested NumBytes: %u",
-			resource.BufferDescription.Width, numBytes);
+			resource.BufferDescription().Width, numBytes);
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
 		desc.SizeInBytes = numBytes;
-		desc.BufferLocation = resource.HwResource->GetGPUVirtualAddress() + offset;
+		desc.BufferLocation = resource.HWResource()->GetGPUVirtualAddress() + offset;
 
 		const uint32_t nextFreeValue = NextFreeHandle();
 
@@ -95,7 +95,7 @@ namespace Butterfly
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = CpuHandleFromHandle(nextFreeValue);
 
-		D3D12API()->Device()->CreateShaderResourceView(resource.HwResource, description, cpuHandle);
+		D3D12API()->Device()->CreateShaderResourceView(resource.HWResource(), description, cpuHandle);
 		return nextFreeValue;
 	}
 
@@ -105,7 +105,7 @@ namespace Butterfly
 		BF_CORE_ASSERT(m_nextFreeIndex < static_cast<uint32_t>(m_desc.NumDescriptors), "Discriptor heap has overflown.");
 		const uint32_t nextFreeValue = Allocate();
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = CpuHandleFromHandle(nextFreeValue);
-		D3D12API()->Device()->CreateUnorderedAccessView(resource.HwResource, nullptr, description, cpuHandle);
+		D3D12API()->Device()->CreateUnorderedAccessView(resource.HWResource(), nullptr, description, cpuHandle);
 		return nextFreeValue;
 	}
 
@@ -167,7 +167,7 @@ namespace Butterfly
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_heap->GetCPUDescriptorHandleForHeapStart();
 		cpuHandle.ptr += m_incrementSize * nextFreeValue;
-		D3D12API()->Device()->CreateRenderTargetView(resource.HwResource, desc, cpuHandle);
+		D3D12API()->Device()->CreateRenderTargetView(resource.HWResource(), desc, cpuHandle);
 		return nextFreeValue;
 	}
 
@@ -206,7 +206,7 @@ namespace Butterfly
 
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_heap->GetCPUDescriptorHandleForHeapStart();
 		cpuHandle.ptr += m_incrementSize * nextFreeValue;
-		D3D12API()->Device()->CreateDepthStencilView(resource.HwResource, desc, cpuHandle);
+		D3D12API()->Device()->CreateDepthStencilView(resource.HWResource(), desc, cpuHandle);
 		return nextFreeValue;
 	}
 

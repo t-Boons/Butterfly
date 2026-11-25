@@ -25,16 +25,6 @@ namespace Butterfly
 		Texture3D,
 	};
 
-	class BFTexture;
-	struct BFTextureUploadData
-	{
-		bool HasValidFace() const { return std::any_of(CubemapFacesSource.begin(), CubemapFacesSource.end(), [](const RefPtr<BFTexture>& face) { return face != nullptr; }); }
-
-		std::array<RefPtr<BFTexture>, 6> CubemapFacesSource;
-		RefPtr<BFTexture> GPUCopySource = nullptr;
-		const void* CPUCopySource = nullptr;
-	};
-
 	struct BFSRVTextureViewInfo
 	{
 		BFTextureUsage Type = BFTextureUsage::Texture2D;
@@ -92,6 +82,15 @@ namespace Butterfly
 		BFDSVTextureViewInfo& Slices(uint32_t first, uint32_t count) { Range.SliceRange(first, count); return *this; }
 	};
 
+	class BFTexture;
+	struct BFTextureUploadData
+	{
+		bool HasValidFace() const { return std::any_of(CubemapFacesSource.begin(), CubemapFacesSource.end(), [](const BFTexture* face) { return face != nullptr; }); }
+
+		std::array<BFTexture*, 6> CubemapFacesSource{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+		const void* CPUCopySource = nullptr;
+	};
+
 	struct BFTextureDesc
 	{
 		BFTextureUploadData UploadData;
@@ -122,9 +121,9 @@ namespace Butterfly
 		BFTexture(const BFTextureDesc& desc);
 		~BFTexture();
 
-		BFTextureDesc Desc() const { return m_desc; }
+		const BFTextureDesc& Desc() const { return m_desc; }
 		DXGI_FORMAT Format() const { return m_desc.Format; }
-		const D3D12_CLEAR_VALUE* ClearValue() const;
+		D3D12_CLEAR_VALUE ClearValue() const;
 
 		const BFDepthStencilView& DSV();
 		const BFDepthStencilView& DSV(BFDSVTextureViewInfo info);

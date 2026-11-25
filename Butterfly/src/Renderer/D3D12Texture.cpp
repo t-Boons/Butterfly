@@ -10,7 +10,7 @@ namespace Butterfly
 {
 	namespace Utils
 	{
-		inline void CopyGPUTexturesToCubemap(const std::array<RefPtr<BFTexture>, 6>& cubemapFacesSource, BFTexture* cubemap)
+		inline void CopyGPUTexturesToCubemap(const std::array<BFTexture*, 6>& cubemapFacesSource, BFTexture* cubemap)
 		{
 			D3D12CommandList list;
 
@@ -23,12 +23,12 @@ namespace Butterfly
 				}
 
 				D3D12_TEXTURE_COPY_LOCATION src = {};
-				src.pResource = cubemapFacesSource[face]->Resource()->HwResource;
+				src.pResource = cubemapFacesSource[face]->Resource()->HWResource();
 				src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 				src.SubresourceIndex = 0;
 
 				D3D12_TEXTURE_COPY_LOCATION dst = {};
-				dst.pResource = cubemap->Resource()->HwResource;
+				dst.pResource = cubemap->Resource()->HWResource();
 				dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 				dst.SubresourceIndex = face;
 
@@ -59,7 +59,7 @@ namespace Butterfly
 			BF_CORE_ASSERT(desc.UploadData.CPUCopySource, "If you want to copy data from CPU, you need to provide data in the BFTextureDesc::UploadData.CPUCopySource field.");
 
 
-			const D3D12_RESOURCE_DESC textureDesc = newTexture->Resource()->HwResource->GetDesc();
+			const D3D12_RESOURCE_DESC textureDesc = newTexture->Resource()->HWResource()->GetDesc();
 			const uint32_t numSubresources = textureDesc.DepthOrArraySize;
 
 			std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numSubresources);
@@ -70,12 +70,12 @@ namespace Butterfly
 
 			D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
 
-			D3D12Resource* uploadResource = DX12ResourceBuilder()
+			D3D12Resource* uploadResource = new D3D12Resource(
+				D3D12ResourceDescription::Buffer(totalSize)
 				.HeapType(D3D12_HEAP_TYPE_UPLOAD)
 				.InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
-				.Buffer(totalSize)
 				.SetName("Intermediate texture.")
-				.Create();
+				);
 
 
 			const uint32_t sourceRowPitch = desc.Width * GetBytesPerPixel(desc.Format);
@@ -100,12 +100,12 @@ namespace Butterfly
 			for (uint32_t slice = 0; slice < numSubresources; ++slice)
 			{
 				D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-				srcLocation.pResource = uploadResource->HwResource;
+				srcLocation.pResource = uploadResource->HWResource();
 				srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 				srcLocation.PlacedFootprint = footprints[slice];
 
 				D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
-				dstLocation.pResource = newTexture->Resource()->HwResource;
+				dstLocation.pResource = newTexture->Resource()->HWResource();
 				dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 				dstLocation.SubresourceIndex = slice;
 
@@ -212,54 +212,54 @@ namespace Butterfly
 			return dsvDesc;
 		}
 
-	inline const D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvFromHWTextureDesc(const BFTextureDesc& desc, const BFSRVTextureViewInfo& info)
-	{
-		BF_PROFILE_EVENT();
-
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = SRVCompatibleFormat(desc.Format);
-		if (info.SRGB)
+		inline const D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvFromHWTextureDesc(const BFTextureDesc& desc, const BFSRVTextureViewInfo& info)
 		{
-			srvDesc.Format = GetSRGBFormat(srvDesc.Format);
+			BF_PROFILE_EVENT();
+
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Format = SRVCompatibleFormat(desc.Format);
+			if (info.SRGB)
+			{
+				srvDesc.Format = GetSRGBFormat(srvDesc.Format);
+			}
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Texture2D.MostDetailedMip = info.Range.FirstMip;
+			srvDesc.Texture2D.MipLevels = info.Range.MipCount;
+			srvDesc.Texture2D.PlaneSlice = 0;
+			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+			if (info.Type == BFTextureUsage::Texture2DArray)
+			{
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+				srvDesc.Texture2DArray.MostDetailedMip = info.Range.FirstMip;
+				srvDesc.Texture2DArray.MipLevels = info.Range.MipCount;
+				srvDesc.Texture2DArray.FirstArraySlice = info.Range.FirstSlice;
+				srvDesc.Texture2DArray.ArraySize = info.Range.SliceCount;
+				srvDesc.Texture2DArray.PlaneSlice = 0;
+				srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+			}
+
+			if (info.Type == BFTextureUsage::Cubemap)
+			{
+				BF_CORE_ASSERT(desc.ArraySize == 6, "Cubemap must have 6 faces.");
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+				srvDesc.TextureCube.MostDetailedMip = info.Range.FirstMip;
+				srvDesc.TextureCube.MipLevels = info.Range.MipCount;
+				srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+			}
+
+			if (info.Type == BFTextureUsage::Texture3D)
+			{
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+				srvDesc.Texture3D.MostDetailedMip = info.Range.FirstMip;
+				srvDesc.Texture3D.MipLevels = info.Range.MipCount;
+				srvDesc.Texture3D.ResourceMinLODClamp = 0.0f;
+			}
+
+			return srvDesc;
 		}
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MostDetailedMip = info.Range.FirstMip;
-		srvDesc.Texture2D.MipLevels = info.Range.MipCount;
-		srvDesc.Texture2D.PlaneSlice = 0;
-		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-		if (info.Type == BFTextureUsage::Texture2DArray)
-		{
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-			srvDesc.Texture2DArray.MostDetailedMip = info.Range.FirstMip;
-			srvDesc.Texture2DArray.MipLevels = info.Range.MipCount;
-			srvDesc.Texture2DArray.FirstArraySlice = info.Range.FirstSlice;
-			srvDesc.Texture2DArray.ArraySize = info.Range.SliceCount;
-			srvDesc.Texture2DArray.PlaneSlice = 0;
-			srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
-		}
-
-		if (info.Type == BFTextureUsage::Cubemap)
-		{
-			BF_CORE_ASSERT(desc.ArraySize == 6, "Cubemap must have 6 faces.");
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-			srvDesc.TextureCube.MostDetailedMip = info.Range.FirstMip;
-			srvDesc.TextureCube.MipLevels = info.Range.MipCount;
-			srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
-		}
-
-		if (info.Type == BFTextureUsage::Texture3D)
-		{
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-			srvDesc.Texture3D.MostDetailedMip = info.Range.FirstMip;
-			srvDesc.Texture3D.MipLevels = info.Range.MipCount;
-			srvDesc.Texture3D.ResourceMinLODClamp = 0.0f;
-		}
-
-		return srvDesc;
-	}
 
 		inline const D3D12_UNORDERED_ACCESS_VIEW_DESC CreateUavFromHWTextureDesc(const BFTextureDesc& desc, const BFUAVTextureViewInfo& info)
 		{
@@ -295,6 +295,15 @@ namespace Butterfly
 			}
 			return uavDesc;
 		}
+
+		D3D12_RESOURCE_STATES GetInitialResourceState(uint32_t v)
+		{
+			if (v & BFTextureDesc::RenderTargettable) return D3D12_RESOURCE_STATE_RENDER_TARGET;
+			if (v & BFTextureDesc::DepthStencilable) return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+			if (v & BFTextureDesc::UnorderedAccess)  return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+			return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+		}
 	}
 
 	BFTexture::BFTexture(const BFTextureDesc& desc)
@@ -309,53 +318,35 @@ namespace Butterfly
 			m_desc.NumMips = Utils::MaxMips(desc.Width, desc.Height);
 		}
 
-		if (m_desc.ViewTypes & BFTextureDesc::ViewType::RenderTargettable)
-		{
-			BF_CORE_ASSERT(m_desc.ArraySize == 1, "RenderTargettable textures cannot be Texture2DArray.");
+		const uint32_t v = m_desc.ViewTypes;
+		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 
-			float col[] = { 0,0,0,0 };
-			m_resource = DX12ResourceBuilder()
-				.HeapType(D3D12_HEAP_TYPE_DEFAULT)
-				.RenderTarget(m_desc.Format, m_desc.Width, m_desc.Height)
-				.ClearColor(col, m_desc.Format)
-				.InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET)
-				.SetName(m_desc.DebugName)
-				.Create();
-		}
-		else if (m_desc.ViewTypes & BFTextureDesc::ViewType::DepthStencilable)
-		{
-			float col[] = { 0,0,0,0 };
-			m_resource = DX12ResourceBuilder()
-				.HeapType(D3D12_HEAP_TYPE_DEFAULT)
-				.DepthStencil(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.ArraySize)
-				.ClearDepth(m_desc.Format)
-				.InitialState(D3D12_RESOURCE_STATE_DEPTH_READ)
-				.SetName(m_desc.DebugName)
-				.Create();
-		}
-		else if (m_desc.ViewTypes & BFTextureDesc::ViewType::ShaderResource || m_desc.ViewTypes & BFTextureDesc::ViewType::UnorderedAccess)
+		if (v & BFTextureDesc::RenderTargettable) flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		if (v & BFTextureDesc::DepthStencilable) flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		if (v & BFTextureDesc::UnorderedAccess || m_desc.NumMips > 1)
+			flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		if ((v & BFTextureDesc::DepthStencilable) && !(v & BFTextureDesc::ShaderResource))
+			flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE; // small optimization for depth-only
+
+		D3D12ResourceDescription resourceDesc;
+
+		if (m_desc.Dimention == BFTextureDimention::Texture3D)
+			resourceDesc = D3D12ResourceDescription::Texture3D(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.Depth, m_desc.NumMips);
+		else if(m_desc.Dimention == BFTextureDimention::Texture2D)
+			resourceDesc = D3D12ResourceDescription::Texture(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.ArraySize, m_desc.NumMips);
+
+		resourceDesc.HeapType(D3D12_HEAP_TYPE_DEFAULT);
+		resourceDesc.Flags(flags);
+		if (v & (BFTextureDesc::RenderTargettable | BFTextureDesc::DepthStencilable))
 		{
 			float col[] = { 0,0,0,0 };
-
-			DX12ResourceBuilder builder;
-			builder.HeapType(D3D12_HEAP_TYPE_DEFAULT);
-
-			if (m_desc.Dimention == BFTextureDimention::Texture3D)
-				builder.Texture3D(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.Depth, m_desc.NumMips);
-			else
-				builder.Texture(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.ArraySize, m_desc.NumMips);
-
-			if (m_desc.UploadData.CPUCopySource || m_desc.UploadData.GPUCopySource || m_desc.UploadData.HasValidFace() || m_desc.ViewTypes & BFTextureDesc::ViewType::UnorderedAccess)
-				builder.InitialState(D3D12_RESOURCE_STATE_COMMON);
-			else
-				builder.InitialState(D3D12_RESOURCE_STATE_GENERIC_READ);
-
-			if (m_desc.ViewTypes & BFTextureDesc::ViewType::UnorderedAccess || m_desc.NumMips > 1)
-				builder.Flags(D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-
-			builder.SetName(m_desc.DebugName);
-			m_resource = builder.Create();
+			resourceDesc.ClearColor(col, m_desc.Format);
+			resourceDesc.ClearDepth(m_desc.Format);
 		}
+
+		resourceDesc.InitialState(Utils::GetInitialResourceState(m_desc.ViewTypes));
+		resourceDesc.SetName(m_desc.DebugName);
+		m_resource = new D3D12Resource(resourceDesc);
 
 		if (m_desc.UploadData.CPUCopySource)
 		{
@@ -384,9 +375,9 @@ namespace Butterfly
 		FREE(m_resource);
 	}
 
-	const D3D12_CLEAR_VALUE* BFTexture::ClearValue() const
+	D3D12_CLEAR_VALUE BFTexture::ClearValue() const
 	{
-		return &m_resource->ClearValue;
+		return m_resource->ClearValue();
 	}
 
 	const BFRenderTargetView& BFTexture::RTV() const
@@ -515,12 +506,11 @@ namespace Butterfly
 
 	BFTextureReadback::BFTextureReadback()
 	{
-		m_readbackBuffer = DX12ResourceBuilder()
+		m_readbackBuffer = new D3D12Resource(
+			D3D12ResourceDescription::Buffer(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT)
 			.HeapType(D3D12_HEAP_TYPE_READBACK)
 			.InitialState(D3D12_RESOURCE_STATE_COPY_DEST)
-			.Buffer(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT)
-			.SetName("Object Picker Pixel Readback")
-			.Create();
+			.SetName("Object Picker Pixel Readback"));
 	}
 
 	BFTextureReadback::~BFTextureReadback()
@@ -568,11 +558,11 @@ namespace Butterfly
 
 		D3D12_RANGE readRange{ 0, sizeof(uint32_t) };
 		void* mapped = nullptr;
-		ThrowIfFailed(m_readbackBuffer->HwResource->Map(0, &readRange, &mapped));
+		ThrowIfFailed(m_readbackBuffer->HWResource()->Map(0, &readRange, &mapped));
 		out = *static_cast<const uint32_t*>(mapped);
 
 		D3D12_RANGE writtenRange{ 0, 0 };
-		m_readbackBuffer->HwResource->Unmap(0, &writtenRange);
+		m_readbackBuffer->HWResource()->Unmap(0, &writtenRange);
 
 		m_waitingForResult = false;
 		m_hasRequest = false;
@@ -601,12 +591,12 @@ namespace Butterfly
 
 
 		D3D12_TEXTURE_COPY_LOCATION source{};
-		source.pResource = src->HwResource;
+		source.pResource = src->HWResource();
 		source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 		source.SubresourceIndex = 0;
 
 		D3D12_TEXTURE_COPY_LOCATION destination{};
-		destination.pResource = m_readbackBuffer->HwResource;
+		destination.pResource = m_readbackBuffer->HWResource();
 		destination.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		destination.PlacedFootprint.Offset = 0;
 		destination.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32_UINT;

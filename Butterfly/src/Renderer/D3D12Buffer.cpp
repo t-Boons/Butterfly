@@ -14,7 +14,7 @@ namespace Butterfly
             BF_PROFILE_EVENT();
 
             D3D12_INDEX_BUFFER_VIEW view;
-            view.BufferLocation = buffer.DXResource()->GetGPUVirtualAddress();
+            view.BufferLocation = buffer.HWResource()->GetGPUVirtualAddress();
             view.SizeInBytes = buffer.NumBytes();
             view.Format = DXGI_FORMAT_R32_UINT;
             return view;
@@ -35,27 +35,26 @@ namespace Butterfly
 
         const uint32_t numBytes = bufferDesc.NumElements * bufferDesc.Stride;
 
-        m_resource = DX12ResourceBuilder()
+        m_resource = new D3D12Resource(
+            D3D12ResourceDescription::Buffer(numBytes)
             .HeapType(heapType)
             .InitialState(D3D12_RESOURCE_STATE_COMMON)
-            .Buffer(numBytes)
-            .SetName(bufferDesc.DebugName)
-            .Create();
+            .SetName(bufferDesc.DebugName));
 
         if (bufferDesc.Data)
         {
-            D3D12Resource* uploadResource = DX12ResourceBuilder()
+            D3D12Resource* uploadResource = new D3D12Resource(
+                D3D12ResourceDescription::Buffer(numBytes)
                 .HeapType(D3D12_HEAP_TYPE_UPLOAD)
                 .InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
-                .Buffer(numBytes)
-                .SetName(bufferDesc.DebugName + " intermediate upload resource.")
-                .Create()
-                ->Write(bufferDesc.Data, numBytes);
+                .SetName(bufferDesc.DebugName + " intermediate upload resource."));
+
+            uploadResource->Write(bufferDesc.Data, numBytes);
 
             D3D12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
 
             m_resource->TransitionAll(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
-            copyList.List()->CopyResource(m_resource->HwResource, uploadResource->HwResource);
+            copyList.List()->CopyResource(m_resource->HWResource(), uploadResource->HWResource());
             copyList.Close();
             D3D12API()->Queue(QueueType::Copy)->Execute(copyList);
             D3D12API()->Queue(QueueType::Copy)->WaitForFence();
@@ -100,9 +99,9 @@ namespace Butterfly
         return m_resource;
     }
 
-    ID3D12Resource2* BFStructuredBuffer::DXResource() const
+    ID3D12Resource2* BFStructuredBuffer::HWResource() const
     {
-        return m_resource->HwResource;
+        return m_resource->HWResource();
     }
 
     const BFShaderResourceView& BFStructuredBuffer::SRV() const
@@ -129,26 +128,29 @@ namespace Butterfly
 
         const uint32_t numBytes = bytesPerElement * numElements;
 
-        D3D12Resource* uploadResource = DX12ResourceBuilder()
+        D3D12Resource* uploadResource = new D3D12Resource(
+            D3D12ResourceDescription::Buffer(numBytes)
             .HeapType(D3D12_HEAP_TYPE_UPLOAD)
             .InitialState(D3D12_RESOURCE_STATE_COPY_SOURCE)
-            .IndexBuffer(numBytes)
+            .Flags(D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE)
             .SetName(resourceTag + " intermediate upload resource.")
-            .Create()
-            ->Write(src, numBytes);
+            );
+
+        uploadResource->Write(src, numBytes);
 
 
-        m_resource = DX12ResourceBuilder()
+        m_resource = new D3D12Resource(
+            D3D12ResourceDescription::Buffer(numBytes)
             .HeapType(D3D12_HEAP_TYPE_DEFAULT)
-            .IndexBuffer(numBytes)
+            .Flags(D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE)
             .SetName(resourceTag)
             .InitialState(D3D12_RESOURCE_STATE_COMMON)
-            .Create();
+            );
 
         D3D12CommandList copyList(D3D12_COMMAND_LIST_TYPE_COPY);
 
         m_resource->TransitionAll(copyList, D3D12_RESOURCE_STATE_COPY_DEST);
-        copyList.List()->CopyResource(m_resource->HwResource, uploadResource->HwResource);
+        copyList.List()->CopyResource(m_resource->HWResource(), uploadResource->HWResource());
         copyList.Close();
         D3D12API()->Queue(QueueType::Copy)->Execute(copyList);
         D3D12API()->Queue(QueueType::Copy)->WaitForFence();
@@ -160,7 +162,7 @@ namespace Butterfly
         D3D12API()->Queue(QueueType::Direct)->Execute(transitionList);
         D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 
-        m_view.BufferLocation = m_resource->HwResource->GetGPUVirtualAddress();
+        m_view.BufferLocation = m_resource->HWResource()->GetGPUVirtualAddress();
         m_view.SizeInBytes = numBytes;
         m_view.Format = format;
 
@@ -184,12 +186,12 @@ namespace Butterfly
 
         const uint32_t alignedSize = Align256(numBytes);
 		m_numBytes = alignedSize;
-        D3D12Resource* resource = DX12ResourceBuilder()
+        D3D12Resource* resource = new D3D12Resource(
+            D3D12ResourceDescription::Buffer(alignedSize)
             .HeapType(D3D12_HEAP_TYPE_UPLOAD)
             .InitialState(D3D12_RESOURCE_STATE_COMMON)
-            .Buffer(alignedSize)
             .SetName(resourceTag)
-            .Create();
+            );
 
 		m_resource = RefPtr<D3D12Resource>(resource);
 

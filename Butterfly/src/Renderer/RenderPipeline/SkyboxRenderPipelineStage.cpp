@@ -32,20 +32,23 @@ namespace Butterfly
 		if (component.GetType() == SkyboxType::Cubemap)
 		{
 
-			std::array<RefPtr<BFTexture>, 6> textures;
+			std::array<BFTexture*, 6> textures;
 			for (uint32_t i = 0; i < 6; ++i)
 			{
 				TextureAsset* asset = Application::Get().GetAssetManager().Resolve<TextureAsset>(component.GetTextureHandle(i));
 				if (asset)
 				{
-					textures[i] = asset->Texture;
-					width = asset->Texture->Desc().Width;
-					height = asset->Texture->Desc().Height;
-					format = asset->Texture->Desc().Format;
+					if(asset->Texture)
+					{
+						textures[i] = asset->Texture.get();
+						width = asset->Texture->Desc().Width;
+						height = asset->Texture->Desc().Height;
+						format = asset->Texture->Desc().Format;
+					}
 				}
 			}
 
-			if (std::all_of(textures.begin(), textures.end(), [](const RefPtr<BFTexture>& tex) { return !tex; }))
+			if (std::all_of(textures.begin(), textures.end(), [](const BFTexture* tex) { return !tex; }))
 			{
 				return;
 			};

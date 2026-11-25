@@ -34,7 +34,7 @@ namespace Butterfly
 		uint32_t NumElements() const { return m_desc.NumElements; }
 
 		D3D12Resource* Resource() const;
-		ID3D12Resource2* DXResource() const;
+		ID3D12Resource2* HWResource() const;
 		const BFShaderResourceView& SRV() const;
 
 	private:

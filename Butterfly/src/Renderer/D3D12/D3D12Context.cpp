@@ -66,10 +66,10 @@ namespace Butterfly
 			ID3D12Resource2* renderTarget;
 			ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
 
-			m_renderTargets[i] = DX12ResourceBuilder()
-				.RenderTarget(DXGI_FORMAT_R10G10B10A2_UNORM, m_width, m_height)
+			m_renderTargets[i] = new D3D12Resource(D3D12ResourceDescription::Texture(DXGI_FORMAT_R10G10B10A2_UNORM, m_width, m_height)
+				.Flags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
 				.SetName(("BackBuffer: " + std::to_string(i)).c_str())
-				.CreateFromSwapchain(renderTarget, D3D12_RESOURCE_STATE_PRESENT);
+				.FromSwapchain(renderTarget, D3D12_RESOURCE_STATE_PRESENT));
 		}
 
 		m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
@@ -113,10 +113,11 @@ namespace Butterfly
 			ID3D12Resource2* renderTarget;
 			ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTarget)));
 
-			m_renderTargets[i] = DX12ResourceBuilder()
-				.RenderTarget(DXGI_FORMAT_R10G10B10A2_UNORM, m_width, m_height)
+			m_renderTargets[i] = new D3D12Resource(
+				D3D12ResourceDescription::Texture(DXGI_FORMAT_R10G10B10A2_UNORM, m_width, m_height)
+				.Flags(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
 				.SetName(("BackBuffer: " + std::to_string(i)).c_str())
-				.CreateFromSwapchain(renderTarget, D3D12_RESOURCE_STATE_PRESENT);
+				.FromSwapchain(renderTarget, D3D12_RESOURCE_STATE_PRESENT));
 		}
 		m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 	}
@@ -169,12 +170,12 @@ namespace Butterfly
 			srcBox.back = 1;
 
 			D3D12_TEXTURE_COPY_LOCATION destLocation = {};
-			destLocation.pResource = backBuffer.HwResource;
+			destLocation.pResource = backBuffer.HWResource();
 			destLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 			destLocation.SubresourceIndex = 0;
 
 			D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-			srcLocation.pResource = toDisplay.HwResource;
+			srcLocation.pResource = toDisplay.HWResource();
 			srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 			srcLocation.SubresourceIndex = 0;
 
