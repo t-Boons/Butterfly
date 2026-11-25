@@ -47,7 +47,7 @@ namespace Butterfly
 			}
 		}
 
-		inline const D3D12_RENDER_TARGET_VIEW_DESC CreateRTVDescFromHWTextureDesc(const BFTextureDesc& desc)
+		inline const D3D12_RENDER_TARGET_VIEW_DESC CreateRTVDescFromHWTextureDesc(const BFTextureDesc& desc, const BFRTVTextureViewInfo& info)
 		{
 			BF_PROFILE_EVENT();
 
@@ -59,8 +59,21 @@ namespace Butterfly
 				rtvDesc.Format = GetSRGBFormat(rtvDesc.Format);
 			}
 
+			if (info.Type == BFTextureUsage::Texture2D)
+			{
+				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+				rtvDesc.Texture2D.MipSlice = info.Range.FirstMip;
+			}
 
-			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+			if (info.Type == BFTextureUsage::Texture2DArray || info.Type == BFTextureUsage::Cubemap)
+			{
+				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+
+				rtvDesc.Texture2DArray.MipSlice = info.Range.FirstMip;
+				rtvDesc.Texture2DArray.FirstArraySlice = info.Range.FirstSlice;
+				rtvDesc.Texture2DArray.ArraySize = info.Range.SliceCount;
+			}
+
 			return rtvDesc;
 		}
 
@@ -203,10 +216,11 @@ namespace Butterfly
 
 		if (v & BFTextureDesc::RenderTargettable) flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		if (v & BFTextureDesc::DepthStencilable) flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
 		if (v & BFTextureDesc::UnorderedAccess || m_desc.NumMips > 1)
 			flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 		if ((v & BFTextureDesc::DepthStencilable) && !(v & BFTextureDesc::ShaderResource))
-			flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE; // small optimization for depth-only
+			flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 
 		D3D12ResourceDescription resourceDesc;
 
@@ -227,20 +241,11 @@ namespace Butterfly
 		resourceDesc.InitialState(Utils::GetInitialResourceState(m_desc.ViewTypes));
 		resourceDesc.SetName(m_desc.DebugName);
 		m_resource = new D3D12Resource(resourceDesc);
-
-		// Legacy
-		if (m_desc.ViewTypes & BFTextureDesc::ViewType::RenderTargettable)
-		{
-			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = Utils::CreateRTVDescFromHWTextureDesc(m_desc);
-			m_rtv = new BFRenderTargetView(*m_resource, rtvDesc);
-		}
 	}
 
 	BFTexture::~BFTexture()
 	{
 		BF_PROFILE_EVENT();
-
-		FREE(m_rtv);
 		FREE(m_resource);
 	}
 
@@ -249,10 +254,47 @@ namespace Butterfly
 		return m_resource->ClearValue();
 	}
 
-	const BFRenderTargetView& BFTexture::RTV() const
+	const BFRenderTargetView& BFTexture::RTV()
 	{
-		BF_CORE_ASSERT(m_rtv != nullptr, "%s", "Texture does not have RTV, the BFTexture::Desc::Flag needs to have BFTexture::Desc::RenderTargettable set.");
-		return *m_rtv;
+		BFRTVTextureViewInfo info;
+		info.Range.FirstSlice = 0;
+		info.Range.FirstMip = 0;
+		info.Range.SliceCount = BF_ALL;
+		info.Range.MipCount = BF_ALL;
+		return RTV(info);
+	}
+
+	const BFRenderTargetView &BFTexture::RTV(BFRTVTextureViewInfo info)
+	{
+		const uint32_t mipCount   = m_resource->MipCount();
+		const uint32_t sliceCount = m_resource->ArraySize();
+
+		D3D12SubresourceRange& range = info.Range;
+
+		BF_CORE_ASSERT(range.FirstMip < mipCount, "First mip out of bounds for RTV.");
+		BF_CORE_ASSERT(range.FirstSlice < sliceCount, "First slice out of bounds for RTV.");
+		BF_CORE_ASSERT(range.MipCount == BF_ALL || range.FirstMip + range.MipCount <= mipCount, "Mip range out of bounds for RTV.");
+		BF_CORE_ASSERT(range.SliceCount == BF_ALL || range.FirstSlice + range.SliceCount <= sliceCount, "Slice range out of bounds for RTV.");
+
+		// Resolve BF_ALL to the real remaining count.
+		range.MipCount   = std::min(range.MipCount, mipCount - range.FirstMip);
+		range.SliceCount = std::min(range.SliceCount, sliceCount - range.FirstSlice);
+		uint64_t key = 1;
+		Utils::SumHash(key, info.Range.FirstSlice);
+		Utils::SumHash(key, info.Range.FirstMip);
+		Utils::SumHash(key, info.Range.SliceCount);
+		Utils::SumHash(key, info.Range.MipCount);
+
+		auto it = m_rtvSlices.find(key);
+
+		if (it == m_rtvSlices.end())
+		{
+			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = Utils::CreateRTVDescFromHWTextureDesc(m_desc, info);
+			m_rtvSlices[key] = MakeRef<BFRenderTargetView>(*m_resource, rtvDesc);
+			it = m_rtvSlices.find(key);
+		}
+
+		return *it->second;
 	}
 
 	const BFDepthStencilView& BFTexture::DSV()
@@ -268,6 +310,13 @@ namespace Butterfly
 	const BFDepthStencilView& BFTexture::DSV(BFDSVTextureViewInfo info)
 	{
 		BF_CORE_ASSERT(info.Range.FirstSlice < m_desc.ArraySize, "Slice index out of bounds for DSV array slice.");
+
+		const uint32_t mipCount   = m_resource->MipCount();
+		const uint32_t sliceCount = m_resource->ArraySize();
+
+		// Resolve BF_ALL to the real remaining count.
+		info.Range.MipCount   = std::min(info.Range.MipCount, mipCount - info.Range.FirstMip);
+		info.Range.SliceCount = std::min(info.Range.SliceCount, sliceCount - info.Range.FirstSlice);
 
 		uint64_t key = 1;
 		Utils::SumHash(key, info.Range.FirstSlice);
