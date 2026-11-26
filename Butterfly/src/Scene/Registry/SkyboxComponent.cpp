@@ -5,6 +5,8 @@ namespace Butterfly
 {
 	SkyboxComponent::SkyboxComponent(const Entity& entity)
 	{
+		s_versionCounter++;
+		m_version = s_versionCounter;
 	}
 
 	void SkyboxComponent::SetTextureHandle(uint32_t side, const AssetHandle<TextureAsset>& handle)
@@ -95,5 +97,11 @@ namespace Butterfly
 			m_hdriUUID = uuid;
 			InvalidateVersion();
 		}
+	}
+
+	void SkyboxComponent::InvalidateVersion()
+	{
+		s_versionCounter++;
+		m_version = s_versionCounter;
 	}
 }

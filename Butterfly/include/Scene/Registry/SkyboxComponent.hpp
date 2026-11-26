@@ -26,8 +26,7 @@ namespace Butterfly
 		void SetType(SkyboxType type);
 
 	private:
-		void InvalidateVersion() { m_version++; }
-
+		void InvalidateVersion();
 		void SetTextureUUIDRight(const UUID& uuid);
 		void SetTextureUUIDLeft(const UUID& uuid);
 		void SetTextureUUIDTop(const UUID& uuid);
@@ -57,5 +56,6 @@ namespace Butterfly
 		std::array<UUID, 6> m_serializeUUIDs;
 		std::array<AssetHandle<TextureAsset>, 6> m_textureHandles;
 		uint32_t m_version = 0;
+		inline static uint32_t s_versionCounter = 0;
 	};
 }
