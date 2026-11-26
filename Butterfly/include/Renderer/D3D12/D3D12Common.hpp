@@ -90,6 +90,20 @@ namespace Butterfly
         case DXGI_FORMAT_R16G16B16A16_SINT:
             return 8;
 
+        case DXGI_FORMAT_R16_FLOAT:
+        case DXGI_FORMAT_R16_UNORM:
+        case DXGI_FORMAT_R16_UINT:
+        case DXGI_FORMAT_R16_SNORM:
+        case DXGI_FORMAT_R16_SINT:
+            return 2;
+
+        case DXGI_FORMAT_R16G16_FLOAT:
+        case DXGI_FORMAT_R16G16_UNORM:
+        case DXGI_FORMAT_R16G16_UINT:
+        case DXGI_FORMAT_R16G16_SNORM:
+        case DXGI_FORMAT_R16G16_SINT:
+            return 4;
+
         case DXGI_FORMAT_R32G32B32A32_FLOAT:
         case DXGI_FORMAT_R32G32B32A32_UINT:
         case DXGI_FORMAT_R32G32B32A32_SINT:
@@ -110,14 +124,8 @@ namespace Butterfly
         case DXGI_FORMAT_R32_SINT:
             return 4;
 
-        case DXGI_FORMAT_R16_FLOAT:
-        case DXGI_FORMAT_R16_UNORM:
-        case DXGI_FORMAT_R16_UINT:
-        case DXGI_FORMAT_R16_SNORM:
-        case DXGI_FORMAT_R16_SINT:
-            return 2;
-
         default:
+            BF_CORE_ASSERT(false, "Unknown DXGI_FORMAT: %d", format);
             return 0;
         }
     }

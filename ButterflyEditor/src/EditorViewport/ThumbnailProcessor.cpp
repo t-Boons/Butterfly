@@ -16,7 +16,7 @@ namespace Butterfly
 		textureDesc.ViewTypes = TextureDesc::ViewType::ShaderResource;
 		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		m_gpuTexture = MakeRef<Texture>(textureDesc);
-		GraphicsCommands::UploadTextureResource(*m_gpuTexture, m_pixels.data());
+		GraphicsCommands::UploadTextureResource(*m_gpuTexture, m_pixels.data(), static_cast<uint32_t>(m_pixels.size()));
 	}
 
 	ImTextureID Thumbnail::GetImGUITextureID()

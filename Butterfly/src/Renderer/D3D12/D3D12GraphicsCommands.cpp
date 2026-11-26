@@ -188,9 +188,11 @@ namespace Butterfly
 		list.List()->RSSetViewports(1, &vp);
 	}
 
-	void GraphicsCommands::UploadTextureResource(Texture &dest, const void *data, bool generateMips)
+	void GraphicsCommands::UploadTextureResource(Texture &dest, const void* data, uint32_t dataSize, bool generateMips)
 	{
-		BF_CORE_ASSERT(data, "If you want to copy data from CPU, you need to provide data");
+		BF_PROFILE_EVENT();
+
+		BF_CORE_ASSERT(data != nullptr, "If you want to copy data from CPU, you need to provide data");
 
 		const D3D12_RESOURCE_DESC textureDesc = dest.Resource()->HWResource()->GetDesc();
 		const uint32_t numSubresources = textureDesc.DepthOrArraySize;
@@ -203,6 +205,8 @@ namespace Butterfly
 
 		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
 
+		BF_CORE_ASSERT(dataSize == totalSize, "Provided data is different than the required texture size");
+
 		D3D12Resource *uploadResource = new D3D12Resource(
 			D3D12ResourceDescription::Buffer(totalSize)
 				.HeapType(D3D12_HEAP_TYPE_UPLOAD)
@@ -213,7 +217,7 @@ namespace Butterfly
 
 		for (uint32_t slice = 0; slice < numSubresources; ++slice)
 		{
-			const uint8_t *src = static_cast<const uint8_t *>(data) + slice * dest.Height() * sourceRowPitch;
+			const uint8_t *src = static_cast<const uint8_t*>(data) + slice * dest.Height() * sourceRowPitch;
 			const auto &footprint = footprints[slice];
 
 			const uint32_t dstRowPitch = footprint.Footprint.RowPitch;

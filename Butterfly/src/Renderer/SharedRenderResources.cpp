@@ -17,23 +17,19 @@ namespace Butterfly
         whiteTextureDesc.NumMips = 1;
         m_whiteTexture = MakeRef<Texture>(whiteTextureDesc);
 
+        const std::filesystem::path brdfLUTPath = FileSystem::EngineAssetDirectory() / "LUT/BRDFLUT.bin";
+        const std::vector<uint8_t> pixels = FileSystem::ReadBinary(brdfLUTPath);
 
-		int channels, width, height = 0;
-        const std::filesystem::path brdfLUTPath = FileSystem::EngineAssetDirectory() / "LUT/BRDFLUT.png";
-		stbi_uc* pixels = stbi_load(brdfLUTPath.string().c_str(), &width, &height, &channels, 4);
-        
 		TextureDesc brdfLUTDesc;
-		brdfLUTDesc.Width = static_cast<uint32_t>(width);
-		brdfLUTDesc.Height = static_cast<uint32_t>(height);
+		brdfLUTDesc.Width = 256;
+		brdfLUTDesc.Height = 256;
 		brdfLUTDesc.DebugName = "BRDFLUT";
 		brdfLUTDesc.ViewTypes = TextureDesc::ViewType::ShaderResource;
-		brdfLUTDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		brdfLUTDesc.Format = DXGI_FORMAT_R16G16_FLOAT;
 		brdfLUTDesc.NumMips = 1;
 
         m_brdfLUT = MakeRef<Texture>(brdfLUTDesc);
-		GraphicsCommands::UploadTextureResource(*m_brdfLUT, pixels);
-        
-		stbi_image_free(pixels);
+		GraphicsCommands::UploadTextureResource(*m_brdfLUT, pixels, false);
     }
 
     SharedRenderResources::~SharedRenderResources()

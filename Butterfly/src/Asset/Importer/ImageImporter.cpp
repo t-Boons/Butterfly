@@ -69,7 +69,7 @@ namespace Butterfly
 		RefPtr<TextureAsset> textureAsset = MakeRef<TextureAsset>();
 		textureAsset->Texture = MakeRef<Texture>(textureDesc);
 
-		GraphicsCommands::UploadTextureResource(*textureAsset->Texture, pixels);
+		GraphicsCommands::UploadTextureResource(*textureAsset->Texture, pixels, width * height * GetBytesPerPixel(format));
 
 		manager.AddAssetEntry<TextureAsset>(AssetEntry{ meta.RootAssetID, TextureAsset::Type(), StaticCastRef<void>(textureAsset) });
 

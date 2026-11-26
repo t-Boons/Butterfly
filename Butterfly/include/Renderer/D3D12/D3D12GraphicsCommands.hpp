@@ -22,7 +22,13 @@ namespace Butterfly
 		static RefPtr<Texture> CreateSDF(const std::vector<SDFTriangle>& triangleBuffer, const AABB& bounds, const glm::uvec3& resolution);
 		static void Blit(D3D12CommandList& list, Texture& src, Texture& dst);
 		static void GenerateMips(D3D12CommandList& list, Texture& texture, uint32_t face = 0);
-		static void UploadTextureResource(Texture& dest, const void* data, bool generateMips = true);
+
+		static void UploadTextureResource(Texture& dest, const void* data, uint32_t dataSize, bool generateMips = true);
+		static void UploadTextureResource(Texture& dest, const std::vector<uint8_t>& data, bool generateMips = true)
+		{
+			UploadTextureResource(dest, data.data(), static_cast<uint32_t>(data.size()), generateMips);
+		}
+		
 		static void UploadTextureCubeResource(Texture& dest, const std::array<Texture*, 6>& cubemapFacesSource, bool generateMips = true);
 		static void GenerateIrradiance(Texture& cubemapAtmosphere, Texture& irradiance, uint32_t size);
 
