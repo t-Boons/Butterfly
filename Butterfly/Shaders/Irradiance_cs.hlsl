@@ -9,20 +9,6 @@ struct Indices
 
 ConstantBuffer<Indices> resources : register(b0);
 
-float3 GetDirection(uint face, float2 uv)
-{
-    uv = uv * 2.0f - 1.0f;
-    switch (face)
-    {
-        case 0:  return normalize(float3( 1.0f, -uv.y, -uv.x)); // +X
-        case 1:  return normalize(float3(-1.0f, -uv.y,  uv.x)); // -X
-        case 2:  return normalize(float3( uv.x,  1.0f,  uv.y)); // +Y
-        case 3:  return normalize(float3( uv.x, -1.0f, -uv.y)); // -Y
-        case 4:  return normalize(float3( uv.x, -uv.y,  1.0f)); // +Z
-        default: return normalize(float3(-uv.x, -uv.y, -1.0f)); // -Z
-    }
-}
-
 [numthreads(8, 8, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {

@@ -2,6 +2,26 @@
 
 #include "Common.hlsli"
 
+float2 Hammersley(uint i, uint n)
+{
+    return float2(float(i) / float(n), reversebits(i) * 2.3283064365386963e-10f);
+}
+
+float3 ImportanceSampleGGX(float2 xi, float3 N, float alphaRoughness)
+{
+    float a = alphaRoughness;
+    float phi = 2.0f * PI * xi.x;
+    float cosTheta = sqrt((1.0f - xi.y) / (1.0f + (a * a - 1.0f) * xi.y));
+    float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+
+    float3 H = float3(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
+
+    float3 up = abs(N.z) < 0.999f ? float3(0, 0, 1) : float3(1, 0, 0);
+    float3 right = normalize(cross(up, N));
+    up = cross(N, right);
+    return normalize(right * H.x + up * H.y + N * H.z);
+}
+
 float3 F_Schlick(float3 F0, float VoH)
 {
     return F0 + (1.0 - F0) * pow(1.0 - VoH, 5.0);

@@ -14,6 +14,8 @@ struct BufferIndices
 
     int skyboxTextureIndex;
     int irradianceTextureIndex;
+    int prefilterTextureIndex;
+    int brdfLUTTextureIndex;
 
     int sdfSamplerIndex;
     int blockerSamplerIndex;

@@ -54,7 +54,6 @@ namespace Butterfly
 				return;
 			};
 
-
 			TextureDesc desc;
 			desc.Width = width;
 			desc.Height = height;
@@ -126,6 +125,19 @@ namespace Butterfly
 			m_irradianceTexture = MakeRef<Texture>(irradianceDesc);
 
 			GraphicsCommands::GenerateIrradiance(*m_skyboxTexture, *m_irradianceTexture, 32);
+
+			TextureDesc prefilterDesc;
+			prefilterDesc.Format = format;
+			prefilterDesc.Dimension = TextureDimension::Texture2D;
+			prefilterDesc.Width = 256;
+			prefilterDesc.Height = 256;
+			prefilterDesc.ArraySize = 6;
+			prefilterDesc.NumMips = 6;
+			prefilterDesc.ViewTypes = TextureDesc::ShaderResource | TextureDesc::UnorderedAccess;
+			prefilterDesc.DebugName = "SkyboxPrefilter";
+			m_prefilterTexture = MakeRef<Texture>(prefilterDesc);
+
+			GraphicsCommands::GeneratePrefilter(*m_skyboxTexture, *m_prefilterTexture);
 		}
 	}
 
@@ -133,6 +145,7 @@ namespace Butterfly
 	{
 		m_skyboxTexture.reset();
 		m_irradianceTexture.reset();
+		m_prefilterTexture.reset();
 	}
 
 	void SkyboxRenderPipelineStage::OnRecordPass(const ViewportRenderEvent& ev)
@@ -148,6 +161,7 @@ namespace Butterfly
 		SkyboxPassParams* params = builder.AllocParameters<SkyboxPassParams>();
 		params->SkyboxTexture = m_skyboxTexture.get();
 		params->IrradianceTexture = m_irradianceTexture.get();
+		params->PrefilterTexture = m_prefilterTexture.get();
 
 		builder.AddPass<SkyboxPassParams>("Skybox",
 			[viewport, this](const SkyboxPassParams& params, D3D12CommandList& list)

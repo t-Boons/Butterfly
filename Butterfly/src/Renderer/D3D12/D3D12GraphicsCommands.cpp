@@ -205,7 +205,7 @@ namespace Butterfly
 
 		D3D12API()->Device()->GetCopyableFootprints(&textureDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
 
-		BF_CORE_ASSERT(dataSize == totalSize, "Provided data is different than the required texture size");
+		BF_CORE_ASSERT(dataSize == GetBytesPerPixel(dest.Format()) * dest.Width() * dest.Height(), "Provided data is different than the required texture size");
 
 		D3D12Resource *uploadResource = new D3D12Resource(
 			D3D12ResourceDescription::Buffer(totalSize)
@@ -347,6 +347,52 @@ namespace Butterfly
 
 		list.EndComputePass();
 
+		list.Close();
+
+		D3D12API()->Queue(QueueType::Direct)->Execute(list);
+		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
+	}
+
+	void GraphicsCommands::GeneratePrefilter(Texture& cubemapAtmosphere, Texture& prefilter)
+	{
+		BF_PROFILE_EVENT();
+
+		BF_CORE_ASSERT(prefilter.Width() == prefilter.Height(), "Prefilter faces must be square: %s", prefilter.DebugName().c_str());
+		BF_CORE_ASSERT(prefilter.ArraySize() == 6, "Prefilter must be a cubemap (6 slices): %s", prefilter.DebugName().c_str());
+		BF_CORE_ASSERT(cubemapAtmosphere.ViewTypes() & TextureDesc::ViewType::ShaderResource, "Source texture must have the ShaderResource flag set: %s", cubemapAtmosphere.DebugName().c_str());
+		BF_CORE_ASSERT(prefilter.ViewTypes() & TextureDesc::ViewType::UnorderedAccess, "Destination texture must have the UnorderedAccess flag set: %s", prefilter.DebugName().c_str());
+
+		const uint32_t baseSize   = prefilter.Width();
+		const uint32_t mipCount   = prefilter.NumMips();
+		const float sourceSize = static_cast<float>(cubemapAtmosphere.Width());
+
+		D3D12CommandList list;
+
+		list.StartComputePass("GeneratePrefilter: " + cubemapAtmosphere.DebugName() + " -> " + prefilter.DebugName());
+
+		ComputePSOInfo psoInfo;
+		psoInfo.ComputeShader = ShaderCache::GetOrCreate("Prefilter_cs.hlsl");
+		list.SetComputePSO(psoInfo);
+
+		for (uint32_t mip = 0; mip < mipCount; ++mip)
+		{
+			const uint32_t size = std::max(1u, baseSize >> mip);
+			const float roughness = mipCount > 1 ? static_cast<float>(mip) / static_cast<float>(mipCount - 1) : 0.0f;
+
+			ShaderVariableBuilder(list)
+				.Add(cubemapAtmosphere.SRV(SRVTextureViewInfo::Cubemap()))
+				.Add(prefilter.UAV(UAVTextureViewInfo::Texture2DArray().Mip(mip)))
+				.Add(SamplerCache::GetOrCreate(SamplerDesc::LinearClamp()))
+				.Add(std::bit_cast<uint32_t>(roughness))
+				.Add(std::bit_cast<uint32_t>(sourceSize))
+				.Submit();
+
+			list.Dispatch((size + 7) / 8, (size + 7) / 8, 6);
+		}
+
+		prefilter.Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+		list.EndComputePass();
 		list.Close();
 
 		D3D12API()->Queue(QueueType::Direct)->Execute(list);

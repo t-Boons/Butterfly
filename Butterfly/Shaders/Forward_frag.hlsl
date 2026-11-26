@@ -18,6 +18,8 @@ struct BufferIndices
 
     int skyboxTextureIndex;
     int irradianceTextureIndex;
+    int prefilterTextureIndex;
+    int brdfLUTTextureIndex;
 
     int sdfSamplerIndex;
     int blockerSamplerIndex;
@@ -39,9 +41,30 @@ struct BufferIndices
         return irradianceTexture.Sample(linearClamp, dir);
     }
 
-    TextureCube<float4> GetSkyboxTexture()
+    float4 SampleSkyboxTexture(float3 dir)
     {
-        return ResourceDescriptorHeap[skyboxTextureIndex];
+        TextureCube<float4> skyboxTexture = ResourceDescriptorHeap[skyboxTextureIndex];
+        SamplerState linearClamp = SamplerDescriptorHeap[sdfSamplerIndex];
+        return skyboxTexture.Sample(linearClamp, dir);
+    }
+
+    TextureCube<float4> GetPrefilterTexture()
+    {
+        return ResourceDescriptorHeap[prefilterTextureIndex];
+    }
+
+    float4 SamplePrefilterTexture(float3 dir, float mipLevel)
+    {
+        TextureCube<float4> prefilterTexture = ResourceDescriptorHeap[prefilterTextureIndex];
+        SamplerState linearClamp = SamplerDescriptorHeap[sdfSamplerIndex];
+        return prefilterTexture.SampleLevel(linearClamp, dir, mipLevel);
+    }
+
+    float2 SampleBrdfLUTTexture(float2 uv)
+    {
+        Texture2D<float2> brdfLUTTexture = ResourceDescriptorHeap[brdfLUTTextureIndex];
+        SamplerState linearClamp = SamplerDescriptorHeap[sdfSamplerIndex];
+        return brdfLUTTexture.Sample(linearClamp, uv);
     }
 };
 
@@ -237,7 +260,19 @@ float4 main(V2P pixelInput) : SV_TARGET0
     if(resources.irradianceTextureIndex >= 0)
     {
         float3 irradiance = resources.SampleIrradianceTexture(surface.Normal).rgb;
-        lighting = irradiance * surface.Albedo.rgb;
+        float3 diffuse = kD * irradiance * surface.Albedo.rgb;
+
+        uint pw, ph, mipCount;
+        resources.GetPrefilterTexture().GetDimensions(0, pw, ph, mipCount);
+
+        float3 viewDIr = normalize(uniforms.Position - pixelInput.fragPos);
+        float3 reflected = reflect(-viewDIr, surface.Normal);
+
+        float3 prefiltered = resources.SamplePrefilterTexture(reflected, surface.Roughness * (mipCount - 1)).rgb;
+        float2 brdf = resources.SampleBrdfLUTTexture(float2(surface.NoV, surface.Roughness)).rg;
+        float3 specular = prefiltered * (F * brdf.x + brdf.y);
+
+        lighting = diffuse + specular;
     }
     else
     {

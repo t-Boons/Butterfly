@@ -22,6 +22,7 @@ namespace Butterfly
 	{
 		Texture* SkyboxTexture;
 		Texture* IrradianceTexture;
+		Texture* PrefilterTexture;
 	};
 
 
@@ -38,6 +39,7 @@ namespace Butterfly
 		bool IsSkyboxLoaded() const { return m_skyboxTexture != nullptr; }
 		RefPtr<Texture> m_skyboxTexture;
 		RefPtr<Texture> m_irradianceTexture;
+		RefPtr<Texture> m_prefilterTexture;
 		int m_skyboxVersion = -1;
 	};
 }

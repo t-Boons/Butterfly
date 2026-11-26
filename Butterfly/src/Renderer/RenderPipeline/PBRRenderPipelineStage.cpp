@@ -9,6 +9,7 @@
 #include "Renderer/Camera.hpp"
 #include "Renderer/Material.hpp"
 #include "Renderer/Light.hpp"
+#include "Renderer/SharedRenderResources.hpp"
 
 #include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"
 #include "Renderer/RenderPipeline/ShadowRenderPipelineStage.hpp"
@@ -29,17 +30,19 @@ namespace Butterfly
 
 		int skyboxTextureViewIndex = -1;
 		int irradianceTextureViewIndex = -1;
+		int prefilterTextureViewIndex = -1;
 		if (SkyboxPassParams* skyboxParams = builder.GetPassData<ForwardRenderer, SkyboxPassParams>())
 		{
 			if (skyboxParams->SkyboxTexture)
 			{
 				skyboxTextureViewIndex = skyboxParams->SkyboxTexture->SRV(SRVTextureViewInfo::Cubemap()).GetViewIndex();
 				irradianceTextureViewIndex = skyboxParams->IrradianceTexture->SRV(SRVTextureViewInfo::Cubemap()).GetViewIndex();
+				prefilterTextureViewIndex = skyboxParams->PrefilterTexture->SRV(SRVTextureViewInfo::Cubemap()).GetViewIndex();
 			}
 		}
 
 		builder.AddPass<ForwardRenderer>("Forward Model",
-			[this, viewport, skyboxTextureViewIndex, irradianceTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
+			[this, viewport, skyboxTextureViewIndex, irradianceTextureViewIndex, prefilterTextureViewIndex](const ForwardRenderer& params, D3D12CommandList& list)
 			{
 				BF_PROFILE_EVENT_DYNAMIC("Forward Model pass");
 
@@ -112,6 +115,8 @@ namespace Butterfly
 
 					.Add(skyboxTextureViewIndex)
 					.Add(irradianceTextureViewIndex)
+					.Add(prefilterTextureViewIndex)
+					.Add(Application::Get().GetRenderer().GetSharedRenderResources().GetBRDFLUT()->SRV(SRVTextureViewInfo::Texture2D()))
 
 					.Add(SamplerCache::GetOrCreate(SamplerDesc::LinearClamp()))
 					.Add(SamplerCache::GetOrCreate(SamplerDesc::LinearBorder()))

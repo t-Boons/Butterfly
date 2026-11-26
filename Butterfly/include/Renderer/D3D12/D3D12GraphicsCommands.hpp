@@ -31,6 +31,7 @@ namespace Butterfly
 		
 		static void UploadTextureCubeResource(Texture& dest, const std::array<Texture*, 6>& cubemapFacesSource, bool generateMips = true);
 		static void GenerateIrradiance(Texture& cubemapAtmosphere, Texture& irradiance, uint32_t size);
+		static void GeneratePrefilter(Texture& cubemapAtmosphere, Texture& prefilter);
 
 		static void EquirectangularToCubemap(D3D12CommandList& list, Texture& equirectangular, Texture& cubemap);
 		static void SetFullscreenViewportAndRect(D3D12CommandList& list, uint32_t width, uint32_t height);
