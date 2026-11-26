@@ -14,27 +14,27 @@
 
 namespace Butterfly
 {
-	RefPtr<BFTexture> GraphicsCommands::CreateSDF(const std::vector<SDFTriangle>& triangleBuffer, const BFAABB& bounds, const glm::uvec3& resolution)
+	RefPtr<Texture> GraphicsCommands::CreateSDF(const std::vector<SDFTriangle>& triangleBuffer, const AABB& bounds, const glm::uvec3& resolution)
 	{
 		BF_PROFILE_EVENT()
 			
-		BFTextureDesc sdfDesc;
+		TextureDesc sdfDesc;
 		sdfDesc.Width = resolution.x;
 		sdfDesc.Height = resolution.y;
 		sdfDesc.Depth = resolution.z;
 		sdfDesc.Format = DXGI_FORMAT_R16_FLOAT;
-		sdfDesc.ViewTypes = BFTextureDesc::ViewType::ShaderResource | BFTextureDesc::ViewType::UnorderedAccess;
+		sdfDesc.ViewTypes = TextureDesc::ViewType::ShaderResource | TextureDesc::ViewType::UnorderedAccess;
 		sdfDesc.DebugName = "SDF";
-		sdfDesc.Dimention = BFTextureDimention::Texture3D;
-		RefPtr<BFTexture> outSDF = MakeRef<BFTexture>(sdfDesc);
+		sdfDesc.Dimension = TextureDimension::Texture3D;
+		RefPtr<Texture> outSDF = MakeRef<Texture>(sdfDesc);
 
-		BFStructuredBufferDesc triangleBufferDesc;
+		StructuredBufferDesc triangleBufferDesc;
 		triangleBufferDesc.Data = reinterpret_cast<void*>(const_cast<SDFTriangle*>(triangleBuffer.data()));
 		triangleBufferDesc.NumElements = static_cast<uint32_t>(triangleBuffer.size());
 		triangleBufferDesc.Stride = sizeof(SDFTriangle);
 		triangleBufferDesc.DebugName = "SDF Triangles";
-		triangleBufferDesc.HeapType = BFHeapType::Default;
-		RefPtr<BFStructuredBuffer> triangleBufferGpu = MakeRef<BFStructuredBuffer>(triangleBufferDesc);
+		triangleBufferDesc.HeapType = HeapType::Default;
+		RefPtr<StructuredBuffer> triangleBufferGpu = MakeRef<StructuredBuffer>(triangleBufferDesc);
 
 		struct SDFUniformData
 		{
@@ -46,7 +46,7 @@ namespace Butterfly
 			uint32_t NumTriangles;
 		};
 
-		BFTypedConstantBuffer<SDFUniformData> sdfUniformBuffer;
+		TypedConstantBuffer<SDFUniformData> sdfUniformBuffer;
 		sdfUniformBuffer.Data.MinBounds = bounds.Min;
 		sdfUniformBuffer.Data.MaxBounds = bounds.Max;
 		sdfUniformBuffer.Data.Resolution = glm::uvec3(outSDF->Width(), outSDF->Height(), outSDF->Depth());
@@ -57,11 +57,11 @@ namespace Butterfly
 
 		list.StartComputePass("CreateSDF");
 
-		BFComputePSOInfo pso;
-		pso.ComputeShader = BFShaderCache::GetOrCreate("CreateSDF_cs.hlsl");
+		ComputePSOInfo pso;
+		pso.ComputeShader = ShaderCache::GetOrCreate("CreateSDF_cs.hlsl");
 
-		BFShaderVariableBuilder(list)
-			.Add(outSDF->UAV(BFUAVTextureViewInfo::Texture3D()))
+		ShaderVariableBuilder(list)
+			.Add(outSDF->UAV(UAVTextureViewInfo::Texture3D()))
 			.Add(triangleBufferGpu->SRV())
 			.Add(sdfUniformBuffer.CBV())
 			.Submit();
@@ -79,30 +79,30 @@ namespace Butterfly
 		return outSDF;
 	}
 
-	void GraphicsCommands::Blit(D3D12CommandList& list, BFTexture& src, BFTexture& dst)
+	void GraphicsCommands::Blit(D3D12CommandList& list, Texture& src, Texture& dst)
 	{
 		BF_PROFILE_EVENT()
 
-		BF_CORE_ASSERT(src.Desc().Width == dst.Desc().Width && src.Desc().Height == dst.Desc().Height, "Source and destination textures must have the same dimensions for blitting: %s -> %s", src.Desc().DebugName.c_str(), dst.Desc().DebugName.c_str());
-		BF_CORE_ASSERT(src.Desc().ViewTypes & BFTextureDesc::ViewType::ShaderResource, "Source texture must have the ShaderResource flag set: %s", src.Desc().DebugName.c_str());
-		BF_CORE_ASSERT(dst.Desc().ViewTypes & BFTextureDesc::ViewType::RenderTargettable, "Destination texture must have the RenderTargettable flag set: %s", dst.Desc().DebugName.c_str());
+		BF_CORE_ASSERT(src.Width() == dst.Width() && src.Height() == dst.Height(), "Source and destination textures must have the same dimensions for blitting: %s -> %s", src.DebugName().c_str(), dst.DebugName().c_str());
+		BF_CORE_ASSERT(src.ViewTypes() & TextureDesc::ViewType::ShaderResource, "Source texture must have the ShaderResource flag set: %s", src.DebugName().c_str());
+		BF_CORE_ASSERT(dst.ViewTypes() & TextureDesc::ViewType::RenderTargetable, "Destination texture must have the RenderTargetable flag set: %s", dst.DebugName().c_str());
 		
 		RasterPassStartInfo info;
 		info.RenderTarget = &dst;
 		info.RenderTargetLoadOp = LoadOP::Load;
-		list.StartRenderPass(info, "Blit: " + src.Desc().DebugName + " -> " + dst.Desc().DebugName);
+		list.StartRenderPass(info, "Blit: " + src.DebugName() + " -> " + dst.DebugName());
 
 		list.SetViewport(RenderViewport::FromTexture(dst));
-		BFGraphicsPSOInfo psoInfo;
-		psoInfo.VertexShader = BFShaderCache::GetOrCreate("Fullscreen_vert.hlsl");
-		psoInfo.PixelShader = BFShaderCache::GetOrCreate("Blit_frag.hlsl");
+		GraphicsPSOInfo psoInfo;
+		psoInfo.VertexShader = ShaderCache::GetOrCreate("Fullscreen_vert.hlsl");
+		psoInfo.PixelShader = ShaderCache::GetOrCreate("Blit_frag.hlsl");
 		psoInfo.DepthStencil.EnableDepth = false;
 		psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_NONE;
 
 		list.SetGraphicsPSO(psoInfo);
 
-		BFShaderVariableBuilder(list)
-			.Add(src.SRV(BFSRVTextureViewInfo::Texture2D()))
+		ShaderVariableBuilder(list)
+			.Add(src.SRV(SRVTextureViewInfo::Texture2D()))
 			.Submit();
 
 
@@ -110,27 +110,25 @@ namespace Butterfly
 		list.EndRenderPass();
 	}
 
-	void GraphicsCommands::GenerateMips(D3D12CommandList& list, BFTexture& texture, uint32_t face)
+	void GraphicsCommands::GenerateMips(D3D12CommandList& list, Texture& texture, uint32_t face)
 	{
 		BF_PROFILE_EVENT()
 
-		list.StartComputePass("Generate Mips: " + texture.Desc().DebugName);
+		list.StartComputePass("Generate Mips: " + texture.DebugName());
 
-		BFComputePSOInfo psoInfo;
-		psoInfo.ComputeShader = BFShaderCache::GetOrCreate("Mip_cs.hlsl");
+		ComputePSOInfo psoInfo;
+		psoInfo.ComputeShader = ShaderCache::GetOrCreate("Mip_cs.hlsl");
 
 		list.SetComputePSO(psoInfo);
 
-		const BFTextureDesc desc = texture.Desc();
-
-		for (uint32_t mip = 1; mip < desc.NumMips; mip++)
+		for (uint32_t mip = 1; mip < texture.NumMips(); mip++)
 		{
-			const uint32_t width = std::max(1u, desc.Width >> mip);
-			const uint32_t height = std::max(1u, desc.Height >> mip);
+			const uint32_t width = std::max(1u, texture.Width() >> mip);
+			const uint32_t height = std::max(1u, texture.Height() >> mip);
 
-			BFShaderVariableBuilder(list)
-				.Add(texture.SRV(BFSRVTextureViewInfo::Texture2DArray().Mips(mip - 1, 1).Slices(face, 1)))
-				.Add(texture.UAV(BFUAVTextureViewInfo::Texture2DArray().Mip(mip).Slices(face, 1)))
+			ShaderVariableBuilder(list)
+				.Add(texture.SRV(SRVTextureViewInfo::Texture2DArray().Mips(mip - 1, 1).Slices(face, 1)))
+				.Add(texture.UAV(UAVTextureViewInfo::Texture2DArray().Mip(mip).Slices(face, 1)))
 				.Add(width)
 				.Add(height)
 				.Submit();
@@ -141,26 +139,26 @@ namespace Butterfly
 		list.EndComputePass();
 	}
 
-	void GraphicsCommands::EquirectangularToCubemap(D3D12CommandList& list, BFTexture& equirectangular, BFTexture& cubemap)
+	void GraphicsCommands::EquirectangularToCubemap(D3D12CommandList& list, Texture& equirectangular, Texture& cubemap)
 	{
 		BF_PROFILE_EVENT()
 
-		BF_CORE_ASSERT(equirectangular.ViewTypes() & BFTextureDesc::ViewType::ShaderResource, "Source texture must have the ShaderResource flag set: %s", equirectangular.Desc().DebugName.c_str());
-		BF_CORE_ASSERT(cubemap.ViewTypes() & BFTextureDesc::ViewType::UnorderedAccess, "Destination texture must have the RenderTargettable flag set: %s", cubemap.Desc().DebugName.c_str());
-		BF_CORE_ASSERT(cubemap.Height() == cubemap.Width(), "Cubemap texture must be square: %s", cubemap.Desc().DebugName.c_str());
-		BF_CORE_ASSERT(cubemap.Height() == equirectangular.Height(), "Cubemap texture must have the same height as the equirectangular texture: %s -> %s", equirectangular.Desc().DebugName.c_str(), cubemap.Desc().DebugName.c_str());
+		BF_CORE_ASSERT(equirectangular.ViewTypes() & TextureDesc::ViewType::ShaderResource, "Source texture must have the ShaderResource flag set: %s", equirectangular.DebugName().c_str());
+		BF_CORE_ASSERT(cubemap.ViewTypes() & TextureDesc::ViewType::UnorderedAccess, "Destination texture must have the RenderTargetable flag set: %s", cubemap.DebugName().c_str());
+		BF_CORE_ASSERT(cubemap.Height() == cubemap.Width(), "Cubemap texture must be square: %s", cubemap.DebugName().c_str());
+		BF_CORE_ASSERT(cubemap.Height() == equirectangular.Height(), "Cubemap texture must have the same height as the equirectangular texture: %s -> %s", equirectangular.DebugName().c_str(), cubemap.DebugName().c_str());
 
 		list.StartComputePass("EquirectangularToCubemap");
 
-		const uint32_t cubemapSize = cubemap.Desc().Height;
-		BFComputePSOInfo pso;
-		pso.ComputeShader = BFShaderCache::GetOrCreate("EquirectangularToCubemap_cs.hlsl");
+		const uint32_t cubemapSize = cubemap.Height();
+		ComputePSOInfo pso;
+		pso.ComputeShader = ShaderCache::GetOrCreate("EquirectangularToCubemap_cs.hlsl");
 
 
-		BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
-		BFShaderVariableBuilder(list)
-			.Add(equirectangular.SRV(BFSRVTextureViewInfo::Texture2D()))
-			.Add(cubemap.UAV(BFUAVTextureViewInfo::Texture2DArray()))
+		Sampler& smp = SamplerCache::GetOrCreate(SamplerDesc::LinearWrap());
+		ShaderVariableBuilder(list)
+			.Add(equirectangular.SRV(SRVTextureViewInfo::Texture2D()))
+			.Add(cubemap.UAV(UAVTextureViewInfo::Texture2DArray()))
 			.Add(smp)
 			.Add(cubemap.Height())
 			.Submit();
@@ -190,7 +188,7 @@ namespace Butterfly
 		list.List()->RSSetViewports(1, &vp);
 	}
 
-	void GraphicsCommands::UploadTextureResource(BFTexture &dest, const void *data, bool generateMips)
+	void GraphicsCommands::UploadTextureResource(Texture &dest, const void *data, bool generateMips)
 	{
 		BF_CORE_ASSERT(data, "If you want to copy data from CPU, you need to provide data");
 
@@ -261,11 +259,11 @@ namespace Butterfly
 		delete uploadResource;
 	}
 
-	void GraphicsCommands::UploadTextureCubeResource(BFTexture &dest, const std::array<BFTexture *, 6> &cubemapFacesSource, bool generateMips)
+	void GraphicsCommands::UploadTextureCubeResource(Texture &dest, const std::array<Texture *, 6> &cubemapFacesSource, bool generateMips)
 	{
 		BF_PROFILE_EVENT();
 
-		BF_CORE_ASSERT(dest.ArraySize() == 6, "Destination cubemap must have 6 faces: %s", dest.Desc().DebugName.c_str());
+		BF_CORE_ASSERT(dest.ArraySize() == 6, "Destination cubemap must have 6 faces: %s", dest.DebugName().c_str());
 
 		D3D12CommandList list;
 
@@ -314,29 +312,29 @@ namespace Butterfly
 		D3D12API()->Queue(QueueType::Direct)->WaitForFence();
 	}
 
-	void GraphicsCommands::GenerateIrradiance(BFTexture& cubemapAtmosphere, BFTexture& irradiance, uint32_t size)
+	void GraphicsCommands::GenerateIrradiance(Texture& cubemapAtmosphere, Texture& irradiance, uint32_t size)
 	{
 		BF_PROFILE_EVENT();
 
 		BF_CORE_ASSERT(size == irradiance.Width(), "Irradiance size must be equal to the specified size: %d", size);
 		BF_CORE_ASSERT(size == irradiance.Height(), "Irradiance size must be equal to the specified size: %d", size);
-		BF_CORE_ASSERT(cubemapAtmosphere.ArraySize() == irradiance.ArraySize(), "Source and destination textures must have the same dimensions: %s -> %s", cubemapAtmosphere.Desc().DebugName.c_str(), irradiance.Desc().DebugName.c_str());
-		BF_CORE_ASSERT(cubemapAtmosphere.Desc().ViewTypes & BFTextureDesc::ViewType::ShaderResource, "Source texture must have the ShaderResource flag set: %s", cubemapAtmosphere.Desc().DebugName.c_str());
-		BF_CORE_ASSERT(irradiance.Desc().ViewTypes & BFTextureDesc::ViewType::UnorderedAccess, "Destination texture must have the UnorderedAccess flag set: %s", irradiance.Desc().DebugName.c_str());
+		BF_CORE_ASSERT(cubemapAtmosphere.ArraySize() == irradiance.ArraySize(), "Source and destination textures must have the same dimensions: %s -> %s", cubemapAtmosphere.DebugName().c_str(), irradiance.DebugName().c_str());
+		BF_CORE_ASSERT(cubemapAtmosphere.ViewTypes() & TextureDesc::ViewType::ShaderResource, "Source texture must have the ShaderResource flag set: %s", cubemapAtmosphere.DebugName().c_str());
+		BF_CORE_ASSERT(irradiance.ViewTypes() & TextureDesc::ViewType::UnorderedAccess, "Destination texture must have the UnorderedAccess flag set: %s", irradiance.DebugName().c_str());
 		
 		D3D12CommandList list;
 
-		list.StartComputePass("GenerateIrradiance: " + cubemapAtmosphere.Desc().DebugName + " -> " + irradiance.Desc().DebugName);
+		list.StartComputePass("GenerateIrradiance: " + cubemapAtmosphere.DebugName() + " -> " + irradiance.DebugName());
 
-		BFComputePSOInfo psoInfo;
-		psoInfo.ComputeShader = BFShaderCache::GetOrCreate("Irradiance_cs.hlsl");
+		ComputePSOInfo psoInfo;
+		psoInfo.ComputeShader = ShaderCache::GetOrCreate("Irradiance_cs.hlsl");
 
 		list.SetComputePSO(psoInfo);
 
-		BFShaderVariableBuilder(list)
-			.Add(cubemapAtmosphere.SRV(BFSRVTextureViewInfo::Cubemap()))
-			.Add(irradiance.UAV(BFUAVTextureViewInfo::Texture2DArray()))
-			.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()))
+		ShaderVariableBuilder(list)
+			.Add(cubemapAtmosphere.SRV(SRVTextureViewInfo::Cubemap()))
+			.Add(irradiance.UAV(UAVTextureViewInfo::Texture2DArray()))
+			.Add(SamplerCache::GetOrCreate(SamplerDesc::LinearClamp()))
 			.Submit();
 
 		list.Dispatch((size + 7) / 8, (size + 7) / 8, 6);

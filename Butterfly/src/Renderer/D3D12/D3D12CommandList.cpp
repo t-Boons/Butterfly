@@ -31,11 +31,11 @@ namespace Butterfly
 		}
 	}
 
-	RenderViewport RenderViewport::FromTexture(const BFTexture& texture)
+	RenderViewport RenderViewport::FromTexture(const Texture& texture)
 	{
 		RenderViewport viewport;
-		viewport.Width = texture.Desc().Width;
-		viewport.Height = texture.Desc().Height;
+		viewport.Width = texture.Width();
+		viewport.Height = texture.Height();
 		return viewport;
 	}
 
@@ -123,7 +123,7 @@ namespace Butterfly
 
 			if (info.RenderTargetLoadOp == LoadOP::Clear)
 			{
-				m_cmdList->ClearRenderTargetView(info.RenderTarget->RTV(BFRTVTextureViewInfo::Texture2D()).Handle(), &info.ClearColor[0], 0, nullptr);
+				m_cmdList->ClearRenderTargetView(info.RenderTarget->RTV(RTVTextureViewInfo::Texture2D()).Handle(), &info.ClearColor[0], 0, nullptr);
 			}
 		}
 
@@ -133,17 +133,17 @@ namespace Butterfly
 
 			if (info.DepthStencilLoadOp == LoadOP::Clear)
 			{
-				m_cmdList->ClearDepthStencilView(info.DepthStencil->DSV(BFDSVTextureViewInfo::Texture2D()).Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, info.DepthValue, 0, 0, nullptr);
+				m_cmdList->ClearDepthStencilView(info.DepthStencil->DSV(DSVTextureViewInfo::Texture2D()).Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, info.DepthValue, 0, 0, nullptr);
 			}
 		}
 	}
 
-	void D3D12CommandList::SetColorTarget(BFTexture& color)
+	void D3D12CommandList::SetColorTarget(Texture& color)
 	{
 		SetColorTargets({ &color });
 	}
 
-	void D3D12CommandList::SetColorTargets(const std::vector<BFTexture*>& color)
+	void D3D12CommandList::SetColorTargets(const std::vector<Texture*>& color)
 	{
 		m_colorTexture.clear();
 		m_colorTextureView.clear();
@@ -151,20 +151,20 @@ namespace Butterfly
 		{
 			c->Resource()->TransitionAll(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			m_colorTexture.push_back(c);
-			m_colorTextureView.push_back(c->RTV(BFRTVTextureViewInfo::Texture2D()).Handle());
+			m_colorTextureView.push_back(c->RTV(RTVTextureViewInfo::Texture2D()).Handle());
 		}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = m_depthStencilTexture ? &m_depthStencilView : nullptr;
 		m_cmdList->OMSetRenderTargets(static_cast<uint32_t>(m_colorTextureView.size()), m_colorTextureView.data(), false, dsvHandle);
 	}
 
-	void D3D12CommandList::SetDepthStencilTarget(BFTexture& depthStencil, uint32_t slice)
+	void D3D12CommandList::SetDepthStencilTarget(Texture& depthStencil, uint32_t slice)
 	{
 		BF_PROFILE_EVENT();
 
 		m_depthStencilTexture = &depthStencil;
 
-		m_depthStencilView = depthStencil.DSV(BFDSVTextureViewInfo::Texture2DArray().Mip(0).Slices(slice, 1)).Handle();
+		m_depthStencilView = depthStencil.DSV(DSVTextureViewInfo::Texture2DArray().Mip(0).Slices(slice, 1)).Handle();
 		depthStencil.Resource()->TransitionAll(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = m_depthStencilTexture ? &m_depthStencilView : nullptr;
 		m_cmdList->OMSetRenderTargets(static_cast<uint32_t>(m_colorTextureView.size()), m_colorTextureView.data(), false, dsvHandle);
@@ -183,32 +183,32 @@ namespace Butterfly
 			m_cmdList->SetComputeRoot32BitConstants(0, numDWords, data, 0);
 	}
 
-	void D3D12CommandList::PrepareForUse(const BFView& view)
+	void D3D12CommandList::PrepareForUse(const View& view)
 	{
 		BF_PROFILE_EVENT();
 
 		view.Resource().TransitionRange(*this, view.RequiredState(), view.SubresourceRange());
 	}
 
-	void D3D12CommandList::ClearRenderTarget(BFTexture& color, const glm::vec4& clearColor)
+	void D3D12CommandList::ClearRenderTarget(Texture& color, const glm::vec4& clearColor)
 	{
 		BF_PROFILE_EVENT();
 
 		color.Resource()->TransitionAll(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		m_cmdList->ClearRenderTargetView(color.RTV(BFRTVTextureViewInfo::Texture2D()).Handle(), &clearColor[0], 0, nullptr);
+		m_cmdList->ClearRenderTargetView(color.RTV(RTVTextureViewInfo::Texture2D()).Handle(), &clearColor[0], 0, nullptr);
 	}
 
-	void D3D12CommandList::ClearDepthStencilTarget(BFTexture& depthStencil, float depthValue, uint8_t stencilValue, uint32_t slice)
+	void D3D12CommandList::ClearDepthStencilTarget(Texture& depthStencil, float depthValue, uint8_t stencilValue, uint32_t slice)
 	{
 		BF_PROFILE_EVENT();
 
 		if(depthStencil.Format() == DXGI_FORMAT_D32_FLOAT)
 		{
-			m_cmdList->ClearDepthStencilView(depthStencil.DSV(BFDSVTextureViewInfo::Texture2DArray().Slices(slice, 1)).Handle(), D3D12_CLEAR_FLAG_DEPTH, depthValue, stencilValue, 0, nullptr);
+			m_cmdList->ClearDepthStencilView(depthStencil.DSV(DSVTextureViewInfo::Texture2DArray().Slices(slice, 1)).Handle(), D3D12_CLEAR_FLAG_DEPTH, depthValue, stencilValue, 0, nullptr);
 		}
 		else
 		{
-			m_cmdList->ClearDepthStencilView(depthStencil.DSV(BFDSVTextureViewInfo::Texture2DArray().Slices(slice, 1)).Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depthValue, stencilValue, 0, nullptr);
+			m_cmdList->ClearDepthStencilView(depthStencil.DSV(DSVTextureViewInfo::Texture2DArray().Slices(slice, 1)).Handle(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depthValue, stencilValue, 0, nullptr);
 		}
 	}
 
@@ -258,7 +258,7 @@ namespace Butterfly
 		EndGPUMarker();
 	}
 
-	void D3D12CommandList::SetGraphicsPSO(const BFGraphicsPSOInfo& pso)
+	void D3D12CommandList::SetGraphicsPSO(const GraphicsPSOInfo& pso)
 	{
 		BF_PROFILE_EVENT();
 
@@ -356,12 +356,12 @@ namespace Butterfly
 
 		pss.BlendDesc = blendDesc;
 
-		const D3D12Pipeline& pipeline = BFPipelineCache::GetOrCreatePipeline(psoHash, &pss);
+		const D3D12Pipeline& pipeline = PipelineCache::GetOrCreatePipeline(psoHash, &pss);
 		m_cmdList->SetPipelineState(pipeline.GetHW());
 
 	}
 
-	void D3D12CommandList::SetComputePSO(const BFComputePSOInfo& pso)
+	void D3D12CommandList::SetComputePSO(const ComputePSOInfo& pso)
 	{
 		BF_PROFILE_EVENT();
 
@@ -377,11 +377,11 @@ namespace Butterfly
 		pss.CS = { pso.ComputeShader->Blob()->GetBufferPointer(), pso.ComputeShader->Blob()->GetBufferSize() };
 		Utils::SumHash(psoHash, static_cast<uint64_t>(pso.ComputeShader->NumBytes()));
 
-		const D3D12Pipeline& pipeline = BFPipelineCache::GetOrCreatePipeline(psoHash, &pss);
+		const D3D12Pipeline& pipeline = PipelineCache::GetOrCreatePipeline(psoHash, &pss);
 		m_cmdList->SetPipelineState(pipeline.GetHW());
 	}
 
-	void D3D12CommandList::SetIndexBuffer(const BFIndexBuffer& buffer)
+	void D3D12CommandList::SetIndexBuffer(const IndexBuffer& buffer)
 	{
 		BF_PROFILE_EVENT();
 

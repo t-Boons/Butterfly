@@ -8,15 +8,15 @@ namespace Butterfly
 {
 	class D3D12CommandList;
 
-	class BFShaderVariableBuilder
+	class ShaderVariableBuilder
 	{
 	public:
-		BFShaderVariableBuilder(D3D12CommandList& list)
+		ShaderVariableBuilder(D3D12CommandList& list)
 		: m_list(list) {}
 
-		BFShaderVariableBuilder& Add(const BFView& view);
-		BFShaderVariableBuilder& Add(const BFSampler& sampler);
-		BFShaderVariableBuilder& Add(int index);
+		ShaderVariableBuilder& Add(const View& view);
+		ShaderVariableBuilder& Add(const Sampler& sampler);
+		ShaderVariableBuilder& Add(int index);
 		void Submit();
 
 	private:

@@ -33,8 +33,8 @@ namespace Butterfly
 		{
 			if (skyboxParams->SkyboxTexture)
 			{
-				skyboxTextureViewIndex = skyboxParams->SkyboxTexture->SRV(BFSRVTextureViewInfo::Cubemap()).View();
-				irradianceTextureViewIndex = skyboxParams->IrradianceTexture->SRV(BFSRVTextureViewInfo::Cubemap()).View();
+				skyboxTextureViewIndex = skyboxParams->SkyboxTexture->SRV(SRVTextureViewInfo::Cubemap()).GetViewIndex();
+				irradianceTextureViewIndex = skyboxParams->IrradianceTexture->SRV(SRVTextureViewInfo::Cubemap()).GetViewIndex();
 			}
 		}
 
@@ -53,15 +53,15 @@ namespace Butterfly
 
 				GraphicsCommands::SetFullscreenViewportAndRect(list, info.RenderTarget->Width(), info.RenderTarget->Height());
 
-				BFGraphicsPSOInfo psoInfo;
+				GraphicsPSOInfo psoInfo;
 				psoInfo.DepthStencil.EnableDepth = true;
 				psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
-				psoInfo.VertexShader = BFShaderCache::GetOrCreate("Forward_vert.hlsl");
-				psoInfo.PixelShader = BFShaderCache::GetOrCreate("Forward_frag.hlsl", {{"USE_PCSS_SHADOWS"}});
+				psoInfo.VertexShader = ShaderCache::GetOrCreate("Forward_vert.hlsl");
+				psoInfo.PixelShader = ShaderCache::GetOrCreate("Forward_frag.hlsl", {{"USE_PCSS_SHADOWS"}});
 
 				list.SetGraphicsPSO(psoInfo);
 
-				BFSamplerDesc pcssSamplerDesc;
+				SamplerDesc pcssSamplerDesc;
 				pcssSamplerDesc.Desc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
 				pcssSamplerDesc.Desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
 				pcssSamplerDesc.Desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
@@ -76,7 +76,7 @@ namespace Butterfly
 				pcssSamplerDesc.Desc.MinLOD = 0.0f;
 				pcssSamplerDesc.Desc.MaxLOD = 0.0f;
 
-				BFSampler& pcssShadowMapSampler = BFSamplerCache::GetOrCreate(pcssSamplerDesc);
+				Sampler& pcssShadowMapSampler = SamplerCache::GetOrCreate(pcssSamplerDesc);
 
 				// TODO make this cleaner. Right now this is only used because all SDF's start as UNORDERED_ACCEASS
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
@@ -103,7 +103,7 @@ namespace Butterfly
 
 					list.SetIndexBuffer(*mesh->GPUIndices);
 
-					BFShaderVariableBuilder(list)
+					ShaderVariableBuilder(list)
 					.Add(viewport.GetRenderData().FrameDataBuffer->CBV())
 
 					.Add(renderObject.ModelDataArrayIndex)
@@ -113,8 +113,8 @@ namespace Butterfly
 					.Add(skyboxTextureViewIndex)
 					.Add(irradianceTextureViewIndex)
 
-					.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearClamp()))
-					.Add(BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearBorder()))
+					.Add(SamplerCache::GetOrCreate(SamplerDesc::LinearClamp()))
+					.Add(SamplerCache::GetOrCreate(SamplerDesc::LinearBorder()))
 					.Add(pcssShadowMapSampler)
 					.Submit();
 

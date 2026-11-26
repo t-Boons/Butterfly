@@ -9,7 +9,7 @@
 namespace Butterfly
 {
 	struct MaterialAsset;
-	struct BFTexture;
+	struct Texture;
 	struct SDF;
 
 	struct MeshAsset
@@ -24,11 +24,11 @@ namespace Butterfly
 		std::vector<glm::vec4> Tangents;
 		std::vector<uint32_t> Indices;
 
-		RefPtr<BFStructuredBuffer> GPUPositions;
-		RefPtr<BFStructuredBuffer> GPUNormals;
-		RefPtr<BFStructuredBuffer> GPUTangents;
-		RefPtr<BFStructuredBuffer> GPUUVs;
-		RefPtr<BFIndexBuffer> GPUIndices;
+		RefPtr<StructuredBuffer> GPUPositions;
+		RefPtr<StructuredBuffer> GPUNormals;
+		RefPtr<StructuredBuffer> GPUTangents;
+		RefPtr<StructuredBuffer> GPUUVs;
+		RefPtr<IndexBuffer> GPUIndices;
 
 
 
@@ -38,7 +38,7 @@ namespace Butterfly
 			uint32_t IndexOffset;
 			uint32_t IndexCount;
 			AssetHandle<MaterialAsset> Material;
-			BFAABB SubBounds;
+			AABB SubBounds;
 		};
 
 		void GenerateSubMeshBounds();
@@ -46,14 +46,14 @@ namespace Butterfly
 		const std::vector<SubMesh>& GetSubMeshes() const { return m_subMeshes; }
 		void AddSubMesh(const SubMesh& subMesh) { m_subMeshes.push_back(subMesh); }
 
-		BFAABB GetBounds() const { return m_meshBounds; }
+		AABB GetBounds() const { return m_meshBounds; }
 		const RefPtr<SDF>& GetSDF() const { return m_sdf; }
 
 		void LoadToGPU();
 
 	private:
 		std::vector<SubMesh> m_subMeshes;
-		BFAABB m_meshBounds;
+		AABB m_meshBounds;
 
 		bool m_gpuLoaded = false;
 		bool m_createSDF = false;
@@ -63,24 +63,24 @@ namespace Butterfly
 	struct SDF
 	{
 	public:
-		void GenerateSDF(const std::vector<glm::vec3>& positions, const std::vector<uint32_t>& indices, const std::vector<MeshAsset::SubMesh>& subMeshes, const BFAABB& meshBounds);
+		void GenerateSDF(const std::vector<glm::vec3>& positions, const std::vector<uint32_t>& indices, const std::vector<MeshAsset::SubMesh>& subMeshes, const AABB& meshBounds);
 
-		const RefPtr<BFTexture>& GetSDFTexture() const { return m_sdf; }
+		const RefPtr<Texture>& GetSDFTexture() const { return m_sdf; }
 		const glm::vec3& GetSDFResolution() const { return m_sdfResolution; }
-		const BFAABB& GetSDFBounds() const { return m_sdfBounds; }
+		const AABB& GetSDFBounds() const { return m_sdfBounds; }
 
 	private:
-		RefPtr<BFTexture> m_sdf;
+		RefPtr<Texture> m_sdf;
 		glm::vec3 m_sdfResolution;
-		BFAABB m_sdfBounds;
+		AABB m_sdfBounds;
 	};
 
 
 	struct TextureAsset
 	{
 		inline static const AssetType Type() { return { "Texture" }; }
-		RefPtr<BFTexture> Texture;
-		BFSamplerDesc Sampler;
+		RefPtr<Texture> Texture;
+		SamplerDesc Sampler;
 	};
 
 	struct ModelNode

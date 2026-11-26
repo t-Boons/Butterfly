@@ -3,7 +3,7 @@
 
 namespace Butterfly
 {
-	void SDF::GenerateSDF(const std::vector<glm::vec3>& positions, const std::vector<uint32_t>& indices, const std::vector<MeshAsset::SubMesh>& subMeshes, const BFAABB& meshBounds)
+	void SDF::GenerateSDF(const std::vector<glm::vec3>& positions, const std::vector<uint32_t>& indices, const std::vector<MeshAsset::SubMesh>& subMeshes, const AABB& meshBounds)
 	{
 		const glm::vec3 padding = meshBounds.GetSize() * 0.5f * 0.2f; // 20% of the size;
 		m_sdfBounds.Min = meshBounds.Min - padding;
@@ -35,10 +35,10 @@ namespace Butterfly
 	
 	void MeshAsset::GenerateSubMeshBounds()
 	{
-		m_meshBounds = BFAABB();
+		m_meshBounds = AABB();
 		for (auto& subMesh : m_subMeshes)
 		{
-			subMesh.SubBounds = BFAABB();
+			subMesh.SubBounds = AABB();
 			for (uint32_t i = 0; i < subMesh.IndexCount; ++i)
 			{
 				uint32_t index = Indices[subMesh.IndexOffset + i];
@@ -62,11 +62,11 @@ namespace Butterfly
 
 		GenerateSubMeshBounds();
 
-		GPUIndices = RefPtr<BFIndexBuffer>(new BFIndexBuffer(Indices.data(), static_cast<uint32_t>(Indices.size()), DXGI_FORMAT_R32_UINT, "Indices"));
+		GPUIndices = RefPtr<IndexBuffer>(new IndexBuffer(Indices.data(), static_cast<uint32_t>(Indices.size()), DXGI_FORMAT_R32_UINT, "Indices"));
 
 
-		BFStructuredBufferDesc desc;
-		desc.HeapType = BFHeapType::Default;
+		StructuredBufferDesc desc;
+		desc.HeapType = HeapType::Default;
 
 		{
 			desc.Data = Positions.data();
@@ -74,7 +74,7 @@ namespace Butterfly
 			desc.Stride = sizeof(glm::vec3);
 			desc.DebugName = "Positions";
 
-			GPUPositions = MakeRef<BFStructuredBuffer>(desc);
+			GPUPositions = MakeRef<StructuredBuffer>(desc);
 		}
 
 		if(!Normals.empty())
@@ -83,7 +83,7 @@ namespace Butterfly
 			desc.NumElements = static_cast<uint32_t>(Normals.size());
 			desc.Stride = sizeof(glm::vec3);
 			desc.DebugName = "Normals";
-			GPUNormals = MakeRef<BFStructuredBuffer>(desc);
+			GPUNormals = MakeRef<StructuredBuffer>(desc);
 		}
 
 		if (!Tangents.empty())
@@ -92,7 +92,7 @@ namespace Butterfly
 			desc.NumElements = static_cast<uint32_t>(Tangents.size());
 			desc.Stride = sizeof(glm::vec4);
 			desc.DebugName = "Tangents";
-			GPUTangents = MakeRef<BFStructuredBuffer>(desc);
+			GPUTangents = MakeRef<StructuredBuffer>(desc);
 		}
 
 		if (!UVs.empty())
@@ -101,7 +101,7 @@ namespace Butterfly
 			desc.NumElements = static_cast<uint32_t>(UVs.size());
 			desc.Stride = sizeof(glm::vec2);
 			desc.DebugName = "UVs";
-			GPUUVs = MakeRef<BFStructuredBuffer>(desc);
+			GPUUVs = MakeRef<StructuredBuffer>(desc);
 		}
 
 		m_gpuLoaded = true;

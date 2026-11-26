@@ -8,12 +8,15 @@
 #include "Renderer/RenderData.hpp"
 #include "Renderer/RenderPipeline/RenderPipeline.hpp"
 #include "Core/FileSystem.hpp"
+#include "Renderer/SharedRenderResources.hpp"
 
 namespace Butterfly
 {
 	Renderer::Renderer()
 	{
 		BF_PROFILE_EVENT()
+
+		m_sharedRenderResources = MakeRef<SharedRenderResources>();
 
 		m_windowResizeReceiver.Subscribe(Application::Get().GetWindow().Events().OnWindowResize, BF_BIND_FUNC_PARAM(&Renderer::OnWindowResize));
 		m_windowRefreshReceiver.Subscribe(Application::Get().GetWindow().Events().OnWindowRefresh, BF_BIND_FUNC(&Renderer::OnWindowRefresh));
@@ -110,24 +113,24 @@ namespace Butterfly
 			viewport->GetGraphResources().Flush();
 
 			{
-				BFTextureDesc desc;
+				TextureDesc desc;
 				desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
 				desc.Width = size.x;
 				desc.Height = size.y;
-				desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
+				desc.ViewTypes = TextureDesc::ViewType::RenderTargetable | TextureDesc::ViewType::ShaderResource;
 				desc.DebugName = "Viewport " + viewport->GetName() + " RenderTarget";
 
-				viewport->m_renderTarget[viewport->m_frameIndex] = MakeRef<BFTexture>(desc);
+				viewport->m_renderTarget[viewport->m_frameIndex] = MakeRef<Texture>(desc);
 			}
 			{
-				BFTextureDesc desc;
+				TextureDesc desc;
 				desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 				desc.Width = size.x;
 				desc.Height = size.y;
-				desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable;
+				desc.ViewTypes = TextureDesc::ViewType::DepthStencilable;
 				desc.DebugName = "Viewport " + viewport->GetName() + " DepthStencil";
 
-				viewport->m_depthStencil[viewport->m_frameIndex] = MakeRef<BFTexture>(desc);
+				viewport->m_depthStencil[viewport->m_frameIndex] = MakeRef<Texture>(desc);
 			}
 			
 
@@ -135,7 +138,7 @@ namespace Butterfly
 		}
 
 
-		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(viewport->GetRenderTarget().SRV(BFSRVTextureViewInfo::Texture2D()).View()).ptr;
+		ImTextureID textureID = (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(viewport->GetRenderTarget().SRV(SRVTextureViewInfo::Texture2D()).GetViewIndex()).ptr;
 		ImGui::Image(textureID, { size.x, size.y });
 	}
 
@@ -288,30 +291,30 @@ namespace Butterfly
 		for (uint32_t i = 0; i < NUM_RENDER_BUFFERS; ++i)
 		{
 			{
-				BFTextureDesc desc;
+				TextureDesc desc;
 				desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
 				desc.Width = 1;
 				desc.Height = 1;
-				desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
+				desc.ViewTypes = TextureDesc::ViewType::RenderTargetable | TextureDesc::ViewType::ShaderResource;
 				desc.DebugName = "Viewport " + viewport->GetName() + " RenderTarget";
 
-				viewport->m_renderTarget[i] = MakeRef<BFTexture>(desc);
+				viewport->m_renderTarget[i] = MakeRef<Texture>(desc);
 			}
 			{
-				BFTextureDesc desc;
+				TextureDesc desc;
 				desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 				desc.Width = 1;
 				desc.Height = 1;
-				desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable;
+				desc.ViewTypes = TextureDesc::ViewType::DepthStencilable;
 				desc.DebugName = "Viewport " + viewport->GetName() + " DepthStencil";
 
-				viewport->m_depthStencil[i] = MakeRef<BFTexture>(desc);
+				viewport->m_depthStencil[i] = MakeRef<Texture>(desc);
 			}
 
 			viewport->m_graphResources[i] = MakeRef<GraphTransientResourceCache>();
 		}
 
-		viewport->m_renderData = MakeRef<BFRenderData>();
+		viewport->m_renderData = MakeRef<RenderData>();
 		viewport->m_renderPipeline = MakeRef<RenderPipeline>(*this);
 
 		return viewport;
@@ -348,13 +351,13 @@ namespace Butterfly
 
 		for (uint32_t j = 0; j < NUM_RENDER_BUFFERS; j++)
 		{
-			BFTextureDesc desc;
+			TextureDesc desc;
 			desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
 			desc.Width = static_cast<uint32_t>(m_resizeSize.x);
 			desc.Height = static_cast<uint32_t>(m_resizeSize.y);
-			desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable | BFTextureDesc::ViewType::ShaderResource;
+			desc.ViewTypes = TextureDesc::ViewType::RenderTargetable | TextureDesc::ViewType::ShaderResource;
 			desc.DebugName = "Composite Render Target:" + std::to_string(j);
-			m_frameData.CompositeRenderTarget[j] = MakeRef<BFTexture>(desc);
+			m_frameData.CompositeRenderTarget[j] = MakeRef<Texture>(desc);
 		}
 	}
 

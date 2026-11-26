@@ -40,7 +40,7 @@ namespace Butterfly
 		}
 	}
 
-	BFShader::BFShader(const std::filesystem::path& filePath, const std::vector<BFShaderMacro>& macros)
+	Shader::Shader(const std::filesystem::path& filePath, const std::vector<ShaderMacro>& macros)
 		: m_type(Utils::ShaderTypeFromFilePath(filePath.string()))
 	{
 		BF_PROFILE_EVENT();
@@ -137,7 +137,7 @@ namespace Butterfly
 	}
 
 
-	BFShader* BFShaderCache::GetOrCreate(const std::string& filePath, const std::vector<BFShaderMacro>& macros)
+	Shader* ShaderCache::GetOrCreate(const std::string& filePath, const std::vector<ShaderMacro>& macros)
 	{
 		BF_PROFILE_EVENT();
 
@@ -152,7 +152,7 @@ namespace Butterfly
 		if (shader == m_map.end())
 		{
 			BF_CORE_LOG_INFO("Created New Shader with filePath: %s", filePath.c_str());
-			m_map[hash] = ScopePtr<BFShader>(new BFShader(filePath, macros));
+			m_map[hash] = ScopePtr<Shader>(new Shader(filePath, macros));
 			shader = m_map.find(hash);
 		}
 

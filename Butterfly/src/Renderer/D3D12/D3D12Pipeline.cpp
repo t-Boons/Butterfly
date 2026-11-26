@@ -28,7 +28,7 @@ namespace Butterfly
 	}
 
 
-	const D3D12Pipeline& BFPipelineCache::GetOrCreatePipeline(uint64_t hash, PipelineStateStream* pss)
+	const D3D12Pipeline& PipelineCache::GetOrCreatePipeline(uint64_t hash, PipelineStateStream* pss)
 	{
 		BF_PROFILE_EVENT();
 
@@ -41,7 +41,7 @@ namespace Butterfly
 		return *s_pipelines[hash];
 	}
 	
-	const D3D12Pipeline& BFPipelineCache::GetOrCreatePipeline(uint64_t hash, ComputePipelineStateStream* pss)
+	const D3D12Pipeline& PipelineCache::GetOrCreatePipeline(uint64_t hash, ComputePipelineStateStream* pss)
 	{
 		BF_PROFILE_EVENT();
 

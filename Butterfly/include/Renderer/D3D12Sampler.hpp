@@ -4,23 +4,23 @@
 
 namespace Butterfly
 {
-	class BFSampler : public BFResource, private NonCopyable
+	class Sampler : public Resource, private NonCopyable
 	{
 	public:
-		BFSampler(const D3D12_SAMPLER_DESC* desc);
-		~BFSampler();
+		Sampler(const D3D12_SAMPLER_DESC* desc);
+		~Sampler();
 
-		uint32_t View() const {return m_viewIndex; }
+		uint32_t GetViewIndex() const {return m_viewIndex; }
 
 	private:
 		uint32_t m_viewIndex;
 	};
 
-	class BFSamplerDesc
+	class SamplerDesc
 	{
 	public:
 		D3D12_SAMPLER_DESC Desc = {};
-		BFSamplerDesc()
+		SamplerDesc()
 		{
 			Desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 			Desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -38,9 +38,9 @@ namespace Butterfly
 		}
 
 
-		static BFSamplerDesc LinearClamp()
+		static SamplerDesc LinearClamp()
 		{
-			BFSamplerDesc desc;
+			SamplerDesc desc;
 			desc.Desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 			desc.Desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 			desc.Desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -48,9 +48,9 @@ namespace Butterfly
 			return desc;
 		}
 
-		static BFSamplerDesc LinearWrap()
+		static SamplerDesc LinearWrap()
 		{
-			BFSamplerDesc desc;
+			SamplerDesc desc;
 			desc.Desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 			desc.Desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 			desc.Desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -58,9 +58,9 @@ namespace Butterfly
 			return desc;
 		}
 
-		static BFSamplerDesc LinearBorder()
+		static SamplerDesc LinearBorder()
 		{
-			BFSamplerDesc desc;
+			SamplerDesc desc;
 			desc.Desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 			desc.Desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
 			desc.Desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
@@ -72,9 +72,9 @@ namespace Butterfly
 			return desc;
 		}
 
-		static BFSamplerDesc PointClamp()
+		static SamplerDesc PointClamp()
 		{
-			BFSamplerDesc desc;
+			SamplerDesc desc;
 			desc.Desc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
 			desc.Desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 			desc.Desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -83,12 +83,12 @@ namespace Butterfly
 		}
 	};
 
-	class BFSamplerCache : public NonCopyableNonMoveable
+	class SamplerCache : public NonCopyableNonMoveable
 	{
 	public:
-		static BFSampler& GetOrCreate(const BFSamplerDesc& desc);
+		static Sampler& GetOrCreate(const SamplerDesc& desc);
 
 	private:
-		inline static std::unordered_map<uint64_t, RefPtr<BFSampler>> s_samplerCache;
+		inline static std::unordered_map<uint64_t, RefPtr<Sampler>> s_samplerCache;
 	};
 }

@@ -8,8 +8,8 @@
 namespace Butterfly
 {
 	class Graph;
-	class BFRGTexture;
-	struct BFRGTextureInitializer;
+	class RGTexture;
+	struct RGTextureInitializer;
 
 	class GraphBuilder : private NonCopyable
 	{
@@ -27,10 +27,10 @@ namespace Butterfly
 		[[nodiscard]] ParamStruct* AllocParameters();
 			
 		template<typename Args>
-		[[nodiscard]] BFTexture* CreateTransientTexture(const std::string& key, Args&& args);
+		[[nodiscard]] Texture* CreateTransientTexture(const std::string& key, Args&& args);
 
 		template<typename Args>
-		[[nodiscard]] BFStructuredBuffer* CreateTransientStructuredBuffer(const std::string& key, Args&& args);
+		[[nodiscard]] StructuredBuffer* CreateTransientStructuredBuffer(const std::string& key, Args&& args);
 
 		template<typename ParamStruct>
 		bool HasPassType() const;
@@ -70,15 +70,15 @@ namespace Butterfly
 	}
 
 	template<typename Args>
-	inline BFTexture* GraphBuilder::CreateTransientTexture(const std::string& key, Args&& args)
+	inline Texture* GraphBuilder::CreateTransientTexture(const std::string& key, Args&& args)
 	{
-		return &m_graph->ResourceInitializer.GetOrCreate<BFTexture>(key, args);
+		return &m_graph->ResourceInitializer.GetOrCreate<Texture>(key, args);
 	}
 
 	template<typename Args>
-	inline BFStructuredBuffer* GraphBuilder::CreateTransientStructuredBuffer(const std::string& key, Args&& args)
+	inline StructuredBuffer* GraphBuilder::CreateTransientStructuredBuffer(const std::string& key, Args&& args)
 	{
-		return &m_graph->ResourceInitializer.GetOrCreate<BFStructuredBuffer>(key, args);
+		return &m_graph->ResourceInitializer.GetOrCreate<StructuredBuffer>(key, args);
 	}
 
 

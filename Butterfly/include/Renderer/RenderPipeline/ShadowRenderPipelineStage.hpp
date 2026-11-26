@@ -3,7 +3,7 @@
 
 namespace Butterfly
 {
-	class BFStructuredBuffer;
+	class StructuredBuffer;
 	struct ShadowMapPass
 	{
 	};

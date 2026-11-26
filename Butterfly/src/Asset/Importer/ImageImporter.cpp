@@ -27,7 +27,7 @@ namespace Butterfly
 
 	bool ImageImporter::Import(const AssetFileMetadata& meta, AssetManager& manager) const
 	{
-		BFTextureDesc textureDesc;
+		TextureDesc textureDesc;
 		int channels, width, height = 0;
 		bool hdr = stbi_is_hdr(meta.Path.string().c_str());
 		bool bit16 = stbi_is_16_bit(meta.Path.string().c_str());
@@ -62,12 +62,12 @@ namespace Butterfly
 		textureDesc.Width = static_cast<uint32_t>(width);
 		textureDesc.Height = static_cast<uint32_t>(height);
 		textureDesc.DebugName = std::filesystem::path(meta.Path).filename().string();
-		textureDesc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
+		textureDesc.ViewTypes = TextureDesc::ViewType::ShaderResource;
 		textureDesc.Format = format;
 		textureDesc.NumMips = BF_ALL; // Generate all mips
 
 		RefPtr<TextureAsset> textureAsset = MakeRef<TextureAsset>();
-		textureAsset->Texture = MakeRef<BFTexture>(textureDesc);
+		textureAsset->Texture = MakeRef<Texture>(textureDesc);
 
 		GraphicsCommands::UploadTextureResource(*textureAsset->Texture, pixels);
 

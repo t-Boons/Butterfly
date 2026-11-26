@@ -5,8 +5,8 @@
 
 namespace Butterfly
 {
-	class BFShader;
-	class BFComputePSOInfo;
+	class Shader;
+	class ComputePSOInfo;
 	class D3D12Pipeline : private NonCopyable
 	{
 	public:
@@ -22,7 +22,7 @@ namespace Butterfly
 		ID3D12PipelineState* m_pso;
 	};
 
-	class BFPipelineCache
+	class PipelineCache
 	{
 	public:
 		static const D3D12Pipeline& GetOrCreatePipeline(uint64_t hash, PipelineStateStream* pss);
@@ -59,17 +59,17 @@ namespace Butterfly
 		D3D12_CULL_MODE CullMode = D3D12_CULL_MODE_BACK;
 	};
 
-	struct BFGraphicsPSOInfo
+	struct GraphicsPSOInfo
 	{
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		BFShader* VertexShader = nullptr;
-		BFShader* PixelShader = nullptr;
+		Shader* VertexShader = nullptr;
+		Shader* PixelShader = nullptr;
 		RasterizerState Rasterizer;
 		DepthStencilState DepthStencil;	
 	};
 
-	struct BFComputePSOInfo
+	struct ComputePSOInfo
 	{
-		BFShader* ComputeShader;
+		Shader* ComputeShader;
 	};
 }

@@ -8,7 +8,7 @@ namespace Butterfly
 		return value >= min && value <= max;
 	}
 
-    struct BFFrustum
+    struct Frustum
     {
         glm::mat4 Projection;
         std::array<glm::vec4, 6> Planes;
@@ -63,7 +63,7 @@ namespace Butterfly
 		}
     };
 
-    struct BFAABB
+    struct AABB
     {
 		glm::vec3 Min = glm::vec3{ FLT_MAX };
         glm::vec3 Max = glm::vec3{ -FLT_MAX };
@@ -73,7 +73,7 @@ namespace Butterfly
 			return Max - Min;
 		}
 
-        inline bool IntersectsFrustum(const BFFrustum& frustum) const
+        inline bool IntersectsFrustum(const Frustum& frustum) const
         {
             for (const glm::vec4& plane : frustum.Planes)
             {
@@ -95,7 +95,7 @@ namespace Butterfly
             return true;
         }
 
-		inline bool IntersectAABB(const BFAABB& other) const
+		inline bool IntersectAABB(const AABB& other) const
 		{
 			return (Min.x <= other.Max.x && Max.x >= other.Min.x) &&
 				(Min.y <= other.Max.y && Max.y >= other.Min.y) &&
@@ -130,9 +130,9 @@ namespace Butterfly
 			};
 		}
 
-        inline BFAABB Transform(const glm::mat4& modelMatrix) const
+        inline AABB Transform(const glm::mat4& modelMatrix) const
         {
-            BFAABB result{};
+            AABB result{};
             const glm::vec3 center = (Min + Max) * 0.5f;
             const glm::vec3 extents = (Max - Min) * 0.5f;
 

@@ -237,7 +237,7 @@ float4 main(V2P pixelInput) : SV_TARGET0
     if(resources.irradianceTextureIndex >= 0)
     {
         float3 irradiance = resources.SampleIrradianceTexture(surface.Normal).rgb;
-        lighting = kD * irradiance * surface.Albedo.rgb;
+        lighting = irradiance * surface.Albedo.rgb;
     }
     else
     {

@@ -9,13 +9,13 @@ namespace Butterfly
 {
 	namespace Utils
 	{
-		BFTextureDesc ShadowMapTextureDesc(int size, const std::string& name, LightType type)
+		TextureDesc ShadowMapTextureDesc(int size, const std::string& name, LightType type)
 		{
-			BFTextureDesc desc;
+			TextureDesc desc;
 			desc.Width = size;
 			desc.Height = size;
 			desc.Format = DXGI_FORMAT_D32_FLOAT;
-			desc.ViewTypes = BFTextureDesc::ViewType::DepthStencilable | BFTextureDesc::ViewType::ShaderResource;
+			desc.ViewTypes = TextureDesc::ViewType::DepthStencilable | TextureDesc::ViewType::ShaderResource;
 			desc.DebugName = name;
 
 			if (type == LightType::Directional)
@@ -113,23 +113,23 @@ namespace Butterfly
 			gpuShadowMap.NumSlices = shadowMap.NumSlices;
 			gpuShadowMap.Resolution = shadowMap.Resolution;
 
-			BFSRVTextureViewInfo srvInfo;
+			SRVTextureViewInfo srvInfo;
 			if (type == LightType::Directional)
 			{
-				srvInfo.Type = BFTextureUsage::Texture2DArray;
+				srvInfo.Type = TextureUsage::Texture2DArray;
 			}
 
 			if (type == LightType::Point)
 			{
-				srvInfo.Type = BFTextureUsage::Cubemap;
+				srvInfo.Type = TextureUsage::Cubemap;
 			}
 
 			if (type == LightType::Spot)
 			{
-				srvInfo.Type = BFTextureUsage::Texture2D;
+				srvInfo.Type = TextureUsage::Texture2D;
 			}
 
-			gpuShadowMap.ShadowMapTextureIndex = shadowMap.ShadowMapTexture ? shadowMap.ShadowMapTexture->SRV(srvInfo).View() : -1;
+			gpuShadowMap.ShadowMapTextureIndex = shadowMap.ShadowMapTexture ? shadowMap.ShadowMapTexture->SRV(srvInfo).GetViewIndex() : -1;
 			gpuShadowMap.CascadeSplits = shadowMap.CascadeSplits;
 			gpuShadowMap.TexelSizes = shadowMap.TexelSizes;
 			gpuShadowMap.LightViewProjections = shadowMap.LightViewProjections;
@@ -138,12 +138,12 @@ namespace Butterfly
 
 	ShadowMapBuffer::ShadowMapBuffer()
 	{
-		BFStructuredBufferDesc desc;
+		StructuredBufferDesc desc;
 		desc.NumElements = static_cast<uint32_t>(MAX_SHADOW_MAPS);
 		desc.Stride = sizeof(GPUShadowMap);
 		desc.DebugName = "ShadowMapBuffer";
-		desc.HeapType = BFHeapType::Upload;
-		m_gpuShadowMapsBuffer = MakeRef<BFStructuredBuffer>(desc);
+		desc.HeapType = HeapType::Upload;
+		m_gpuShadowMapsBuffer = MakeRef<StructuredBuffer>(desc);
 	}
 
 	void ShadowMapBuffer::Update(const Viewport& viewport)
@@ -168,7 +168,7 @@ namespace Butterfly
 					shadow.NumSlices = lightComponent.GetNumCascades();
 					shadow.CascadeSplits = lightComponent.GetCascadeSplits();
 
-					const auto& cam = viewport.GetRenderData().CameraData;
+					const auto& cam = viewport.GetRenderData().CurrentCameraData;
 					const auto corners = Utils::GetFrustumCorners(cam.ViewProjection);
 					Utils::GetCascadeSplitDirectionalLight(lightComponent.GetCascadeSplits(), corners, cam.Near, cam.Far, transform.GetForward(), lightComponent.GetShadowMapResolution(),
 						shadow.LightViewProjections, shadow.TexelSizes);
@@ -198,9 +198,9 @@ namespace Butterfly
 				}
 
 
-				if (!shadow.ShadowMapTexture || shadow.NumSlices != shadow.ShadowMapTexture->Desc().ArraySize || shadow.Resolution != shadow.ShadowMapTexture->Desc().Width)
+				if (!shadow.ShadowMapTexture || shadow.NumSlices != shadow.ShadowMapTexture->ArraySize() || shadow.Resolution != shadow.ShadowMapTexture->Width())
 				{
-					shadow.ShadowMapTexture = MakeRef<BFTexture>(Utils::ShadowMapTextureDesc(static_cast<int>(shadow.Resolution), "ShadowMap", lightComponent.GetType()));
+					shadow.ShadowMapTexture = MakeRef<Texture>(Utils::ShadowMapTextureDesc(static_cast<int>(shadow.Resolution), "ShadowMap", lightComponent.GetType()));
 				}
 			}
 			else
@@ -227,7 +227,7 @@ namespace Butterfly
 		m_gpuShadowMapsBuffer->Write(m_gpuShadowMaps.data(), static_cast<uint32_t>(m_gpuShadowMaps.size() * sizeof(GPUShadowMap)));
 	}
 
-	const BFShaderResourceView& ShadowMapBuffer::SRV() const
+	const ShaderResourceView& ShadowMapBuffer::SRV() const
 	{
 		return m_gpuShadowMapsBuffer->SRV();
 	}

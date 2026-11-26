@@ -8,13 +8,14 @@
 
 namespace Butterfly
 {
-	class BFRenderData;
+	class RenderData;
 	class GraphTransientResourceCache;
 	class RenderPipeline;
 	class GraphBuilder;
 	class Viewport;
 	class RenderPipeline;
-	class BFRenderData;
+	class RenderData;
+	class SharedRenderResources;
 
 	struct ViewportResizeEvent
 	{
@@ -46,25 +47,25 @@ namespace Butterfly
 		glm::ivec2 Size() const { return { GetRenderTarget().Width(), GetRenderTarget().Height() }; }
 
 		bool HasRenderTarget() const { return m_renderTarget[m_frameIndex] != nullptr; }
-		BFTexture& GetRenderTarget() const { return *m_renderTarget[m_frameIndex]; }
-		BFTexture& GetDepthStencil() const { return *m_depthStencil[m_frameIndex]; }
+		Texture& GetRenderTarget() const { return *m_renderTarget[m_frameIndex]; }
+		Texture& GetDepthStencil() const { return *m_depthStencil[m_frameIndex]; }
 		GraphTransientResourceCache& GetGraphResources() const { return *m_graphResources[m_frameIndex]; }
 		ViewportEvents& GetEvents() { return m_events; }
 		RenderPipeline& GetRenderPipeline() { return *m_renderPipeline; }
 		const RenderPipeline& GetRenderPipeline() const { return *m_renderPipeline; }
-		BFRenderData& GetRenderData() { return *m_renderData; }
-		const BFRenderData& GetRenderData() const { return *m_renderData; }
+		RenderData& GetRenderData() { return *m_renderData; }
+		const RenderData& GetRenderData() const { return *m_renderData; }
 		const std::string& GetName() const { return m_viewportName; }
 		uint32_t GetFrameIndex() const { return m_frameIndex; }
 
 	private:
 		friend class Renderer;
 
-		RefPtr<BFRenderData> m_renderData;
+		RefPtr<RenderData> m_renderData;
 		RefPtr<RenderPipeline> m_renderPipeline;
 		ViewportEvents m_events;
-		std::array<RefPtr<BFTexture>, NUM_RENDER_BUFFERS> m_renderTarget;
-		std::array<RefPtr<BFTexture>, NUM_RENDER_BUFFERS> m_depthStencil;
+		std::array<RefPtr<Texture>, NUM_RENDER_BUFFERS> m_renderTarget;
+		std::array<RefPtr<Texture>, NUM_RENDER_BUFFERS> m_depthStencil;
 		std::array<RefPtr<GraphTransientResourceCache>, NUM_RENDER_BUFFERS> m_graphResources;
 
 		uint32_t m_frameIndex;
@@ -73,7 +74,7 @@ namespace Butterfly
 
 	struct FrameData
 	{
-		BFTexture& GetCompositeRenderTarget() const { return *CompositeRenderTarget[FrameIndex]; }
+		Texture& GetCompositeRenderTarget() const { return *CompositeRenderTarget[FrameIndex]; }
 		D3D12CommandList& GetCmdList() const { return *CmdList[FrameIndex]; }
 		D3D12Fence& GetFence() const { return *Fence[FrameIndex]; }
 
@@ -81,7 +82,7 @@ namespace Butterfly
 	private:
 		friend class Renderer;
 		uint32_t FrameIndex;
-		std::array<RefPtr<BFTexture>, NUM_RENDER_BUFFERS> CompositeRenderTarget;
+		std::array<RefPtr<Texture>, NUM_RENDER_BUFFERS> CompositeRenderTarget;
 		std::array<RefPtr<D3D12CommandList>, NUM_RENDER_BUFFERS> CmdList;
 		std::array<RefPtr<D3D12Fence>, NUM_RENDER_BUFFERS> Fence;
 	};
@@ -107,6 +108,9 @@ namespace Butterfly
 		std::unordered_set<RefPtr<Viewport>>& GetAllViewports() { return m_frameData.Viewports; }
 
 		void FlushRenderCommands();
+
+		const SharedRenderResources& GetSharedRenderResources() const { return *m_sharedRenderResources; }
+		
 	private:
 		void ApplyResize();
 
@@ -125,5 +129,7 @@ namespace Butterfly
 
 		EventReceiver<WindowResizeEvent> m_windowResizeReceiver;
 		EventReceiver<> m_windowRefreshReceiver;
+
+		RefPtr<SharedRenderResources> m_sharedRenderResources;
 	};
 }

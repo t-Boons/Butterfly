@@ -2,9 +2,9 @@
 
 namespace Butterfly
 {
-	class BFResource
+	class Resource
 	{
 	public:
-		virtual ~BFResource() = default;
+		virtual ~Resource() = default;
 	};
 }

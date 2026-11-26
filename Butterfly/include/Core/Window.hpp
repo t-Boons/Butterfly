@@ -62,7 +62,7 @@ namespace Butterfly
 		uint32_t Height() const { return m_height; }
 		std::string Name() const { return m_name; }
 		GLFWwindow* GLFWWindow() const { return m_window; }
-		BFGraphicsContext& Context() { return *m_context; }
+		RenderContext& Context() { return *m_context; }
 		float AspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 		bool OpenFileDialog(std::string& path) const;
 		void SetWindowTitle(const std::string& title);
@@ -83,7 +83,7 @@ namespace Butterfly
 		GLFWwindow* m_window;
 		std::string m_name;
 		HWND m_hwnd;
-		BFGraphicsContext* m_context;
+		RenderContext* m_context;
 		WindowEvents m_events;
 
 		bool m_fullscreen = false;

@@ -7,12 +7,12 @@
 
 namespace Butterfly
 {
-	BFGraphicsContext::~BFGraphicsContext()
+	RenderContext::~RenderContext()
 	{
 		FreeContext();
 	}
 
-	BFGraphicsContext::BFGraphicsContext(HWND hwnd)
+	RenderContext::RenderContext(HWND hwnd)
 		: m_hwnd(hwnd), m_ctxInitialized(false), VSync(false)
 	{
 		BF_PROFILE_EVENT()
@@ -27,7 +27,7 @@ namespace Butterfly
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 	}
 
-	void BFGraphicsContext::Resize(uint32_t width, uint32_t height)
+	void RenderContext::Resize(uint32_t width, uint32_t height)
 	{
 		BF_PROFILE_EVENT()
 
@@ -74,14 +74,14 @@ namespace Butterfly
 
 		m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 
-		BF_CORE_LOG_INFO("Resized GraphicsContext window to: %u x %u", width, height);
+		BF_CORE_LOG_INFO("Resized RenderContext window to: %u x %u", width, height);
 	}
 
-	void BFGraphicsContext::CreateContext()
+	void RenderContext::CreateContext()
 	{
 		if (m_ctxInitialized)
 		{
-			BF_CORE_LOG_CRITICAL("BFGraphicsContext is already initialized");
+			BF_CORE_LOG_CRITICAL("RenderContext is already initialized");
 			return;
 		}
 
@@ -122,7 +122,7 @@ namespace Butterfly
 		m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 	}
 
-	void BFGraphicsContext::FreeContext()
+	void RenderContext::FreeContext()
 	{
 		if (m_ctxInitialized)
 		{
@@ -144,7 +144,7 @@ namespace Butterfly
 		}
 	}
 
-	void BFGraphicsContext::RecordCopyToBackBuffer(D3D12Resource& toDisplay, D3D12CommandList& list)
+	void RenderContext::RecordCopyToBackBuffer(D3D12Resource& toDisplay, D3D12CommandList& list)
 	{
 		BF_PROFILE_EVENT()
 
@@ -192,7 +192,7 @@ namespace Butterfly
 		}
 	}
 
-	void BFGraphicsContext::Present()
+	void RenderContext::Present()
 	{
 		BF_PROFILE_EVENT();
 

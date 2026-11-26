@@ -47,7 +47,7 @@ namespace Butterfly
 			}
 		}
 
-		inline const D3D12_RENDER_TARGET_VIEW_DESC CreateRTVDescFromHWTextureDesc(const BFTextureDesc& desc, const BFRTVTextureViewInfo& info)
+		inline const D3D12_RENDER_TARGET_VIEW_DESC CreateRTVDescFromHWTextureDesc(const TextureDesc& desc, const RTVTextureViewInfo& info)
 		{
 			BF_PROFILE_EVENT();
 
@@ -59,13 +59,13 @@ namespace Butterfly
 				rtvDesc.Format = GetSRGBFormat(rtvDesc.Format);
 			}
 
-			if (info.Type == BFTextureUsage::Texture2D)
+			if (info.Type == TextureUsage::Texture2D)
 			{
 				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 				rtvDesc.Texture2D.MipSlice = info.Range.FirstMip;
 			}
 
-			if (info.Type == BFTextureUsage::Texture2DArray || info.Type == BFTextureUsage::Cubemap)
+			if (info.Type == TextureUsage::Texture2DArray || info.Type == TextureUsage::Cubemap)
 			{
 				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 
@@ -77,7 +77,7 @@ namespace Butterfly
 			return rtvDesc;
 		}
 
-		inline const D3D12_DEPTH_STENCIL_VIEW_DESC CreateDsvDescFromHWTextureDesc(const BFTextureDesc& desc, const BFDSVTextureViewInfo& info)
+		inline const D3D12_DEPTH_STENCIL_VIEW_DESC CreateDsvDescFromHWTextureDesc(const TextureDesc& desc, const DSVTextureViewInfo& info)
 		{
 			BF_PROFILE_EVENT();
 
@@ -85,14 +85,14 @@ namespace Butterfly
 
 			dsvDesc.Format = desc.Format;
 
-			if (info.Type == BFTextureUsage::Texture2D)
+			if (info.Type == TextureUsage::Texture2D)
 			{
 				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 				dsvDesc.Texture2D.MipSlice = info.Range.FirstMip;
 			}
 
-			if (info.Type == BFTextureUsage::Texture2DArray || info.Type == BFTextureUsage::Cubemap)
+			if (info.Type == TextureUsage::Texture2DArray || info.Type == TextureUsage::Cubemap)
 			{
 				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 				dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
@@ -105,7 +105,7 @@ namespace Butterfly
 			return dsvDesc;
 		}
 
-		inline const D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvFromHWTextureDesc(const BFTextureDesc& desc, const BFSRVTextureViewInfo& info)
+		inline const D3D12_SHADER_RESOURCE_VIEW_DESC CreateSrvFromHWTextureDesc(const TextureDesc& desc, const SRVTextureViewInfo& info)
 		{
 			BF_PROFILE_EVENT();
 
@@ -123,7 +123,7 @@ namespace Butterfly
 			srvDesc.Texture2D.PlaneSlice = 0;
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-			if (info.Type == BFTextureUsage::Texture2DArray)
+			if (info.Type == TextureUsage::Texture2DArray)
 			{
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
 				srvDesc.Texture2DArray.MostDetailedMip = info.Range.FirstMip;
@@ -134,7 +134,7 @@ namespace Butterfly
 				srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
 			}
 
-			if (info.Type == BFTextureUsage::Cubemap)
+			if (info.Type == TextureUsage::Cubemap)
 			{
 				BF_CORE_ASSERT(desc.ArraySize == 6, "Cubemap must have 6 faces.");
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
@@ -143,7 +143,7 @@ namespace Butterfly
 				srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 			}
 
-			if (info.Type == BFTextureUsage::Texture3D)
+			if (info.Type == TextureUsage::Texture3D)
 			{
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
 				srvDesc.Texture3D.MostDetailedMip = info.Range.FirstMip;
@@ -154,7 +154,7 @@ namespace Butterfly
 			return srvDesc;
 		}
 
-		inline const D3D12_UNORDERED_ACCESS_VIEW_DESC CreateUavFromHWTextureDesc(const BFTextureDesc& desc, const BFUAVTextureViewInfo& info)
+		inline const D3D12_UNORDERED_ACCESS_VIEW_DESC CreateUavFromHWTextureDesc(const TextureDesc& desc, const UAVTextureViewInfo& info)
 		{
 			BF_PROFILE_EVENT();
 			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -164,14 +164,14 @@ namespace Butterfly
 			uavDesc.Texture2D.MipSlice = info.Range.FirstMip;
 			uavDesc.Texture2D.PlaneSlice = 0;
 
-			if (info.Type == BFTextureUsage::Texture2DArray)
+			if (info.Type == TextureUsage::Texture2DArray)
 			{
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
 				uavDesc.Texture2DArray.ArraySize = info.Range.SliceCount;
 				uavDesc.Texture2DArray.FirstArraySlice = info.Range.FirstSlice;
 				uavDesc.Texture2DArray.MipSlice = info.Range.FirstMip;
 			}
-			if (info.Type == BFTextureUsage::Cubemap)
+			if (info.Type == TextureUsage::Cubemap)
 			{
 				BF_CORE_ASSERT(desc.ArraySize == 6, "Cubemap must have 6 faces.");
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
@@ -179,7 +179,7 @@ namespace Butterfly
 				uavDesc.Texture2DArray.FirstArraySlice = info.Range.FirstSlice;
 				uavDesc.Texture2DArray.MipSlice = info.Range.FirstMip;
 			}
-			if (info.Type == BFTextureUsage::Texture3D)
+			if (info.Type == TextureUsage::Texture3D)
 			{
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 				uavDesc.Texture3D.MipSlice = info.Range.FirstMip;
@@ -191,20 +191,20 @@ namespace Butterfly
 
 		D3D12_RESOURCE_STATES GetInitialResourceState(uint32_t v)
 		{
-			if (v & BFTextureDesc::RenderTargettable) return D3D12_RESOURCE_STATE_RENDER_TARGET;
-			if (v & BFTextureDesc::DepthStencilable) return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-			if (v & BFTextureDesc::UnorderedAccess)  return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+			if (v & TextureDesc::RenderTargetable) return D3D12_RESOURCE_STATE_RENDER_TARGET;
+			if (v & TextureDesc::DepthStencilable) return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+			if (v & TextureDesc::UnorderedAccess)  return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 			return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
 				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 		}
 	}
 
-	BFTexture::BFTexture(const BFTextureDesc& desc)
+	Texture::Texture(const TextureDesc& desc)
 		: m_desc(desc)
 	{
 		BF_CORE_ASSERT(desc.Width > 0 && desc.Height > 0, "Texture width and height must be greater than 0");
 		BF_CORE_ASSERT(desc.ArraySize > 0, "Texture array size must be greater than 0");
-		BF_CORE_ASSERT(desc.ViewTypes != BFTextureDesc::None, "Texture view types must be specified");
+		BF_CORE_ASSERT(desc.ViewTypes != TextureDesc::None, "Texture view types must be specified");
 
 		if (m_desc.NumMips == BF_ALL)
 		{
@@ -214,24 +214,24 @@ namespace Butterfly
 		const uint32_t v = m_desc.ViewTypes;
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 
-		if (v & BFTextureDesc::RenderTargettable) flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		if (v & BFTextureDesc::DepthStencilable) flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		if (v & TextureDesc::RenderTargetable) flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		if (v & TextureDesc::DepthStencilable) flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
-		if (v & BFTextureDesc::UnorderedAccess || m_desc.NumMips > 1)
+		if (v & TextureDesc::UnorderedAccess || m_desc.NumMips > 1)
 			flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-		if ((v & BFTextureDesc::DepthStencilable) && !(v & BFTextureDesc::ShaderResource))
+		if ((v & TextureDesc::DepthStencilable) && !(v & TextureDesc::ShaderResource))
 			flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 
 		D3D12ResourceDescription resourceDesc;
 
-		if (m_desc.Dimention == BFTextureDimention::Texture3D)
+		if (m_desc.Dimension == TextureDimension::Texture3D)
 			resourceDesc = D3D12ResourceDescription::Texture3D(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.Depth, m_desc.NumMips);
-		else if(m_desc.Dimention == BFTextureDimention::Texture2D)
+		else if(m_desc.Dimension == TextureDimension::Texture2D)
 			resourceDesc = D3D12ResourceDescription::Texture(m_desc.Format, m_desc.Width, m_desc.Height, m_desc.ArraySize, m_desc.NumMips);
 
 		resourceDesc.HeapType(D3D12_HEAP_TYPE_DEFAULT);
 		resourceDesc.Flags(flags);
-		if (v & (BFTextureDesc::RenderTargettable | BFTextureDesc::DepthStencilable))
+		if (v & (TextureDesc::RenderTargetable | TextureDesc::DepthStencilable))
 		{
 			float col[] = { 0,0,0,0 };
 			resourceDesc.ClearColor(col, m_desc.Format);
@@ -243,18 +243,18 @@ namespace Butterfly
 		m_resource = new D3D12Resource(resourceDesc);
 	}
 
-	BFTexture::~BFTexture()
+	Texture::~Texture()
 	{
 		BF_PROFILE_EVENT();
 		FREE(m_resource);
 	}
 
-	D3D12_CLEAR_VALUE BFTexture::ClearValue() const
+	D3D12_CLEAR_VALUE Texture::ClearValue() const
 	{
 		return m_resource->ClearValue();
 	}
 
-	const BFRenderTargetView &BFTexture::RTV(BFRTVTextureViewInfo info)
+	const RenderTargetView &Texture::RTV(RTVTextureViewInfo info)
 	{
 		const uint32_t mipCount   = m_resource->MipCount();
 		const uint32_t sliceCount = m_resource->ArraySize();
@@ -280,14 +280,14 @@ namespace Butterfly
 		if (it == m_rtvSlices.end())
 		{
 			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = Utils::CreateRTVDescFromHWTextureDesc(m_desc, info);
-			m_rtvSlices[key] = MakeRef<BFRenderTargetView>(*m_resource, rtvDesc);
+			m_rtvSlices[key] = MakeRef<RenderTargetView>(*m_resource, rtvDesc);
 			it = m_rtvSlices.find(key);
 		}
 
 		return *it->second;
 	}
 
-	const BFDepthStencilView& BFTexture::DSV(BFDSVTextureViewInfo info)
+	const DepthStencilView& Texture::DSV(DSVTextureViewInfo info)
 	{
 		BF_CORE_ASSERT(info.Range.FirstSlice < m_desc.ArraySize, "Slice index out of bounds for DSV array slice.");
 
@@ -309,14 +309,14 @@ namespace Butterfly
 		if (it == m_dsvSlices.end())
 		{
 			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = Utils::CreateDsvDescFromHWTextureDesc(m_desc, info);
-			m_dsvSlices[key] = MakeRef<BFDepthStencilView>(*m_resource, dsvDesc);
+			m_dsvSlices[key] = MakeRef<DepthStencilView>(*m_resource, dsvDesc);
 			it = m_dsvSlices.find(key);
 		}
 
 		return *it->second;
 	}
 
-	const BFShaderResourceView& BFTexture::SRV(BFSRVTextureViewInfo info)
+	const ShaderResourceView& Texture::SRV(SRVTextureViewInfo info)
 	{
 		const uint32_t mipCount   = m_resource->MipCount();
 		const uint32_t sliceCount = m_resource->ArraySize();
@@ -344,13 +344,13 @@ namespace Butterfly
 		if (it == m_srvSlices.end())
 		{
 			const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = Utils::CreateSrvFromHWTextureDesc(m_desc, info);
-			it = m_srvSlices.emplace(key, MakeRef<BFShaderResourceView>(*m_resource, srvDesc)).first;
+			it = m_srvSlices.emplace(key, MakeRef<ShaderResourceView>(*m_resource, srvDesc)).first;
 		}
 
 		return *it->second;
 	}
 
-	const BFUnorderedAccessView& BFTexture::UAV(BFUAVTextureViewInfo info)
+	const UnorderedAccessView& Texture::UAV(UAVTextureViewInfo info)
 	{
 		const uint32_t mipCount   = m_resource->MipCount();
 		const uint32_t sliceCount = m_resource->ArraySize();
@@ -375,13 +375,13 @@ namespace Butterfly
 		if (it == m_uavSlices.end())
 		{
 			const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = Utils::CreateUavFromHWTextureDesc(m_desc, info);
-			it = m_uavSlices.emplace(key, MakeRef<BFUnorderedAccessView>(*m_resource, uavDesc)).first;
+			it = m_uavSlices.emplace(key, MakeRef<UnorderedAccessView>(*m_resource, uavDesc)).first;
 		}
 
 		return *it->second;
 	}
 
-	BFTextureReadback::BFTextureReadback()
+	TextureReadback::TextureReadback()
 	{
 		m_readbackBuffer = new D3D12Resource(
 			D3D12ResourceDescription::Buffer(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT)
@@ -390,13 +390,13 @@ namespace Butterfly
 			.SetName("Object Picker Pixel Readback"));
 	}
 
-	BFTextureReadback::~BFTextureReadback()
+	TextureReadback::~TextureReadback()
 	{
 		BF_PROFILE_EVENT();
 		FREE(m_readbackBuffer);
 	}
 
-	bool BFTextureReadback::RequestPixel(const glm::uvec2& pixel)
+	bool TextureReadback::RequestPixel(const glm::uvec2& pixel)
 	{
 		if (m_hasRequest || m_waitingForResult)
 		{
@@ -408,7 +408,7 @@ namespace Butterfly
 		return true;
 	}
 
-	void BFTextureReadback::SetFenceValue(uint64_t fenceValue)
+	void TextureReadback::SetFenceValue(uint64_t fenceValue)
 	{
 		if (!m_copyRecorded)
 		{
@@ -420,13 +420,13 @@ namespace Butterfly
 		m_copyRecorded = false;
 	}
 
-	void BFTextureReadback::Flush()
+	void TextureReadback::Flush()
 	{
 		m_waitingForResult = false;
 		m_copyRecorded = false;
 	}
 
-	bool BFTextureReadback::TryGetResult(uint64_t completedFenceValue, uint32_t& out)
+	bool TextureReadback::TryGetResult(uint64_t completedFenceValue, uint32_t& out)
 	{
 		if (!m_waitingForResult || completedFenceValue < m_fenceValue)
 		{
@@ -446,7 +446,7 @@ namespace Butterfly
 		return true;
 	}
 
-	bool BFTextureReadback::Readback(D3D12CommandList& list, BFTexture& texture)
+	bool TextureReadback::Readback(D3D12CommandList& list, Texture& texture)
 	{
 		if (!m_hasRequest)
 		{

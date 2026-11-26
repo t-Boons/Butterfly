@@ -3,7 +3,7 @@
 
 namespace Butterfly
 {
-	BFRGTexture::~BFRGTexture()
+	RGTexture::~RGTexture()
 	{
 		m_resource.reset();
 	}

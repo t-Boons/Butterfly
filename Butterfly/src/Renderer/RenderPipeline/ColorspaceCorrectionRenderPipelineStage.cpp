@@ -12,14 +12,14 @@ namespace Butterfly
 			GraphBuilder& builder = ev.Builder;
 		Viewport& viewport = ev.Viewport;
 
-		BFTextureDesc desc;
+		TextureDesc desc;
 		desc.Format = DXGI_FORMAT_R11G11B10_FLOAT;
 		desc.Width = viewport.Size().x;
 		desc.Height = viewport.Size().y;
-		desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource | BFTextureDesc::ViewType::RenderTargettable;
+		desc.ViewTypes = TextureDesc::ViewType::ShaderResource | TextureDesc::ViewType::RenderTargetable;
 		desc.DebugName = "ColorCorrected_CompositeRenderTarget";
 
-		BFTexture* compCopy = builder.CreateTransientTexture("CompositeRenderTarget", desc);
+		Texture* compCopy = builder.CreateTransientTexture("CompositeRenderTarget", desc);
 
 		CCPassData* data = builder.AllocParameters<CCPassData>();
 		builder.AddPass<CCPassData>("ColorspaceCorrectionPass", [&, compCopy](const CCPassData& data, D3D12CommandList& list)
@@ -31,17 +31,17 @@ namespace Butterfly
 
 				list.SetViewport(RenderViewport::FromTexture(*compCopy));
 
-				BFGraphicsPSOInfo pso;
+				GraphicsPSOInfo pso;
 				pso.Rasterizer.CullMode = D3D12_CULL_MODE_NONE;
-				pso.VertexShader = BFShaderCache::GetOrCreate("Fullscreen_vert.hlsl");
-				pso.PixelShader = BFShaderCache::GetOrCreate("CopyToSRGB_frag.hlsl");
+				pso.VertexShader = ShaderCache::GetOrCreate("Fullscreen_vert.hlsl");
+				pso.PixelShader = ShaderCache::GetOrCreate("CopyToSRGB_frag.hlsl");
 				pso.DepthStencil.EnableDepth = false;
 
 				list.SetGraphicsPSO(pso);
 
 				viewport.GetRenderTarget().Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				BFShaderVariableBuilder(list)
-					.Add(viewport.GetRenderTarget().SRV(BFSRVTextureViewInfo::Texture2D()))
+				ShaderVariableBuilder(list)
+					.Add(viewport.GetRenderTarget().SRV(SRVTextureViewInfo::Texture2D()))
 					.Add(static_cast<int>(m_colorSpace))
 					.Submit();
 

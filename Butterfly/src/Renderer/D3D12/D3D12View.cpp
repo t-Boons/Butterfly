@@ -66,17 +66,17 @@ namespace Butterfly
 		}
 	}
 
-	BFView::BFView(D3D12Resource& resource)
+	View::View(D3D12Resource& resource)
 		: m_resource(resource)
 	{
 	}
 
 	///
-	/// BFRenderTargetView
+	/// RenderTargetView
 	///
 
-	BFRenderTargetView::BFRenderTargetView(D3D12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
-		: m_desc(desc), BFView(resource)
+	RenderTargetView::RenderTargetView(D3D12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC& desc)
+		: m_desc(desc), View(resource)
 	{
 		m_viewIndex = D3D12API()->DescriptorAllocatorRtv()->CreateRtv(resource, &desc);
 		m_handle = D3D12API()->DescriptorAllocatorRtv()->CpuHandleFromRtvHandle(m_viewIndex);
@@ -85,17 +85,17 @@ namespace Butterfly
 		m_subresourceRange = Utils::RangeFromDesc(desc);
 	}
 
-	BFRenderTargetView::~BFRenderTargetView()
+	RenderTargetView::~RenderTargetView()
 	{
 		D3D12API()->DescriptorAllocatorRtv()->FreeHandle(m_viewIndex);
 	}
 
 	///
-	/// BFDepthStencilView
+	/// DepthStencilView
 	///
 
-	BFDepthStencilView::BFDepthStencilView(D3D12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
-		: m_desc(desc), BFView(resource)
+	DepthStencilView::DepthStencilView(D3D12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc)
+		: m_desc(desc), View(resource)
 	{
 		m_viewIndex = D3D12API()->DescriptorAllocatorDsv()->CreateDsv(resource, &desc);
 		m_handle = D3D12API()->DescriptorAllocatorDsv()->CpuHandleFromDsvHandle(m_viewIndex);
@@ -111,17 +111,17 @@ namespace Butterfly
 		m_subresourceRange = Utils::RangeFromDesc(desc);
 	}
 
-	BFDepthStencilView::~BFDepthStencilView()
+	DepthStencilView::~DepthStencilView()
 	{
 		D3D12API()->DescriptorAllocatorDsv()->FreeHandle(m_viewIndex);
 	}
 
 	///
-	/// BFShaderResourceView
+	/// ShaderResourceView
 	///
 
-	BFShaderResourceView::BFShaderResourceView(D3D12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
-		: m_desc(desc), BFView(resource)
+	ShaderResourceView::ShaderResourceView(D3D12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
+		: m_desc(desc), View(resource)
 	{
 		m_viewIndex = D3D12API()->DescriptorAllocatorSrvCbvUav()->CreateSrv(resource, &desc);
 
@@ -134,17 +134,17 @@ namespace Butterfly
 		m_subresourceRange = Utils::RangeFromDesc(desc);
 	}
 
-	BFShaderResourceView::~BFShaderResourceView()
+	ShaderResourceView::~ShaderResourceView()
 	{
 		D3D12API()->DescriptorAllocatorSrvCbvUav()->FreeHandle(m_viewIndex);
 	}
 
 	///
-	/// BFUniformBufferView
+	/// UniformBufferView
 	///
 
-	BFUniformBufferView::BFUniformBufferView(D3D12Resource& resource, uint32_t sizeInBytes, uint32_t offset)
-		: m_sizeInBytes(sizeInBytes), BFView(resource)
+	UniformBufferView::UniformBufferView(D3D12Resource& resource, uint32_t sizeInBytes, uint32_t offset)
+		: m_sizeInBytes(sizeInBytes), View(resource)
 	{
 		m_viewIndex = D3D12API()->DescriptorAllocatorSrvCbvUav()->CreateCbv(sizeInBytes, resource, offset);
 		m_offset = offset;
@@ -153,18 +153,18 @@ namespace Butterfly
 		m_subresourceRange = D3D12SubresourceRange().FullRange();
 	}
 
-	BFUniformBufferView::~BFUniformBufferView()
+	UniformBufferView::~UniformBufferView()
 	{
 		D3D12API()->DescriptorAllocatorSrvCbvUav()->FreeHandle(m_viewIndex);
 	}
 
 
 	///
-	/// BFUnorderedAccessView
+	/// UnorderedAccessView
 	/// 
 	
-	BFUnorderedAccessView::BFUnorderedAccessView(D3D12Resource& resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
-		: m_desc(desc), BFView(resource)
+	UnorderedAccessView::UnorderedAccessView(D3D12Resource& resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
+		: m_desc(desc), View(resource)
 	{
 		m_viewIndex = D3D12API()->DescriptorAllocatorSrvCbvUav()->CreateUav(resource, &desc);
 
@@ -172,7 +172,7 @@ namespace Butterfly
 		m_subresourceRange = Utils::RangeFromDesc(desc);
 	}
 
-	BFUnorderedAccessView::~BFUnorderedAccessView()
+	UnorderedAccessView::~UnorderedAccessView()
 	{
 		D3D12API()->DescriptorAllocatorSrvCbvUav()->FreeHandle(m_viewIndex);
 	}

@@ -21,8 +21,8 @@ namespace Butterfly
 			if (material->ColorTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->ColorTexture);
-				data.ColorTexture = tex->Texture->SRV(BFSRVTextureViewInfo::Texture2D().AsSRGB(tex->Texture->IsSRGB())).View();
-				data.ColorTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
+				data.ColorTexture = tex->Texture->SRV(SRVTextureViewInfo::Texture2D().AsSRGB(tex->Texture->IsSRGB())).GetViewIndex();
+				data.ColorTextureSampler = SamplerCache::GetOrCreate(tex->Sampler).GetViewIndex();
 			}
 			else
 			{
@@ -32,8 +32,8 @@ namespace Butterfly
 			if (material->NormalTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->NormalTexture);
-				data.NormalTexture = tex->Texture->SRV(BFSRVTextureViewInfo::Texture2D()).View();
-				data.NormalTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
+				data.NormalTexture = tex->Texture->SRV(SRVTextureViewInfo::Texture2D()).GetViewIndex();
+				data.NormalTextureSampler = SamplerCache::GetOrCreate(tex->Sampler).GetViewIndex();
 			}
 			else
 			{
@@ -43,8 +43,8 @@ namespace Butterfly
 			if (material->MetallicRoughnessTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->MetallicRoughnessTexture);
-				data.MetallicRoughnessTexture = tex->Texture->SRV(BFSRVTextureViewInfo::Texture2D()).View();
-				data.MetallicRoughnessTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
+				data.MetallicRoughnessTexture = tex->Texture->SRV(SRVTextureViewInfo::Texture2D()).GetViewIndex();
+				data.MetallicRoughnessTextureSampler = SamplerCache::GetOrCreate(tex->Sampler).GetViewIndex();
 			}
 			else
 			{
@@ -54,8 +54,8 @@ namespace Butterfly
 			if (material->EmissionTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->EmissionTexture);
-				data.EmissionTexture = tex->Texture->SRV(BFSRVTextureViewInfo::Texture2D().AsSRGB(tex->Texture->IsSRGB())).View();
-				data.EmissionTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
+				data.EmissionTexture = tex->Texture->SRV(SRVTextureViewInfo::Texture2D().AsSRGB(tex->Texture->IsSRGB())).GetViewIndex();
+				data.EmissionTextureSampler = SamplerCache::GetOrCreate(tex->Sampler).GetViewIndex();
 			}
 			else
 			{
@@ -65,8 +65,8 @@ namespace Butterfly
 			if (material->AmbientOcclusionTexture.Valid())
 			{
 				TextureAsset* tex = manager.Resolve<TextureAsset>(material->AmbientOcclusionTexture);
-				data.AmbientOcclusionTexture = tex->Texture->SRV(BFSRVTextureViewInfo::Texture2D()).View();
-				data.AmbientOcclusionTextureSampler = BFSamplerCache::GetOrCreate(tex->Sampler).View();
+				data.AmbientOcclusionTexture = tex->Texture->SRV(SRVTextureViewInfo::Texture2D()).GetViewIndex();
+				data.AmbientOcclusionTextureSampler = SamplerCache::GetOrCreate(tex->Sampler).GetViewIndex();
 			}
 			else
 			{
@@ -95,12 +95,12 @@ namespace Butterfly
 			m_newMaterials.push(uuid);
 		}
 
-		BFStructuredBufferDesc desc;
+		StructuredBufferDesc desc;
 		desc.NumElements = 128;
 		desc.Stride = sizeof(MaterialData);
-		desc.HeapType = BFHeapType::Upload;
+		desc.HeapType = HeapType::Upload;
 		desc.DebugName = "Materials";
-		m_materialBuffer = MakeRef<BFStructuredBuffer>(desc);
+		m_materialBuffer = MakeRef<StructuredBuffer>(desc);
 		m_materialBuffer->Write(m_materialData.data(), static_cast<uint32_t>(m_materialData.size() * sizeof(MaterialData)));
 
 		m_assetAddedReceiver.Subscribe(Application::Get().GetAssetManager().OnAssetAddedEvent(), BF_BIND_FUNC_PARAM(&MaterialLibrary::RegisterMaterial));
@@ -143,12 +143,12 @@ namespace Butterfly
 
 			if (!m_materialBuffer || m_materialData.size() > m_materialBuffer->NumElements())
 			{
-				BFStructuredBufferDesc desc;
+				StructuredBufferDesc desc;
 				desc.NumElements = static_cast<uint32_t>(m_materialData.size() * 2);
 				desc.Stride = sizeof(MaterialData);
-				desc.HeapType = BFHeapType::Upload;
+				desc.HeapType = HeapType::Upload;
 				desc.DebugName = "Materials";
-				m_materialBuffer = MakeRef<BFStructuredBuffer>(desc);
+				m_materialBuffer = MakeRef<StructuredBuffer>(desc);
 			}
 
 			m_materialBuffer->Write(m_materialData.data(), static_cast<uint32_t>(m_materialData.size() * sizeof(MaterialData)));
@@ -183,7 +183,7 @@ namespace Butterfly
 
 	}\
 	
-	const BFStructuredBuffer& MaterialLibrary::GetMaterialBuffer() const
+	const StructuredBuffer& MaterialLibrary::GetMaterialBuffer() const
 	{
 		return *m_materialBuffer;
 	}

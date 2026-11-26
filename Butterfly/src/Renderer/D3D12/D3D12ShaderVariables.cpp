@@ -4,24 +4,24 @@
 
 namespace Butterfly
 {
-    BFShaderVariableBuilder &BFShaderVariableBuilder::Add(const BFView &view)
+    ShaderVariableBuilder &ShaderVariableBuilder::Add(const View &view)
     {
         m_list.PrepareForUse(view);
-        return Add(view.View());
+        return Add(view.GetViewIndex());
     }
 
-    BFShaderVariableBuilder &BFShaderVariableBuilder::Add(const BFSampler &sampler)
+    ShaderVariableBuilder &ShaderVariableBuilder::Add(const Sampler &sampler)
     {
-        return Add(sampler.View());
+        return Add(sampler.GetViewIndex());
     }
 
-    BFShaderVariableBuilder &BFShaderVariableBuilder::Add(int index)
+    ShaderVariableBuilder &ShaderVariableBuilder::Add(int index)
     {
         m_data.push_back(index);
         return *this;
     }
 
-    void BFShaderVariableBuilder::Submit()
+    void ShaderVariableBuilder::Submit()
     {
         m_list.SetRootConstants(m_data.data(), static_cast<uint32_t>(m_data.size()));
     }

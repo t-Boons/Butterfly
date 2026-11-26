@@ -186,10 +186,10 @@ namespace Butterfly
 		const auto& img = model.images[imgIndex];
 
 
-		BFTextureDesc desc;
+		TextureDesc desc;
 		desc.Width = img.width;
 		desc.Height = img.height;
-		desc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
+		desc.ViewTypes = TextureDesc::ViewType::ShaderResource;
 		desc.DebugName = img.name;
 		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		desc.IsSRGB = isSRGB;
@@ -203,9 +203,9 @@ namespace Butterfly
 
 		desc.DebugName = name;
 		RefPtr<TextureAsset> outAsset = MakeRef<TextureAsset>();
-		outAsset->Texture = MakeRef<BFTexture>(desc);
+		outAsset->Texture = MakeRef<Texture>(desc);
 		GraphicsCommands::UploadTextureResource(*outAsset->Texture, img.image.data());
-		outAsset->Sampler = BFSamplerDesc::LinearWrap();
+		outAsset->Sampler = SamplerDesc::LinearWrap();
 
 		const auto subMetaData = std::find_if(meta.Assets.begin(), meta.Assets.end(), [&](const auto& subMeta)
 			{

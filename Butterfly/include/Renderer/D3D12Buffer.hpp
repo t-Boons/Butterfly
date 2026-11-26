@@ -6,28 +6,28 @@ namespace Butterfly
 {
 	class D3D12Resource;
 
-	class BFShaderResourceView;
-	class BFUniformBufferView;
+	class ShaderResourceView;
+	class UniformBufferView;
 
-	enum class BFHeapType
+	enum class HeapType
 	{
 		Default, Upload
 	};
 
-	struct BFStructuredBufferDesc
+	struct StructuredBufferDesc
 	{
 		uint32_t NumElements = 0;
 		uint32_t Stride = 0;
 		void* Data = nullptr;
-		BFHeapType HeapType = BFHeapType::Default;
+		HeapType HeapType = HeapType::Default;
 		std::string DebugName = "StructuredBuffer";
 	};
 
-	class BFStructuredBuffer : public BFResource, private NonCopyable
+	class StructuredBuffer : public Resource, private NonCopyable
 	{
 	public:
-		BFStructuredBuffer(const BFStructuredBufferDesc& bufferDesc);
-		~BFStructuredBuffer();
+		StructuredBuffer(const StructuredBufferDesc& bufferDesc);
+		~StructuredBuffer();
 
 		uint32_t NumBytes() const { return m_desc.NumElements * m_desc.Stride; }
 		void Write(const void* src, uint32_t numBytes, uint32_t offset = 0);
@@ -35,37 +35,37 @@ namespace Butterfly
 
 		D3D12Resource* Resource() const;
 		ID3D12Resource2* HWResource() const;
-		const BFShaderResourceView& SRV() const;
+		const ShaderResourceView& SRV() const;
 
 	private:
 		D3D12Resource* m_resource;
-		BFShaderResourceView* m_srv;
-		BFStructuredBufferDesc m_desc;
+		ShaderResourceView* m_srv;
+		StructuredBufferDesc m_desc;
 	};
 
-	struct BFTypedStructuredBufferDesc
+	struct TypedStructuredBufferDesc
 	{
 		uint32_t NumElements = 0;
 		void* Data = nullptr;
-		BFHeapType HeapType = BFHeapType::Default;
+		HeapType HeapType = HeapType::Default;
 	};
 
 	template <typename T>
-	class BFTypedStructuredBuffer
+	class TypedStructuredBuffer
 	{
 	public:
-		BFTypedStructuredBuffer(const BFTypedStructuredBufferDesc& desc)
+		TypedStructuredBuffer(const TypedStructuredBufferDesc& desc)
 		{
-			BFStructuredBufferDesc bufferDesc;
+			StructuredBufferDesc bufferDesc;
 			bufferDesc.NumElements = desc.NumElements;
 			bufferDesc.Stride = sizeof(T);
 			bufferDesc.Data = desc.Data;
 			bufferDesc.HeapType = desc.HeapType;
 			bufferDesc.DebugName = "TypedStructuredBuffer::" + std::string(typeid(T).name());
-			m_buffer = MakeRef<BFStructuredBuffer>(bufferDesc);
+			m_buffer = MakeRef<StructuredBuffer>(bufferDesc);
 		}
 
-		const BFShaderResourceView& SRV() const { return m_buffer->SRV(); }
+		const ShaderResourceView& SRV() const { return m_buffer->SRV(); }
 		uint32_t NumElements() const { return m_buffer->NumElements(); }
 
 		void Write()
@@ -76,16 +76,16 @@ namespace Butterfly
 		std::vector<T> Data;
 
 	private:
-		RefPtr<BFStructuredBuffer> m_buffer;
+		RefPtr<StructuredBuffer> m_buffer;
 	};
 
-	class BFConstantBuffer : public BFResource, private NonCopyable
+	class ConstantBuffer : public Resource, private NonCopyable
 	{
 	public:
-		BFConstantBuffer(uint32_t numBytes, const std::string& resourceTag);
-		~BFConstantBuffer();
+		ConstantBuffer(uint32_t numBytes, const std::string& resourceTag);
+		~ConstantBuffer();
 
-		const BFUniformBufferView& CBV() const;
+		const UniformBufferView& CBV() const;
 		void Write(const void* src, uint32_t numBytes, uint32_t offset = 0);
 		void Write(const std::vector<uint8_t>& data, uint32_t offset = 0);
 
@@ -93,19 +93,19 @@ namespace Butterfly
 		uint32_t m_numBytes;
 		RefPtr<D3D12Resource> m_resource;
 		uint8_t* m_mappedData;
-		RefPtr<BFUniformBufferView> m_cbv;
+		RefPtr<UniformBufferView> m_cbv;
 	};
 
 	template <typename T>
-	class BFTypedConstantBuffer
+	class TypedConstantBuffer
 	{
 	public:
-		BFTypedConstantBuffer()
+		TypedConstantBuffer()
 			: m_buffer(sizeof(T), "TypedConstantBuffer::" + std::string(typeid(T).name()))
 		{
 		}
 
-		const BFUniformBufferView& CBV() const { return m_buffer.CBV(); }
+		const UniformBufferView& CBV() const { return m_buffer.CBV(); }
 
 		void Write()
 		{
@@ -115,14 +115,14 @@ namespace Butterfly
 		T Data{};
 
 	private:
-		BFConstantBuffer m_buffer;
+		ConstantBuffer m_buffer;
 	};
 
-	class BFIndexBuffer : public BFResource, private NonCopyable
+	class IndexBuffer : public Resource, private NonCopyable
 	{
 	public:
-		BFIndexBuffer(const void* src, uint32_t numElements, DXGI_FORMAT format, const std::string& resourceTag);
-		~BFIndexBuffer();
+		IndexBuffer(const void* src, uint32_t numElements, DXGI_FORMAT format, const std::string& resourceTag);
+		~IndexBuffer();
 
 		const uint32_t NumElements() const { return m_numElements; }
 		const D3D12_INDEX_BUFFER_VIEW& IBV() const { return m_view; }

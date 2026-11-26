@@ -34,7 +34,7 @@ namespace Butterfly
 		void RegisterMaterial(const AssetEvent& ev);
 		void UnRegisterMaterial(const AssetEvent& ev);
 		void Validate();
-		const BFStructuredBuffer& GetMaterialBuffer() const;
+		const StructuredBuffer& GetMaterialBuffer() const;
 		int GetMaterialIndex(const UUID& id) const;
 		int GetFallbackMaterialIndex() const;
 		uint32_t GetNumMaterials() const { return static_cast<uint32_t>(m_materialData.size()); }
@@ -48,7 +48,7 @@ namespace Butterfly
 		std::unordered_map<UUID, uint32_t> m_materialIndexMap;
 
 
-		RefPtr<BFStructuredBuffer> m_materialBuffer;
+		RefPtr<StructuredBuffer> m_materialBuffer;
 		EventReceiver<AssetEvent> m_assetAddedReceiver;
 		EventReceiver<AssetEvent> m_assetRemovedReceiver;
 	};

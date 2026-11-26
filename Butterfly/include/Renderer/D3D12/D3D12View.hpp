@@ -4,17 +4,17 @@
 
 namespace Butterfly
 {
-	class BFView : public NonCopyable
+	class View : public NonCopyable
 	{
 	public:
 		D3D12_RESOURCE_STATES RequiredState() const { return m_requiredState; }
 		bool RequiresTransition() const;
 		D3D12SubresourceRange SubresourceRange() const { return m_subresourceRange; }
 		D3D12Resource& Resource() const { return m_resource; }
-		uint32_t View() const { return m_viewIndex; }
+		uint32_t GetViewIndex() const { return m_viewIndex; }
 
 	protected:
-		BFView(D3D12Resource& resource);
+		View(D3D12Resource& resource);
 		
 		D3D12Resource& m_resource;
 		D3D12_RESOURCE_STATES m_requiredState = D3D12_RESOURCE_STATE_COMMON;
@@ -22,11 +22,11 @@ namespace Butterfly
 		uint32_t m_viewIndex = INT_MAX;
 	};
 
-	class BFRenderTargetView : public BFView
+	class RenderTargetView : public View
 	{
 	public:
-		BFRenderTargetView(D3D12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC& desc);
-		~BFRenderTargetView();
+		RenderTargetView(D3D12Resource& resource, const D3D12_RENDER_TARGET_VIEW_DESC& desc);
+		~RenderTargetView();
 
 		const D3D12_CPU_DESCRIPTOR_HANDLE& Handle() const { return m_handle; }
 
@@ -35,11 +35,11 @@ namespace Butterfly
 		D3D12_RENDER_TARGET_VIEW_DESC m_desc;
 	};
 
-	class BFDepthStencilView : public BFView
+	class DepthStencilView : public View
 	{
 	public:
-		BFDepthStencilView(D3D12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc);
-		~BFDepthStencilView();
+		DepthStencilView(D3D12Resource& resource, const D3D12_DEPTH_STENCIL_VIEW_DESC& desc);
+		~DepthStencilView();
 
 		const D3D12_CPU_DESCRIPTOR_HANDLE& Handle() const { return m_handle; }
 
@@ -48,21 +48,21 @@ namespace Butterfly
 		D3D12_DEPTH_STENCIL_VIEW_DESC m_desc;
 	};
 
-	class BFShaderResourceView : public BFView
+	class ShaderResourceView : public View
 	{
 	public:
-		BFShaderResourceView(D3D12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
-		~BFShaderResourceView();
+		ShaderResourceView(D3D12Resource& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
+		~ShaderResourceView();
 
 	private:
 		D3D12_SHADER_RESOURCE_VIEW_DESC m_desc;
 	};
 
-	class BFUniformBufferView : public BFView
+	class UniformBufferView : public View
 	{
 	public:
-		BFUniformBufferView(D3D12Resource& resource, uint32_t sizeInBytes, uint32_t offset);
-		~BFUniformBufferView();
+		UniformBufferView(D3D12Resource& resource, uint32_t sizeInBytes, uint32_t offset);
+		~UniformBufferView();
 
 		uint32_t Offset() const { return m_offset; }
 		uint32_t NumBytes() const { return m_sizeInBytes; }
@@ -74,11 +74,11 @@ namespace Butterfly
 	};
 
 
-	class BFUnorderedAccessView : public BFView
+	class UnorderedAccessView : public View
 	{
 	public:
-		BFUnorderedAccessView(D3D12Resource& resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc);
-		~BFUnorderedAccessView();
+		UnorderedAccessView(D3D12Resource& resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc);
+		~UnorderedAccessView();
 
 	private:
 		D3D12_CPU_DESCRIPTOR_HANDLE m_handle;

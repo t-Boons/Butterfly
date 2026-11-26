@@ -7,17 +7,17 @@ namespace Butterfly
 	{
 		struct DebugRendererPassData
 		{
-			BFStructuredBuffer* VertexBuffer;
+			StructuredBuffer* VertexBuffer;
 			uint32_t NumVertices;
 		};
 
-		BFStructuredBufferDesc desc;
-		desc.HeapType = BFHeapType::Upload;
+		StructuredBufferDesc desc;
+		desc.HeapType = HeapType::Upload;
 		desc.NumElements = NUM_DEBUG_VERTICES;
 		desc.DebugName = "DebugRendererVertexBuffer";
 		desc.Stride = sizeof(DebugRenderer::Vertex);
 
-		BFStructuredBuffer* vertexBuffer = event.Builder.CreateTransientStructuredBuffer("DebugRendererVertexBuffer", desc);
+		StructuredBuffer* vertexBuffer = event.Builder.CreateTransientStructuredBuffer("DebugRendererVertexBuffer", desc);
 
 		const std::vector<DebugRenderer::Vertex>& vertices = EditorApplication::Get().GetDebugRenderer().m_debugVertices;
 
@@ -48,16 +48,16 @@ namespace Butterfly
 
 				list.SetViewport(RenderViewport::FromTexture(event.Viewport.GetRenderTarget()));
 
-				BFGraphicsPSOInfo psoInfo;
+				GraphicsPSOInfo psoInfo;
 				psoInfo.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
 				psoInfo.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 				psoInfo.DepthStencil.BlendStates[0].EnableBlending = true;
 				psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
-				psoInfo.VertexShader = BFShaderCache::GetOrCreate("DebugLines_vert.hlsl");
-				psoInfo.PixelShader = BFShaderCache::GetOrCreate("DebugLines_frag.hlsl");
+				psoInfo.VertexShader = ShaderCache::GetOrCreate("DebugLines_vert.hlsl");
+				psoInfo.PixelShader = ShaderCache::GetOrCreate("DebugLines_frag.hlsl");
 				list.SetGraphicsPSO(psoInfo);
 
-				BFShaderVariableBuilder(list)
+				ShaderVariableBuilder(list)
 					.Add(event.Viewport.GetRenderData().CameraDataBuffer->CBV())
 					.Add(data.VertexBuffer->SRV())
 					.Submit();

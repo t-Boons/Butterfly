@@ -52,7 +52,7 @@ namespace Butterfly
 		glfwShowWindow(m_window);
 		glfwMakeContextCurrent(m_window);
 		m_hwnd = glfwGetWin32Window(m_window);
-		m_context = new BFGraphicsContext(m_hwnd);
+		m_context = new RenderContext(m_hwnd);
 	}
 
 	void Window::BindGLFWCallbacks()

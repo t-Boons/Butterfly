@@ -9,19 +9,19 @@
 
 namespace Butterfly
 {
-	class BFTexture;
+	class Texture;
 
-	struct BFEnviromentMap
+	struct EnviromentMap
 	{
-		RefPtr<BFTexture> Enviroment;
-		RefPtr<BFTexture> Irradiance;
-		RefPtr<BFTexture> Prefiltered;
+		RefPtr<Texture> Enviroment;
+		RefPtr<Texture> Irradiance;
+		RefPtr<Texture> Prefiltered;
 	};
 
 	struct SkyboxPassParams
 	{
-		BFTexture* SkyboxTexture;
-		BFTexture* IrradianceTexture;
+		Texture* SkyboxTexture;
+		Texture* IrradianceTexture;
 	};
 
 
@@ -36,8 +36,8 @@ namespace Butterfly
 		void LoadSkybox(const SkyboxComponent& component);
 		void UnloadSkybox();
 		bool IsSkyboxLoaded() const { return m_skyboxTexture != nullptr; }
-		RefPtr<BFTexture> m_skyboxTexture;
-		RefPtr<BFTexture> m_irradianceTexture;
+		RefPtr<Texture> m_skyboxTexture;
+		RefPtr<Texture> m_irradianceTexture;
 		int m_skyboxVersion = -1;
 	};
 }

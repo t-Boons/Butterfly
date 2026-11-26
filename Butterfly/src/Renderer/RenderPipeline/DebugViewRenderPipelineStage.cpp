@@ -36,11 +36,11 @@ namespace Butterfly
 				uint32_t entityIndex = 0;
 				for (const RenderObject& renderObject : viewport.GetRenderData().CulledRenderObjects)
 				{
-					BFGraphicsPSOInfo psoInfo;
+					GraphicsPSOInfo psoInfo;
 					psoInfo.DepthStencil.EnableDepth = true;
 					psoInfo.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
-					psoInfo.VertexShader = BFShaderCache::GetOrCreate("DebugView_vert.hlsl");
-					psoInfo.PixelShader = BFShaderCache::GetOrCreate("DebugView_frag.hlsl");
+					psoInfo.VertexShader = ShaderCache::GetOrCreate("DebugView_vert.hlsl");
+					psoInfo.PixelShader = ShaderCache::GetOrCreate("DebugView_frag.hlsl");
 
 					list.SetGraphicsPSO(psoInfo);
 
@@ -53,19 +53,19 @@ namespace Butterfly
 					if (mesh->GetSDF())
 					{
 						mesh->GetSDF()->GetSDFTexture()->Resource()->TransitionAll(list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-						sdf = mesh->GetSDF()->GetSDFTexture()->SRV(BFSRVTextureViewInfo::Texture2D()).View();
+						sdf = mesh->GetSDF()->GetSDFTexture()->SRV(SRVTextureViewInfo::Texture2D()).GetViewIndex();
 					}
 
-					BFSampler& smp = BFSamplerCache::GetOrCreate(BFSamplerDesc::LinearWrap());
+					Sampler& smp = SamplerCache::GetOrCreate(SamplerDesc::LinearWrap());
 					for (const auto& subMesh : mesh->GetSubMeshes())
 					{
-						BFShaderVariableBuilder(list)
+						ShaderVariableBuilder(list)
 							.Add(mesh->GPUPositions->SRV())
 							.Add(mesh->GPUNormals->SRV())
 							.Add(mesh->GPUTangents->SRV())
 							.Add(mesh->GPUUVs->SRV())
 							.Add(viewport.GetRenderData().CameraDataBuffer->CBV())
-							.Add(smp.View())
+							.Add(smp.GetViewIndex())
 							.Add(viewport.GetRenderData().ModelDataBuffer->SRV())
 							.Add(renderObject.ModelDataArrayIndex)
 							.Add(viewport.GetRenderData().Lights.SRV())

@@ -68,7 +68,7 @@ namespace Butterfly
 		};
 	}
 
-	struct BFCameraData
+	struct CameraData
 	{
 		glm::mat4 ViewProjection;
 		glm::mat4 InverseProjection;
@@ -86,57 +86,57 @@ namespace Butterfly
 		int ModelDataArrayIndex;
 	};
 
-	class BFRenderData
+	class RenderData
 	{
 	public:
-		RefPtr<BFTypedConstantBuffer<GPUStructs::FrameData>> FrameDataBuffer;
+		RefPtr<TypedConstantBuffer<GPUStructs::FrameData>> FrameDataBuffer;
 
-		RefPtr<BFTypedConstantBuffer<GPUStructs::CameraData>> CameraDataBuffer;
-		BFCameraData CameraData;
+		RefPtr<TypedConstantBuffer<GPUStructs::CameraData>> CameraDataBuffer;
+		CameraData CurrentCameraData;
 
 		MaterialLibrary Materials;
 		LightBuffer Lights;
-		RefPtr<BFTypedStructuredBuffer<GPUStructs::Model>> ModelDataBuffer;
+		RefPtr<TypedStructuredBuffer<GPUStructs::Model>> ModelDataBuffer;
 		ShadowMapBuffer ShadowMaps;
 		std::vector<RenderObject> CulledRenderObjects;
-		RefPtr<BFTypedStructuredBuffer<GPUStructs::Mesh>> MeshDataBuffer;
+		RefPtr<TypedStructuredBuffer<GPUStructs::Mesh>> MeshDataBuffer;
 		uint32_t MeshesInScene = 0;
 
-		std::array<std::array<BFFrustum, CUBEMAP_SLICES>, MAX_LIGHTS> ShadowLightFrustums;
+		std::array<std::array<Frustum, CUBEMAP_SLICES>, MAX_LIGHTS> ShadowLightFrustums;
 		std::array<std::array<std::vector<RenderObject>, CUBEMAP_SLICES>, MAX_LIGHTS> ShadowRenderObjects;
 
 	public:
-		BFRenderData()
+		RenderData()
 		{
 			{
-				BFTypedStructuredBufferDesc desc;
+				TypedStructuredBufferDesc desc;
 				desc.Data = nullptr;
-				desc.HeapType = BFHeapType::Upload;
+				desc.HeapType = HeapType::Upload;
 				desc.NumElements = 128;
 
-				ModelDataBuffer = MakeRef<BFTypedStructuredBuffer<GPUStructs::Model>>(desc);
+				ModelDataBuffer = MakeRef<TypedStructuredBuffer<GPUStructs::Model>>(desc);
 			}
 
 			{
-				BFTypedStructuredBufferDesc desc;
+				TypedStructuredBufferDesc desc;
 				desc.Data = nullptr;
-				desc.HeapType = BFHeapType::Upload;
+				desc.HeapType = HeapType::Upload;
 				desc.NumElements = 128;
 
-				MeshDataBuffer = MakeRef<BFTypedStructuredBuffer<GPUStructs::Mesh>>(desc);
+				MeshDataBuffer = MakeRef<TypedStructuredBuffer<GPUStructs::Mesh>>(desc);
 			}
 
 			{
-				CameraDataBuffer = MakeRef<BFTypedConstantBuffer<GPUStructs::CameraData>>();
-				FrameDataBuffer = MakeRef<BFTypedConstantBuffer<GPUStructs::FrameData>>();
+				CameraDataBuffer = MakeRef<TypedConstantBuffer<GPUStructs::CameraData>>();
+				FrameDataBuffer = MakeRef<TypedConstantBuffer<GPUStructs::FrameData>>();
 			}
 		}
 
-		void Update(const Viewport& viewport, const BFCameraData& cameraData)
+		void Update(const Viewport& viewport, const CameraData& cameraData)
 		{
 			BF_PROFILE_EVENT();
 
-			CameraData = cameraData;
+			CurrentCameraData = cameraData;
 
 			CameraDataBuffer->Data.ViewProjection = cameraData.ViewProjection;
 			CameraDataBuffer->Data.InverseProjection = cameraData.InverseProjection;
@@ -154,7 +154,7 @@ namespace Butterfly
 			const uint32_t numLights = Lights.GetNumLights();
 			const auto& shadowMaps = ShadowMaps.GetShadowMaps();
 
-			BFFrustum cameraFrustum = BFFrustum{ cameraData.ViewProjection, {} };
+			Frustum cameraFrustum = Frustum{ cameraData.ViewProjection, {} };
 			cameraFrustum.UpdatePlanes();
 
 			CulledRenderObjects.clear();
@@ -186,10 +186,10 @@ namespace Butterfly
 				AssetManager& as = Application::Get().GetAssetManager();
 				MeshAsset* mesh = as.Resolve<MeshAsset>(meshRenderer.GetMeshHandle());
 
-				meshData.PositionBuffer = mesh->GPUPositions->SRV().View();
-				meshData.NormalBuffer = mesh->GPUNormals ?  mesh->GPUNormals->SRV().View() : -1;
-				meshData.TangentBuffer = mesh->GPUTangents ? mesh->GPUTangents->SRV().View() : -1;
-				meshData.UVBuffer = mesh->GPUUVs ? mesh->GPUUVs->SRV().View() : -1;
+				meshData.PositionBuffer = mesh->GPUPositions->SRV().GetViewIndex();
+				meshData.NormalBuffer = mesh->GPUNormals ?  mesh->GPUNormals->SRV().GetViewIndex() : -1;
+				meshData.TangentBuffer = mesh->GPUTangents ? mesh->GPUTangents->SRV().GetViewIndex() : -1;
+				meshData.UVBuffer = mesh->GPUUVs ? mesh->GPUUVs->SRV().GetViewIndex() : -1;
 				
 				model.ModelMatrix = transform.GetWorldMatrix();
 				model.InverseModelMatrix = glm::inverse(model.ModelMatrix);
@@ -198,7 +198,7 @@ namespace Butterfly
 				if (mesh->GetSDF())
 				{
 					model.SDFResolution = glm::vec4(mesh->GetSDF()->GetSDFResolution(), 0.0f);
-					model.SDFTextureIndex = mesh->GetSDF()->GetSDFTexture()->SRV(BFSRVTextureViewInfo::Texture2D()).View();
+					model.SDFTextureIndex = mesh->GetSDF()->GetSDFTexture()->SRV(SRVTextureViewInfo::Texture2D()).GetViewIndex();
 					model.SDFBoundsMin = glm::vec4(mesh->GetSDF()->GetSDFBounds().Min, 0.0f);
 					model.SDFBoundsSize = glm::vec4(mesh->GetSDF()->GetSDFBounds().GetSize(), 0.0f);
 				}
@@ -214,7 +214,7 @@ namespace Butterfly
 				{
 					MeshesInScene++;
 
-					BFAABB worldAABB = subm.SubBounds.Transform(transform.GetWorldMatrix());
+					AABB worldAABB = subm.SubBounds.Transform(transform.GetWorldMatrix());
 
 					// Camera culling
 					if (worldAABB.IntersectsFrustum(cameraFrustum))
@@ -240,22 +240,22 @@ namespace Butterfly
 			MeshDataBuffer->Write();
 			
 
-			FrameDataBuffer->Data.MeshBuffer = MeshDataBuffer->SRV().View();
+			FrameDataBuffer->Data.MeshBuffer = MeshDataBuffer->SRV().GetViewIndex();
 			FrameDataBuffer->Data.NumMeshes = static_cast<int>(MeshDataBuffer->Data.size());
 
-			FrameDataBuffer->Data.ModelBuffer = ModelDataBuffer->SRV().View();
+			FrameDataBuffer->Data.ModelBuffer = ModelDataBuffer->SRV().GetViewIndex();
 			FrameDataBuffer->Data.NumModels = static_cast<int>(ModelDataBuffer->Data.size());
 
-			FrameDataBuffer->Data.LightBuffer = Lights.SRV().View();
+			FrameDataBuffer->Data.LightBuffer = Lights.SRV().GetViewIndex();
 			FrameDataBuffer->Data.NumLights = static_cast<int>(Lights.GetNumLights());
 
-			FrameDataBuffer->Data.ShadowMapBuffer = ShadowMaps.SRV().View();
+			FrameDataBuffer->Data.ShadowMapBuffer = ShadowMaps.SRV().GetViewIndex();
 			FrameDataBuffer->Data.NumShadowMaps = static_cast<int>(ShadowMaps.GetNumShadowMaps());
 
-			FrameDataBuffer->Data.MaterialBuffer = Materials.GetMaterialBuffer().SRV().View();
+			FrameDataBuffer->Data.MaterialBuffer = Materials.GetMaterialBuffer().SRV().GetViewIndex();
 			FrameDataBuffer->Data.NumMaterials = static_cast<int>(Materials.GetNumMaterials());
 
-			FrameDataBuffer->Data.CameraConstantData = CameraDataBuffer->CBV().View();
+			FrameDataBuffer->Data.CameraConstantData = CameraDataBuffer->CBV().GetViewIndex();
 
 			FrameDataBuffer->Write();
 		}

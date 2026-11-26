@@ -9,7 +9,7 @@ namespace Butterfly
 {
     namespace Utils
     {
-        inline const D3D12_INDEX_BUFFER_VIEW IndexBufferViewFromBuffer(const BFStructuredBuffer& buffer)
+        inline const D3D12_INDEX_BUFFER_VIEW IndexBufferViewFromBuffer(const StructuredBuffer& buffer)
         {
             BF_PROFILE_EVENT();
 
@@ -21,17 +21,17 @@ namespace Butterfly
         }
     }
 
-    BFStructuredBuffer::BFStructuredBuffer(const BFStructuredBufferDesc& bufferDesc)
+    StructuredBuffer::StructuredBuffer(const StructuredBufferDesc& bufferDesc)
         : m_srv(nullptr), m_desc(bufferDesc)
     {
         BF_PROFILE_EVENT();
 
-        BF_CORE_ASSERT(!(m_desc.HeapType == BFHeapType::Default && !m_desc.Data), "BFStructuredBuffer::BFStructuredBuffer Structured buffer with HeapType::Default, cannot have its Data be null");
+        BF_CORE_ASSERT(!(m_desc.HeapType == HeapType::Default && !m_desc.Data), "StructuredBuffer::StructuredBuffer Structured buffer with HeapType::Default, cannot have its Data be null");
 
         D3D12_HEAP_TYPE heapType = D3D12_HEAP_TYPE_DEFAULT;
 
-        if (bufferDesc.HeapType == BFHeapType::Upload) heapType = D3D12_HEAP_TYPE_UPLOAD;
-        if (bufferDesc.HeapType == BFHeapType::Default) heapType = D3D12_HEAP_TYPE_DEFAULT;
+        if (bufferDesc.HeapType == HeapType::Upload) heapType = D3D12_HEAP_TYPE_UPLOAD;
+        if (bufferDesc.HeapType == HeapType::Default) heapType = D3D12_HEAP_TYPE_DEFAULT;
 
         const uint32_t numBytes = bufferDesc.NumElements * bufferDesc.Stride;
 
@@ -78,10 +78,10 @@ namespace Butterfly
         srvDesc.Buffer.StructureByteStride = bufferDesc.Stride;
         srvDesc.Buffer.NumElements = bufferDesc.NumElements;
 
-        m_srv = new BFShaderResourceView(*m_resource, srvDesc);
+        m_srv = new ShaderResourceView(*m_resource, srvDesc);
     }
 
-    BFStructuredBuffer::~BFStructuredBuffer()
+    StructuredBuffer::~StructuredBuffer()
     {
         BF_PROFILE_EVENT()
 
@@ -89,31 +89,31 @@ namespace Butterfly
         FREE(m_resource);
     }
 
-    void BFStructuredBuffer::Write(const void* src, uint32_t numBytes, uint32_t offset)
+    void StructuredBuffer::Write(const void* src, uint32_t numBytes, uint32_t offset)
     {
         m_resource->Write(src, numBytes, offset);
     }
 
-    D3D12Resource* BFStructuredBuffer::Resource() const
+    D3D12Resource* StructuredBuffer::Resource() const
     {
         return m_resource;
     }
 
-    ID3D12Resource2* BFStructuredBuffer::HWResource() const
+    ID3D12Resource2* StructuredBuffer::HWResource() const
     {
         return m_resource->HWResource();
     }
 
-    const BFShaderResourceView& BFStructuredBuffer::SRV() const
+    const ShaderResourceView& StructuredBuffer::SRV() const
     {
         BF_CORE_ASSERT(m_srv != nullptr, "%s", "Buffer does not have an SRV");
         return *m_srv;
     }
 
 
-    // BFIndexBuffer
+    // IndexBuffer
 
-    BFIndexBuffer::BFIndexBuffer(const void* src, uint32_t numElements, DXGI_FORMAT format, const std::string& resourceTag)
+    IndexBuffer::IndexBuffer(const void* src, uint32_t numElements, DXGI_FORMAT format, const std::string& resourceTag)
         : m_numElements(numElements)
     {
         BF_PROFILE_EVENT();
@@ -169,7 +169,7 @@ namespace Butterfly
         FREE(uploadResource);
     }
 
-    BFIndexBuffer::~BFIndexBuffer()
+    IndexBuffer::~IndexBuffer()
     {
         BF_PROFILE_EVENT()
 
@@ -177,9 +177,9 @@ namespace Butterfly
     }
 
 
-    // BFConstantBuffer
+    // ConstantBuffer
 
-    BFConstantBuffer::BFConstantBuffer(uint32_t numBytes, const std::string& resourceTag)
+    ConstantBuffer::ConstantBuffer(uint32_t numBytes, const std::string& resourceTag)
         : m_numBytes(0), m_mappedData(nullptr), m_cbv(nullptr)
     {
         BF_PROFILE_EVENT();
@@ -198,10 +198,10 @@ namespace Butterfly
 
         m_mappedData = static_cast<uint8_t*>(m_resource->Map());
 
-        m_cbv = MakeRef<BFUniformBufferView>(*m_resource, alignedSize, 0);
+        m_cbv = MakeRef<UniformBufferView>(*m_resource, alignedSize, 0);
     }
 
-    BFConstantBuffer::~BFConstantBuffer()
+    ConstantBuffer::~ConstantBuffer()
     {
         BF_PROFILE_EVENT();
 
@@ -209,18 +209,18 @@ namespace Butterfly
         m_resource.reset();
     }
 
-    const BFUniformBufferView& BFConstantBuffer::CBV() const
+    const UniformBufferView& ConstantBuffer::CBV() const
     {
         return *m_cbv;
     }
 
-    void BFConstantBuffer::Write(const void* src, uint32_t numBytes, uint32_t offset)
+    void ConstantBuffer::Write(const void* src, uint32_t numBytes, uint32_t offset)
     {
         BF_CORE_ASSERT(offset + numBytes <= m_numBytes, "Not enough space in uniform buffer to write data.");
         memcpy(static_cast<void*>(m_mappedData + offset), src, numBytes);
     }
 
-    void BFConstantBuffer::Write(const std::vector<uint8_t>& data, uint32_t offset)
+    void ConstantBuffer::Write(const std::vector<uint8_t>& data, uint32_t offset)
     {
         Write(data.data(), static_cast<uint32_t>(data.size()), offset);
     }

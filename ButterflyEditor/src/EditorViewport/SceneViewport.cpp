@@ -11,8 +11,8 @@ namespace Butterfly
 {
 	struct ObjectPickerPassData
 	{
-		BFTexture* DepthStencil;
-		BFTexture* RenderTarget;
+		Texture* DepthStencil;
+		Texture* RenderTarget;
 	};
 
 
@@ -34,7 +34,7 @@ namespace Butterfly
 		{
 			for (uint32_t i = 0; i < NUM_RENDER_BUFFERS; ++i)
 			{
-				m_objectPickerReadbacks[i] = MakeRef<BFTextureReadback>();
+				m_objectPickerReadbacks[i] = MakeRef<TextureReadback>();
 			}
 		}
 
@@ -47,19 +47,19 @@ namespace Butterfly
 
 			ObjectPickerPassData* params = builder.AllocParameters<ObjectPickerPassData>();
 
-			BFTextureDesc desc;
+			TextureDesc desc;
 			desc.Format = DXGI_FORMAT_R32_UINT;
 			desc.Width = viewport.GetRenderTarget().Width();
 			desc.Height = viewport.GetRenderTarget().Height();
-			desc.ViewTypes = BFTextureDesc::ViewType::RenderTargettable;
+			desc.ViewTypes = TextureDesc::ViewType::RenderTargetable;
 			desc.DebugName = "R32 Viewport objectpicker";
 			params->RenderTarget = builder.CreateTransientTexture("R32 Viewport objectpicker", desc);
 
-			BFTextureDesc desc2;
+			TextureDesc desc2;
 			desc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 			desc2.Width = viewport.GetRenderTarget().Width();
 			desc2.Height = viewport.GetRenderTarget().Height();
-			desc2.ViewTypes = BFTextureDesc::ViewType::DepthStencilable;
+			desc2.ViewTypes = TextureDesc::ViewType::DepthStencilable;
 			desc2.DebugName = "DepthStencil Viewport objectpicker";
 			params->DepthStencil = builder.CreateTransientTexture("DepthStencil Viewport objectpicker", desc2);
 
@@ -77,16 +77,16 @@ namespace Butterfly
 
 					list.SetViewport(RenderViewport::FromTexture(*data.RenderTarget));
 
-					BFGraphicsPSOInfo psoInfo;
-					psoInfo.VertexShader = BFShaderCache::GetOrCreate("ObjectPicker_vert.hlsl");
-					psoInfo.PixelShader = BFShaderCache::GetOrCreate("ObjectPicker_frag.hlsl");
+					GraphicsPSOInfo psoInfo;
+					psoInfo.VertexShader = ShaderCache::GetOrCreate("ObjectPicker_vert.hlsl");
+					psoInfo.PixelShader = ShaderCache::GetOrCreate("ObjectPicker_frag.hlsl");
 					list.SetGraphicsPSO(psoInfo);
 
 					for (const RenderObject& renderObject : viewport.GetRenderData().CulledRenderObjects)
 					{
 						AssetManager& as = Application::Get().GetAssetManager();
 						MeshAsset* mesh = as.Resolve<MeshAsset>(renderObject.MeshAsset);
-						BFShaderVariableBuilder(list)
+						ShaderVariableBuilder(list)
 							.Add(mesh->GPUPositions->SRV())
 							.Add(viewport.GetRenderData().CameraDataBuffer->CBV())
 							.Add(viewport.GetRenderData().ModelDataBuffer->SRV())
@@ -106,7 +106,7 @@ namespace Butterfly
 
 	private:
 		friend class SceneViewport;
-		std::array<RefPtr<BFTextureReadback>, NUM_RENDER_BUFFERS> m_objectPickerReadbacks;
+		std::array<RefPtr<TextureReadback>, NUM_RENDER_BUFFERS> m_objectPickerReadbacks;
 	};
 
 
@@ -187,7 +187,7 @@ namespace Butterfly
 				}
 
 				const TransformComponent& cameraTransform = EditorApplication::Get().GetEditorViewport().m_selectedEntity.GetComponent<TransformComponent>();
-				BFFrustum frustum;
+				Frustum frustum;
 				frustum.Projection = camera->GetViewprojectionMatrrix(cameraTransform.GetPosition(), cameraTransform.GetRotation());
 				frustum.UpdatePlanes();
 				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
@@ -205,7 +205,7 @@ namespace Butterfly
 					{
 						const std::array<glm::vec3, 8> corners = subm.SubBounds.GetCorners();
 
-						BFAABB worldAABB{};
+						AABB worldAABB{};
 
 						for (const glm::vec3& corner : corners)
 						{
@@ -237,7 +237,7 @@ namespace Butterfly
 	{
 		BF_PROFILE_EVENT()
 
-		BFCameraData cameraData;
+		CameraData cameraData;
 		cameraData.ViewProjection = m_spectatorCam.GetCamera()->ViewProjectionMatrix();
 		cameraData.CameraPosition = m_spectatorCam.GetCamera()->Position();
 		cameraData.InverseView = glm::transpose(glm::inverse(m_spectatorCam.GetCamera()->ViewMatrix()));

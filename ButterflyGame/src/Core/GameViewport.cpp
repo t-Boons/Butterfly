@@ -58,7 +58,7 @@ namespace Butterfly::Game
 			m_shouldUpdateRenderPipeline = false;
 		}
 
-		BFCameraData cameraData;
+		CameraData cameraData;
 		cameraData.ViewProjection = viewProjection;
 		cameraData.CameraPosition = cameraPosition;
 		cameraData.InverseView = glm::transpose(glm::inverse(view));

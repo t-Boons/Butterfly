@@ -60,6 +60,6 @@ void main(uint3 id : SV_DispatchThreadID)
         }
     }
 
-    irradiance = PI * irradiance / count;
+    irradiance = irradiance / count;
     irradianceTex[id] = float4(irradiance, 1.0f);
 }

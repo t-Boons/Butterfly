@@ -28,7 +28,7 @@ namespace Butterfly
 		uint32_t m_height = 0;
 		std::string m_debugName = "Thumbnail";
 
-		RefPtr<BFTexture> m_gpuTexture;
+		RefPtr<Texture> m_gpuTexture;
 	};
 
 	class ThumbnailProcessor

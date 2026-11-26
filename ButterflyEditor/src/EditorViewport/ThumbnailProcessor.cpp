@@ -9,20 +9,20 @@ namespace Butterfly
 			return;
 		}
 
-		BFTextureDesc textureDesc;
+		TextureDesc textureDesc;
 		textureDesc.Width = m_width;
 		textureDesc.Height = m_height;
 		textureDesc.DebugName = m_debugName;
-		textureDesc.ViewTypes = BFTextureDesc::ViewType::ShaderResource;
+		textureDesc.ViewTypes = TextureDesc::ViewType::ShaderResource;
 		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		m_gpuTexture = MakeRef<BFTexture>(textureDesc);
+		m_gpuTexture = MakeRef<Texture>(textureDesc);
 		GraphicsCommands::UploadTextureResource(*m_gpuTexture, m_pixels.data());
 	}
 
 	ImTextureID Thumbnail::GetImGUITextureID()
 	{
 		ValidateGPUTexture();
-		return (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(m_gpuTexture->SRV(BFSRVTextureViewInfo::Texture2D()).View()).ptr;
+		return (ImTextureID)(uintptr_t)D3D12API()->DescriptorAllocatorSrvCbvUav()->GpuHandleFromHandle(m_gpuTexture->SRV(SRVTextureViewInfo::Texture2D()).GetViewIndex()).ptr;
 	}
 
 

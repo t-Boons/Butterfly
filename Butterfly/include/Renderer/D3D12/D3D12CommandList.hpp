@@ -4,11 +4,11 @@
 
 namespace Butterfly
 {
-	class BFTexture;
-	struct BFGraphicsPSOInfo;
-	class BFComputePSOInfo;
-	class BFView;
-	class BFIndexBuffer;
+	class Texture;
+	struct GraphicsPSOInfo;
+	class ComputePSOInfo;
+	class View;
+	class IndexBuffer;
 
 	enum class LoadOP
 	{
@@ -18,7 +18,7 @@ namespace Butterfly
 
 	struct RenderViewport
 	{
-		static RenderViewport FromTexture(const BFTexture& texture);
+		static RenderViewport FromTexture(const Texture& texture);
 
 		uint32_t Width = 1;
 		uint32_t Height = 1;
@@ -26,10 +26,10 @@ namespace Butterfly
 
 	struct RasterPassStartInfo
 	{
-		BFTexture* RenderTarget = nullptr;
+		Texture* RenderTarget = nullptr;
 		LoadOP RenderTargetLoadOp = LoadOP::Load;
 		glm::vec4 ClearColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-		BFTexture* DepthStencil = nullptr;
+		Texture* DepthStencil = nullptr;
 		LoadOP DepthStencilLoadOp = LoadOP::Load;
 		float DepthValue = 1.0f;
 	};
@@ -58,23 +58,23 @@ namespace Butterfly
 		void EndRenderPass();
 		void EndComputePass();
 
-		void SetColorTarget(BFTexture& color);
-		void SetColorTargets(const std::vector<BFTexture*>& color);
-		void SetDepthStencilTarget(BFTexture& depthStencil, uint32_t slice = 0);
+		void SetColorTarget(Texture& color);
+		void SetColorTargets(const std::vector<Texture*>& color);
+		void SetDepthStencilTarget(Texture& depthStencil, uint32_t slice = 0);
 
-		void ClearRenderTarget(BFTexture& color, const glm::vec4& clearColor);
-		void ClearDepthStencilTarget(BFTexture& depthStencil, float depthValue = 1.0f, uint8_t stencilValue = 0, uint32_t slice = 0);
+		void ClearRenderTarget(Texture& color, const glm::vec4& clearColor);
+		void ClearDepthStencilTarget(Texture& depthStencil, float depthValue = 1.0f, uint8_t stencilValue = 0, uint32_t slice = 0);
 
-		void SetGraphicsPSO(const BFGraphicsPSOInfo& pso);
-		void SetComputePSO(const BFComputePSOInfo& pso);
+		void SetGraphicsPSO(const GraphicsPSOInfo& pso);
+		void SetComputePSO(const ComputePSOInfo& pso);
 
-		void SetIndexBuffer(const BFIndexBuffer& buffer);
+		void SetIndexBuffer(const IndexBuffer& buffer);
 
 		void SetViewport(const RenderViewport& viewport);
 
 		void SetRootConstants(const void* data, uint32_t numDWords);
 
-		void PrepareForUse(const BFView& view);
+		void PrepareForUse(const View& view);
 
 		void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation);
 		void DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation);
@@ -94,9 +94,9 @@ namespace Butterfly
 		ID3D12CommandAllocator* m_allocator;
 		D3D12_COMMAND_LIST_TYPE m_dxType;
 
-		std::vector<BFTexture*> m_colorTexture;
+		std::vector<Texture*> m_colorTexture;
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_colorTextureView;
-		BFTexture* m_depthStencilTexture = nullptr;
+		Texture* m_depthStencilTexture = nullptr;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_depthStencilView = {};
 
 		bool m_bindlessBound = false;

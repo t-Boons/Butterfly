@@ -4,7 +4,7 @@
 
 namespace Butterfly
 {
-	BFSampler::BFSampler(const D3D12_SAMPLER_DESC* desc)
+	Sampler::Sampler(const D3D12_SAMPLER_DESC* desc)
 	{
         BF_PROFILE_EVENT();
 
@@ -12,16 +12,16 @@ namespace Butterfly
 		m_viewIndex = D3D12API()->DescriptorAllocatorSampler()->CreateSampler(samplerDesc);
 	}
 
-	BFSampler::~BFSampler()
+	Sampler::~Sampler()
 	{
 		D3D12API()->DescriptorAllocatorSampler()->FreeHandle(m_viewIndex);
 	}
 
-    BFSampler& BFSamplerCache::GetOrCreate(const BFSamplerDesc& desc)
+    Sampler& SamplerCache::GetOrCreate(const SamplerDesc& desc)
     {
 		BF_PROFILE_EVENT();
 
-		uint64_t hash = std::hash<std::string>()(std::string(reinterpret_cast<const char*>(&desc), sizeof(BFSamplerDesc)));
+		uint64_t hash = std::hash<std::string>()(std::string(reinterpret_cast<const char*>(&desc), sizeof(SamplerDesc)));
 		auto it = s_samplerCache.find(hash);
 		if (it != s_samplerCache.end())
 		{
@@ -29,7 +29,7 @@ namespace Butterfly
 		}
 		else
 		{
-			RefPtr<BFSampler> newSampler = MakeRef<BFSampler>(&desc.Desc);
+			RefPtr<Sampler> newSampler = MakeRef<Sampler>(&desc.Desc);
 			s_samplerCache[hash] = newSampler;
 			return *newSampler;
 		}

@@ -32,12 +32,12 @@ namespace Butterfly
 
 				list.SetViewport(RenderViewport::FromTexture(*firstValidShadow->ShadowMapTexture));
 
-				BFGraphicsPSOInfo pso;
+				GraphicsPSOInfo pso;
 				pso.Rasterizer.CullMode = D3D12_CULL_MODE_BACK;
 				pso.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 				pso.DepthStencil.WriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 				pso.DepthStencil.EnableDepth = true;
-				pso.VertexShader = BFShaderCache::GetOrCreate("ShadowMap_vert.hlsl");
+				pso.VertexShader = ShaderCache::GetOrCreate("ShadowMap_vert.hlsl");
 				list.SetGraphicsPSO(pso);
 
 				for (uint32_t shadowMapIndex = 0; shadowMapIndex < MAX_SHADOW_MAPS; shadowMapIndex++)
@@ -62,7 +62,7 @@ namespace Butterfly
 
 							list.SetIndexBuffer(*mesh->GPUIndices);
 
-							BFShaderVariableBuilder(list)
+							ShaderVariableBuilder(list)
 								.Add(mesh->GPUPositions->SRV())
 								.Add(viewport.GetRenderData().CameraDataBuffer->CBV())
 								.Add(viewport.GetRenderData().ShadowMaps.SRV())

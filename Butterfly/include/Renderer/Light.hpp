@@ -6,8 +6,8 @@
 
 namespace Butterfly
 {
-	class BFStructuredBuffer;
-	class BFTexture;
+	class StructuredBuffer;
+	class Texture;
 
 	struct GPULight
 	{
@@ -21,7 +21,7 @@ namespace Butterfly
 	};
 
 	class Viewport;
-	class BFShaderResourceView;
+	class ShaderResourceView;
 	class LightBuffer
 	{
 	public:
@@ -30,11 +30,11 @@ namespace Butterfly
 		void Update(const Viewport& viewport);
 
 		const std::array<GPULight, MAX_LIGHTS>& GetLights() const;
-		const BFShaderResourceView& SRV() const;
+		const ShaderResourceView& SRV() const;
 		uint32_t GetNumLights() const { return m_numLights; }
 
 	private:
-		RefPtr<BFStructuredBuffer> m_gpuLights;
+		RefPtr<StructuredBuffer> m_gpuLights;
 		std::array<GPULight, MAX_LIGHTS> m_lights;
 		uint32_t m_numLights = 0;
 	};

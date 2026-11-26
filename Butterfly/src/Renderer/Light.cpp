@@ -33,12 +33,12 @@ namespace Butterfly
 
 	LightBuffer::LightBuffer()
 	{
-		BFStructuredBufferDesc desc;
+		StructuredBufferDesc desc;
 		desc.NumElements = static_cast<uint32_t>(MAX_LIGHTS);
 		desc.Stride = sizeof(GPULight);
 		desc.DebugName = "LightBuffer";
-		desc.HeapType = BFHeapType::Upload;
-		m_gpuLights = MakeRef<BFStructuredBuffer>(desc);
+		desc.HeapType = HeapType::Upload;
+		m_gpuLights = MakeRef<StructuredBuffer>(desc);
 	}
 
 	void LightBuffer::Update(const Viewport& viewport)
@@ -76,7 +76,7 @@ namespace Butterfly
 		return m_lights;
 	}
 
-	const BFShaderResourceView& LightBuffer::SRV() const
+	const ShaderResourceView& LightBuffer::SRV() const
 	{
 		return m_gpuLights->SRV();
 	}

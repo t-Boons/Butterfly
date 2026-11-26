@@ -4,69 +4,69 @@
 
 namespace Butterfly
 {
-	class BFRGResource;
-	class BFResource;
+	class RGResource;
+	class Resource;
 
-	class BFTexture;
-	class BFStructuredBuffer;
-	class BFConstantBuffer;
-	class BFIndexBuffer;
-	class BFSampler;
+	class Texture;
+	class StructuredBuffer;
+	class ConstantBuffer;
+	class IndexBuffer;
+	class Sampler;
 
 
 	// Resource Initializers.
 
-	struct BFRGTextureInitializer
+	struct RGTextureInitializer
 	{
 	public:
-		BFRGTextureInitializer(const BFTextureDesc& desc, const std::string& name)
+		RGTextureInitializer(const TextureDesc& desc, const std::string& name)
 		{
 			Desc = desc;
 			Name = name;
 		}
 
-		BFTextureDesc Desc;
+		TextureDesc Desc;
 		std::string Name;
 	};
 
 
-	class BFRGResource : private NonCopyable
+	class RGResource : private NonCopyable
 	{
 	public:
-		virtual ~BFRGResource() = default;
+		virtual ~RGResource() = default;
 	};
 
-	class BFRGTexture : public BFRGResource
+	class RGTexture : public RGResource
 	{
 	public:
 		friend class GraphTransientResourceCache;
 
-		RefPtr<BFTexture> Resource() const { return m_resource; }
+		RefPtr<Texture> Resource() const { return m_resource; }
 
-		~BFRGTexture();
+		~RGTexture();
 
 	protected:
-		BFRGTexture(const BFTextureDesc& desc)
+		RGTexture(const TextureDesc& desc)
 		{
-			m_resource = MakeRef<BFTexture>(desc);
+			m_resource = MakeRef<Texture>(desc);
 		}
 
-		RefPtr<BFTexture> m_resource;
+		RefPtr<Texture> m_resource;
 	};
 
-	class BFRGStructuredBuffer : public BFRGResource
+	class RGStructuredBuffer : public RGResource
 	{
 	};
 
-	class BFRGUniformBuffer : public BFRGResource
+	class RGUniformBuffer : public RGResource
 	{
 	};
 
-	class BFRGIndexBuffer : public BFRGResource
+	class RGIndexBuffer : public RGResource
 	{
 	};
 
-	class BFRGSampler : public BFRGResource
+	class RGSampler : public RGResource
 	{
 	};
 }

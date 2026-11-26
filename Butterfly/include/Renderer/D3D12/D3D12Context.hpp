@@ -9,11 +9,11 @@ namespace Butterfly
 	class D3D12CommandList;
 	class D3D12Fence;
 
-	class BFGraphicsContext : private NonCopyable
+	class RenderContext : private NonCopyable
 	{
 	public:
-		BFGraphicsContext(HWND hwnd);
-		~BFGraphicsContext();
+		RenderContext(HWND hwnd);
+		~RenderContext();
 
 		void RecordCopyToBackBuffer(D3D12Resource& toDisplay, D3D12CommandList& cmdList);
 		void Present();
