@@ -1,16 +1,13 @@
 #pragma once
 #include "Core/Common.hpp"
 
+#define GRAPHRESOURCE_LIFETIME 3
+
 namespace Butterfly
 {
-
-#define GRAPHRESOURCE_LIFETIME 5
-
 	class GraphTransientResourceCache : private NonCopyable
 	{
 	public:
-		~GraphTransientResourceCache();
-
 		void UpdateLifetimes();
 		void Flush();
 
@@ -20,151 +17,92 @@ namespace Butterfly
 
 		uint32_t NumResources() const { return static_cast<uint32_t>(m_resources.size()); }
 
-		template<typename Type, typename Args>
-		Type& GetOrCreate(const std::string& key, Args&& args);
+		template<typename Type, typename Desc>
+		Type& GetOrCreate(const std::string& key, const Desc& desc);
 
 	private:
 		template<typename Type, typename Args>
 		Type* Alloc(const std::string& key, Args&& args);
 
-		void DeallocDeadResources();
+		void ReleaseDeferred(std::any&& resource);
 
-		std::unordered_map<std::string, std::any> m_resources;
-		std::unordered_map<std::string, uint32_t> m_lifetimes;
+		struct Entry
+		{
+			std::any Resource;
+			std::any Desc;
+			uint32_t Lifetime = GRAPHRESOURCE_LIFETIME;
+		};
+
+		std::unordered_map<std::string, Entry> m_resources;
+		std::vector<std::pair<std::any, uint32_t>> m_pendingRelease;
 	};
 
-
-	// Implementation.
-
-	inline GraphTransientResourceCache::~GraphTransientResourceCache()
+	template<typename Type, typename Desc>
+	inline Type& GraphTransientResourceCache::GetOrCreate(const std::string& key, const Desc& desc)
 	{
 		BF_PROFILE_EVENT();
 
-		for (auto& resource : m_resources)
+		static_assert(std::equality_comparable<Desc>, "GraphTransientResourceCache: Desc must define bool operator==");
+
+		Entry& entry = m_resources[key];
+
+		const Desc* cachedDesc = std::any_cast<Desc>(&entry.Desc);
+		const bool  needsCreate = !entry.Resource.has_value() || !cachedDesc || !(*cachedDesc == desc);
+
+		if (needsCreate)
 		{
-			resource.second.reset();
+			if (entry.Resource.has_value())
+			{
+				ReleaseDeferred(std::move(entry.Resource));
+				BF_CORE_LOG_TRACE("Recreating transient resource (desc changed): %s", key.c_str());
+			}
+
+			entry.Resource = MakeRef<Type>(desc);
+			entry.Desc     = desc;
+			BF_CORE_LOG_TRACE("Allocated new transient resource: %s", key.c_str());
 		}
+
+		entry.Lifetime = GRAPHRESOURCE_LIFETIME;
+		return *std::any_cast<RefPtr<Type>&>(entry.Resource);
 	}
 
-	inline void GraphTransientResourceCache::Flush()
+	inline void GraphTransientResourceCache::ReleaseDeferred(std::any&& resource)
 	{
-		BF_PROFILE_EVENT();
-
-		// Destroy All the resources.
-		for (auto& resource : m_resources)
-		{
-			resource.second.reset();
-		}
-
-		m_lifetimes.clear();
-		m_resources.clear();
-
-		BF_CORE_LOG_TRACE("Deallocated/Flushed all transient resources.");
-	}
-
-	inline void GraphTransientResourceCache::FlushValue(const std::string& key)
-	{
-		BF_PROFILE_EVENT();
-		auto it = m_resources.find(key);
-		if (it != m_resources.end())
-		{
-			it->second.reset();
-			m_lifetimes.erase(key);
-			m_resources.erase(it);
-			BF_CORE_LOG_TRACE("Deallocated/Flushed transient resource: %s", key.c_str());
-		}
-		else
-		{
-			BF_CORE_LOG_WARN("GraphTransientResourceCache::FlushValue: Resource with key '%s' not found.", key.c_str());
-		}
+		m_pendingRelease.emplace_back(std::move(resource), NUM_RENDER_BUFFERS);
 	}
 
 	inline void GraphTransientResourceCache::UpdateLifetimes()
 	{
 		BF_PROFILE_EVENT();
 
-		for (auto& lifetime : m_lifetimes)
+		// Unused resources: move to the deferred queue once their lifetime ends
+		for (auto it = m_resources.begin(); it != m_resources.end(); )
 		{
-			lifetime.second--;
-		}
-
-		DeallocDeadResources();
-	}
-
-	inline bool GraphTransientResourceCache::HasValue(const std::string& key) const
-	{
-		return m_lifetimes.find(key) != m_lifetimes.end();
-	}
-
-	inline void GraphTransientResourceCache::DeallocDeadResources()
-	{
-		BF_PROFILE_EVENT();
-
-		// Caching the resources to delete to not break the for loop iterator.
-		std::queue<std::string> toDealloc;
-
-		for (auto& lifetime : m_lifetimes)
-		{
-			const std::string& key = lifetime.first;
-
-			// Resource lifetime has ended. Deallocate it.
-			if (lifetime.second == 0)
+			if (--it->second.Lifetime == 0)
 			{
-				toDealloc.push(key);
+				ReleaseDeferred(std::move(it->second.Resource));
+				it = m_resources.erase(it);
+			}
+			else
+			{
+				++it;
 			}
 		}
 
-		// Here we make sure to delete everything in the toDealloc queue.
-		while (!toDealloc.empty())
+		// Deferred: actually free after the GPU is done with them
+		for (auto it = m_pendingRelease.begin(); it != m_pendingRelease.end(); )
 		{
-			const std::string key = toDealloc.front();
-			toDealloc.pop();
-
-			std::any& resource = m_resources.at(key);
-			resource.reset();
-
-			m_lifetimes.erase(key);
-			m_resources.erase(key);
-
-			BF_CORE_LOG_TRACE("Deallocated Transient resource: %s", key.c_str());
+			if (--it->second == 0)
+				it = m_pendingRelease.erase(it);   // RefPtr inside the any is released here
+			else
+				++it;
 		}
 	}
 
-	template<typename Type, typename Args>
-	inline Type& GraphTransientResourceCache::GetOrCreate(const std::string& key, Args&& args)
+	inline void GraphTransientResourceCache::Flush()
 	{
-		BF_PROFILE_EVENT()
-
-		auto it = m_resources.find(key);
-		if (it == m_resources.end())
-		{
-			Type* newResource = Alloc<Type, Args>(key, args);
-			return *newResource;
-		}
-
-		// Get an existing resource.
-		RefPtr<Type> out = std::any_cast<const RefPtr<Type>&>(it->second);
-			
-		// Reset the resource's lifetime.
-		m_lifetimes[key] = GRAPHRESOURCE_LIFETIME;
-
-		BF_CORE_ASSERT(out.get(), "Failed to retrieve existing resource: %s", key.c_str());
-		return *out.get();
-	}
-
-	template<typename Type, typename Args>
-	inline Type* GraphTransientResourceCache::Alloc(const std::string& key, Args&& args)
-	{
-		std::stringstream ss;
-		ss << "Butterfly::GraphTransientResourceCache::Alloc -> " << key;
-		BF_PROFILE_EVENT_DYNAMIC(ss.str().c_str());
-
-		// Initialize a new resource.
-		RefPtr<Type> newResource = RefPtr<Type>(new Type(std::forward<Args>(args)));
-		m_resources[key] = newResource;
-		m_lifetimes[key] = GRAPHRESOURCE_LIFETIME;
-
-		BF_CORE_LOG_TRACE("Allocated new Transient resource: %s", key.c_str());
-		return newResource.get();
+		for (auto& [key, entry] : m_resources)
+			ReleaseDeferred(std::move(entry.Resource));
+		m_resources.clear();
 	}
 }

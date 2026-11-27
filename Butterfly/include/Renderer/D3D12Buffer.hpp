@@ -21,6 +21,8 @@ namespace Butterfly
 		void* Data = nullptr;
 		HeapType HeapType = HeapType::Default;
 		std::string DebugName = "StructuredBuffer";
+
+		bool operator ==(const StructuredBufferDesc& other) const = default;
 	};
 
 	class StructuredBuffer : public Resource, private NonCopyable

@@ -103,6 +103,8 @@ namespace Butterfly
 			DepthStencilable = 1 << 3,
 			UnorderedAccess = 1 << 4,
 		};
+
+		bool operator ==(const TextureDesc& other) const = default;
 	};
 
 	class Texture : public Resource, private NonCopyable

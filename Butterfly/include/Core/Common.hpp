@@ -57,6 +57,8 @@
         p = nullptr;    \
     }}
 
+#define NUM_RENDER_BUFFERS 3
+
 namespace Butterfly
 {
     template <typename T>

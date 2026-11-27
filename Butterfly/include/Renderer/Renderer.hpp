@@ -4,8 +4,6 @@
 #include "Core/Window.hpp"
 #include "Renderer/RenderIncludes.hpp"
 
-#define NUM_RENDER_BUFFERS 3
-
 namespace Butterfly
 {
 	class RenderData;
