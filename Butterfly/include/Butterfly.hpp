@@ -21,13 +21,13 @@
 #include "Asset/AssetRegistry.hpp"
 #include "Asset/AssetTypes.hpp"
 
-// Scene and Registry
-#include "Scene/Scene.hpp"
-#include "Scene/Registry/TransformComponent.hpp"
-#include "Scene/Registry/MeshRendererComponent.hpp"
-#include "Scene/Registry/NameComponent.hpp"
-#include "Scene/Registry/SkyboxComponent.hpp"
-#include "Scene/Registry/CameraComponent.hpp"
+// Level and Registry
+#include "Level/Level.hpp"
+#include "Level/Registry/TransformComponent.hpp"
+#include "Level/Registry/MeshRendererComponent.hpp"
+#include "Level/Registry/NameComponent.hpp"
+#include "Level/Registry/SkyboxComponent.hpp"
+#include "Level/Registry/CameraComponent.hpp"
 
 #include "Renderer/RenderData.hpp"
 #include "Renderer/Renderer.hpp" 

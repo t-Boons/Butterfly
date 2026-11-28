@@ -5,8 +5,8 @@
 #include "Renderer/ShadowMap.hpp"
 
 #include "Core/Application.hpp"
-#include "Scene/Registry/MeshRendererComponent.hpp"
-#include "Scene/Registry/TransformComponent.hpp"
+#include "Level/Registry/MeshRendererComponent.hpp"
+#include "Level/Registry/TransformComponent.hpp"
 #include "Asset/AssetTypes.hpp"
 
 
@@ -100,7 +100,7 @@ namespace Butterfly
 		ShadowMapBuffer ShadowMaps;
 		std::vector<RenderObject> CulledRenderObjects;
 		RefPtr<TypedStructuredBuffer<GPUStructs::Mesh>> MeshDataBuffer;
-		uint32_t MeshesInScene = 0;
+		uint32_t MeshesInLevel = 0;
 
 		std::array<std::array<Frustum, CUBEMAP_SLICES>, MAX_LIGHTS> ShadowLightFrustums;
 		std::array<std::array<std::vector<RenderObject>, CUBEMAP_SLICES>, MAX_LIGHTS> ShadowRenderObjects;
@@ -158,7 +158,7 @@ namespace Butterfly
 			cameraFrustum.UpdatePlanes();
 
 			CulledRenderObjects.clear();
-			MeshesInScene = 0;
+			MeshesInLevel = 0;
 
 			// Clear shadow render lists once.
 			for (int i = 0; i < numLights; ++i)
@@ -173,7 +173,7 @@ namespace Butterfly
 
 			MeshDataBuffer->Data.clear();
 			ModelDataBuffer->Data.clear();
-			auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+			auto view = Application::Get().GetLevel().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 			for (auto [entity, transform, meshRenderer] : view.each())
 			{
 				if (!meshRenderer.GetMeshHandle())
@@ -212,7 +212,7 @@ namespace Butterfly
 
 				for (const auto& subm : mesh->GetSubMeshes())
 				{
-					MeshesInScene++;
+					MeshesInLevel++;
 
 					AABB worldAABB = subm.SubBounds.Transform(transform.GetWorldMatrix());
 

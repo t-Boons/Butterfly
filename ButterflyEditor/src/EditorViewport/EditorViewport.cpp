@@ -3,8 +3,8 @@
 #include "Core/EditorApplication.hpp"
 #include "EditorViewport/ThumbnailProcessor.hpp"
 #include "EditorViewport/EditorViewportExtention.hpp"
-#include "EditorViewport/SceneViewport.hpp"
-#include "EditorViewport/SceneHierarchy.hpp"
+#include "EditorViewport/LevelViewport.hpp"
+#include "EditorViewport/LevelHierarchy.hpp"
 #include "EditorViewport/EntityProperties.hpp"
 #include "EditorViewport/AssetLibrary.hpp"
 #include "EditorViewport/MenuBar.hpp"
@@ -16,8 +16,8 @@ namespace Butterfly
 	{
 		m_ImGUIRenderReceiver.Subscribe(Application::Get().GetRenderer().GetImGUIRenderEvent(), BF_BIND_FUNC(&EditorViewport::OnRenderImGUI));
 
-		m_viewportExtentions.push_back(MakeRef<SceneViewport>());
-		m_viewportExtentions.push_back(MakeRef<SceneHierarchy>());
+		m_viewportExtentions.push_back(MakeRef<LevelViewport>());
+		m_viewportExtentions.push_back(MakeRef<LevelHierarchy>());
 		m_viewportExtentions.push_back(MakeRef<EntityProperties>());
 		m_viewportExtentions.push_back(MakeRef<AssetLibrary>());
 		m_viewportExtentions.push_back(MakeRef<MenuBar>());
@@ -40,7 +40,7 @@ namespace Butterfly
 
 		if (Application::Get().GetInput().IsKeyDown(BFB_Y))
 		{
-			Application::Get().GetScene().SaveCurrentScene();
+			Application::Get().GetLevel().SaveCurrentLevel();
 		}
 	}
 

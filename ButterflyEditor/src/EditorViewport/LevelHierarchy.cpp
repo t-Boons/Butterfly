@@ -1,17 +1,17 @@
-#include "EditorViewport/SceneHierarchy.hpp"
+#include "EditorViewport/LevelHierarchy.hpp"
 #include "Core/EditorApplication.hpp"
 #include "EditorViewport/EditorViewport.hpp"
-#include "Scene/Registry/IDComponent.hpp"
+#include "Level/Registry/IDComponent.hpp"
 #include "EditorCache/EditorCache.hpp"
 #include "ImGui/FontAwesomeIcons.hpp"
 #include "EditorViewport/SpectatorCamera.hpp"
 
 namespace Butterfly
 {
-	class SceneCollapseHierarchyCacheEntry : public IEditorCacheEntry
+	class LevelCollapseHierarchyCacheEntry : public IEditorCacheEntry
 	{
 	public:
-		SceneCollapseHierarchyCacheEntry(const std::unordered_set<UUID>& collapsedHeaderMap)
+		LevelCollapseHierarchyCacheEntry(const std::unordered_set<UUID>& collapsedHeaderMap)
 			: m_collapsedHeaderMap(collapsedHeaderMap)
 		{
 		}
@@ -50,25 +50,25 @@ namespace Butterfly
 		std::unordered_set<UUID> m_collapsedHeaderMap;
 	};
 
-	SceneHierarchy::SceneHierarchy()
+	LevelHierarchy::LevelHierarchy()
 	{
 
 	}
-	SceneHierarchy::~SceneHierarchy()
-	{
-
-	}
-
-	void SceneHierarchy::OnTick()
+	LevelHierarchy::~LevelHierarchy()
 	{
 
 	}
 
-	void SceneHierarchy::OnRenderImGUI()
+	void LevelHierarchy::OnTick()
+	{
+
+	}
+
+	void LevelHierarchy::OnRenderImGUI()
 	{
 		BF_PROFILE_EVENT()
 
-		ImGui::Begin("Scene Hierarchy");
+		ImGui::Begin("Level Hierarchy");
 
 		// Delete selected entity.
 		if (ImGui::IsKeyPressed(ImGuiKey_Delete) && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))
@@ -81,14 +81,14 @@ namespace Butterfly
 		}
 
 		// We do -1 because the root entity is not counted as a game object
-		const uint32_t numEntities = static_cast<uint32_t>(Application::Get().GetScene().GetEntityRegistry().view<TransformComponent>().size() - 1);
+		const uint32_t numEntities = static_cast<uint32_t>(Application::Get().GetLevel().GetEntityRegistry().view<TransformComponent>().size() - 1);
 
 
 		ImGui::TextDisabled("%d entities", numEntities);
 		ImGui::Separator();
 		ImGui::Spacing();
 
-		Entity root = Application::Get().GetScene().GetRootEntity();
+		Entity root = Application::Get().GetLevel().GetRootEntity();
 
 		ImGui::BeginChild("EntityList", ImVec2(0, 0), true, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 
@@ -96,7 +96,7 @@ namespace Butterfly
 		{
 			if (ImGui::MenuItem("New Game Object"))
 			{
-				Entity newEntity = Application::Get().GetScene().CreateEntity();
+				Entity newEntity = Application::Get().GetLevel().CreateEntity();
 				TransformComponent& newEntityTransform = newEntity.GetComponent<TransformComponent>();
 				TransformComponent& entityParentTransform = newEntityTransform.GetParent().GetComponent<TransformComponent>();
 				entityParentTransform.Attach(newEntityTransform, entityParentTransform.NumChildren());
@@ -146,7 +146,7 @@ namespace Butterfly
 		ImGui::End();
 	}
 
-	void SceneHierarchy::DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex)
+	void LevelHierarchy::DrawHierarchy(const TransformComponent& parent, uint32_t rowIndex, uint32_t columIndex)
 	{
 		BF_PROFILE_EVENT()
 

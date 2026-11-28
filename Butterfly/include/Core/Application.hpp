@@ -6,7 +6,7 @@ namespace Butterfly
 	class Window;
 	class Renderer;
 	class Time;
-	class SceneManager;
+	class LevelManager;
 	class JobSystem;
 	class AssetManager;
 	class Input;
@@ -31,7 +31,7 @@ namespace Butterfly
 		Window& GetWindow() { return *m_window; }
 		Renderer& GetRenderer() { return *m_renderer; }
 		Time& GetTime() { return *m_time; }
-		SceneManager& GetScene() { return *m_scene; }
+		LevelManager& GetLevel() { return *m_level; }
 		JobSystem& GetJobSystem() { return *m_jobSystem; }
 		AssetManager& GetAssetManager() { return *m_assetManager; }
 		Input& GetInput() { return *m_input; }
@@ -47,7 +47,7 @@ namespace Butterfly
 		Window* m_window;
 		Renderer* m_renderer;
 		Time* m_time;
-		SceneManager* m_scene;
+		LevelManager* m_level;
 		JobSystem* m_jobSystem;
 		AssetManager* m_assetManager;
 		Input* m_input;

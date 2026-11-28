@@ -22,11 +22,11 @@ add_library(Butterfly STATIC
 
     src/Input/Input.cpp
 
-    src/Scene/Scene.cpp
-    src/Scene/Entity.cpp
-    src/Scene/Registry/TransformComponent.cpp
-    src/Scene/Registry/SkyboxComponent.cpp
-    src/Scene/Registry/LightComponent.cpp
+    src/Level/Level.cpp
+    src/Level/Entity.cpp
+    src/Level/Registry/TransformComponent.cpp
+    src/Level/Registry/SkyboxComponent.cpp
+    src/Level/Registry/LightComponent.cpp
 
     src/Asset/Asset.cpp
     src/Asset/AssetRegistry.cpp

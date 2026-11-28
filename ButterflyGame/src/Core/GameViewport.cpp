@@ -22,7 +22,7 @@ namespace Butterfly::Game
 		glm::vec3 cameraPosition = glm::vec3(0.0f);
 		float zNear = 0.0f, zFar = 0.0f;
 		bool cameraFound = false;
-		for (const auto& [entity, camera, transform] : Application::Get().GetScene().GetEntityRegistry().view<CameraComponent, TransformComponent>().each())
+		for (const auto& [entity, camera, transform] : Application::Get().GetLevel().GetEntityRegistry().view<CameraComponent, TransformComponent>().each())
 		{
 			if (camera.GetCameraIndex() == m_mainCameraIndex)
 			{
@@ -70,7 +70,7 @@ namespace Butterfly::Game
 
 		if (SkyboxRenderPipelineStage* srps = event.Viewport.GetRenderPipeline().TryGetStage<SkyboxRenderPipelineStage>())
 		{
-			auto view = Application::Get().GetScene().GetEntityRegistry().view<SkyboxComponent>();
+			auto view = Application::Get().GetLevel().GetEntityRegistry().view<SkyboxComponent>();
 			auto first = view.begin();
 			if (first != view.end())
 			{

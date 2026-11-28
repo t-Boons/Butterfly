@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/UUID.hpp"
 #include "Asset/AssetTypes.hpp"
-#include "Scene/Entity.hpp"
+#include "Level/Entity.hpp"
 
 namespace YAML
 {

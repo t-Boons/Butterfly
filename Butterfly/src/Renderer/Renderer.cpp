@@ -110,7 +110,6 @@ namespace Butterfly
 
 			viewport->m_renderTarget[viewport->m_frameIndex].reset();
 			viewport->m_depthStencil[viewport->m_frameIndex].reset();
-			viewport->GetGraphResources().Flush();
 
 			{
 				TextureDesc desc;
@@ -242,10 +241,10 @@ namespace Butterfly
 			info.RenderTargetLoadOp = LoadOP::Load;
 			m_frameData.GetCmdList().StartRenderPass(info, "ImGUI Pass");
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_frameData.GetCmdList().List());
+			m_frameData.GetCmdList().EndRenderPass();
 
 			Application::Get().GetWindow().Context().RecordCopyToBackBuffer(*m_frameData.GetCompositeRenderTarget().Resource(), m_frameData.GetCmdList());
 			
-			m_frameData.GetCmdList().EndRenderPass();
 
 
 			m_frameData.GetCmdList().Close();

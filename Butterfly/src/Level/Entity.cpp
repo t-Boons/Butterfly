@@ -1,4 +1,4 @@
-#include "Scene/Entity.hpp"
+#include "Level/Entity.hpp"
 
 namespace Butterfly
 {

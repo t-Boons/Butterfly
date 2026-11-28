@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Common.hpp"
-#include "Scene/Registry/LightComponent.hpp"
+#include "Level/Registry/LightComponent.hpp"
 
 #define MAX_LIGHTS 16
 

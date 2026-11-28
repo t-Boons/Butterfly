@@ -1,4 +1,4 @@
-#include "Scene/Registry/LightComponent.hpp"
+#include "Level/Registry/LightComponent.hpp"
 #include "Renderer/RenderPipeline/ShadowRenderPipelineStage.hpp"
 
 namespace Butterfly

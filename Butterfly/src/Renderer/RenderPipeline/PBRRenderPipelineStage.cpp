@@ -2,9 +2,9 @@
 #include "Renderer/Renderer.hpp"
 #include "Renderer/RenderData.hpp"
 
-#include "Scene/Scene.hpp"
-#include "Scene/Registry/MeshRendererComponent.hpp"
-#include "Scene/Registry/TransformComponent.hpp"
+#include "Level/Level.hpp"
+#include "Level/Registry/MeshRendererComponent.hpp"
+#include "Level/Registry/TransformComponent.hpp"
 #include "Asset/AssetManager.hpp"
 #include "Renderer/Camera.hpp"
 #include "Renderer/Material.hpp"
@@ -82,7 +82,7 @@ namespace Butterfly
 				Sampler& pcssShadowMapSampler = SamplerCache::GetOrCreate(pcssSamplerDesc);
 
 				// TODO make this cleaner. Right now this is only used because all SDF's start as UNORDERED_ACCEASS
-				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+				auto view = Application::Get().GetLevel().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 				for (const auto& [entity, transform, meshRenderer] : view.each())
 				{
 					if (!meshRenderer.GetMeshHandle())

@@ -1,6 +1,6 @@
 #pragma once
 #include "Renderer/D3D12Texture.hpp"
-#include "Scene/Registry/SkyboxComponent.hpp"
+#include "Level/Registry/SkyboxComponent.hpp"
 #include "Renderer/D3D12/D3D12GraphicsCommands.hpp"
 #include "Renderer/D3D12/D3D12Shader.hpp"
 #include "Renderer/RenderPipeline/RenderPipeline.hpp"

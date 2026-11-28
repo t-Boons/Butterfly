@@ -4,9 +4,9 @@ add_executable(ButterflyEditor
     src/Core/DebugRenderer.cpp
     src/EditorViewport/SpectatorCamera.cpp
     src/EditorViewport/EditorViewport.cpp
-    src/EditorViewport/SceneViewport.cpp
+    src/EditorViewport/LevelViewport.cpp
     src/EditorViewport/GameViewport.cpp
-    src/EditorViewport/SceneHierarchy.cpp
+    src/EditorViewport/LevelHierarchy.cpp
     src/EditorViewport/EntityProperties.cpp
     src/EditorViewport/AssetLibrary.cpp
     src/EditorViewport/MenuBar.cpp

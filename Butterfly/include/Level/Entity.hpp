@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/Common.hpp"
 #include "Core/Application.hpp"
-#include "Scene/Scene.hpp"
+#include "Level/Level.hpp"
 #include "Core/UUID.hpp"
 
 namespace Butterfly
@@ -52,42 +52,42 @@ namespace Butterfly
 		template<typename T>
 		T& AddComponent()
 		{
-			return Application::Get().GetScene().GetActiveScene().AddComponent<T>(m_handle);
+			return Application::Get().GetLevel().GetActiveLevel().AddComponent<T>(m_handle);
 		}
 
 		template<typename T>
 		T& GetComponent()
 		{
-			return Application::Get().GetScene().GetActiveScene().GetComponent<T>(m_handle);
+			return Application::Get().GetLevel().GetActiveLevel().GetComponent<T>(m_handle);
 		}
 
 		template<typename T>
 		const T& GetComponent() const
 		{
-			return Application::Get().GetScene().GetActiveScene().GetComponent<T>(m_handle);
+			return Application::Get().GetLevel().GetActiveLevel().GetComponent<T>(m_handle);
 		}
 
 		template<typename T>
 		bool HasComponent() const
 		{
-			return Application::Get().GetScene().GetActiveScene().HasComponent<T>(m_handle);
+			return Application::Get().GetLevel().GetActiveLevel().HasComponent<T>(m_handle);
 		}
 
 		template<typename T>
 		T* TryGetComponent()
 		{
-			return Application::Get().GetScene().GetActiveScene().TryGetComponent<T>(m_handle);
+			return Application::Get().GetLevel().GetActiveLevel().TryGetComponent<T>(m_handle);
 		}
 
 		template<typename T>
 		void RemoveComponent()
 		{
-			Application::Get().GetScene().GetActiveScene().RemoveComponent<T>(m_handle);
+			Application::Get().GetLevel().GetActiveLevel().RemoveComponent<T>(m_handle);
 		}
 
 		void Destroy()
 		{
-			Application::Get().GetScene().GetActiveScene().DestroyEntity(m_handle);
+			Application::Get().GetLevel().GetActiveLevel().DestroyEntity(m_handle);
 		}
 
 	private:

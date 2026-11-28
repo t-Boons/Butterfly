@@ -1,6 +1,6 @@
 #include "Renderer/ShadowMap.hpp"
 #include "Core/Application.hpp"
-#include "Scene/Registry/TransformComponent.hpp"
+#include "Level/Registry/TransformComponent.hpp"
 #include "Renderer/RenderIncludes.hpp"
 #include "Renderer/Renderer.hpp"
 #include "Renderer/RenderData.hpp"
@@ -153,7 +153,7 @@ namespace Butterfly
 		std::vector<LightType> lightTypes;
 		lightTypes.reserve(MAX_SHADOW_MAPS);
 		uint32_t entityIndex = 0;
-		for (const auto& [entity, lightComponent, transform] : Application::Get().GetScene().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
+		for (const auto& [entity, lightComponent, transform] : Application::Get().GetLevel().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
 		{
 			ShadowMap& shadow = m_shadowMaps[entityIndex];
 			lightTypes.push_back(lightComponent.GetType());

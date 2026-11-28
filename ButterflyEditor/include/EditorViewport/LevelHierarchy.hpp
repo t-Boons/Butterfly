@@ -6,11 +6,11 @@
 	{
 		class TransformComponent;
 
-		class SceneHierarchy : public IEditorViewportExtention
+		class LevelHierarchy : public IEditorViewportExtention
 		{
 		public:
-			SceneHierarchy();
-			~SceneHierarchy();
+			LevelHierarchy();
+			~LevelHierarchy();
 
 			virtual void OnTick() override;
 			virtual void OnRenderImGUI() override;

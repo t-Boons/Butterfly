@@ -1,4 +1,4 @@
-#include "Scene/Registry/SkyboxComponent.hpp"
+#include "Level/Registry/SkyboxComponent.hpp"
 #include "Core/Application.hpp"
 
 namespace Butterfly

@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Common.hpp"
-#include "Scene/Registry/LightComponent.hpp"
+#include "Level/Registry/LightComponent.hpp"
 #include "Renderer/RenderIncludes.hpp"
 
 #define MAX_SHADOW_MAPS 16
@@ -50,4 +50,3 @@ namespace Butterfly
 		std::array<ShadowMap, MAX_SHADOW_MAPS> m_shadowMaps;
 	};
 }
-

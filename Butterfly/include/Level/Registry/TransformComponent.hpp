@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Common.hpp"
-#include "Scene/Entity.hpp"
+#include "Level/Entity.hpp"
 #include "Core/UUID.hpp"
 
 namespace Butterfly
@@ -52,8 +52,8 @@ namespace Butterfly
 		Entity GetParent() const { return m_parent; }
 		Entity GetRoot() const;
 	private:
-		friend class Scene;
-		friend class SceneManager;
+		friend class Level;
+		friend class LevelManager;
 		friend class ComponentRegistry;
 
 		void DetachParent();
@@ -63,7 +63,7 @@ namespace Butterfly
 		void SetParentUUID(const UUID& uuid) { m_parentUUID = uuid; }
 		const UUID& GetParentUUID() const { return m_parentUUID; }
 
-		void ValidateAfterDeserialization(Scene& scene);
+		void ValidateAfterDeserialization(Level& level);
 
 		void WorldMatrixChanged();
 		void LocalMatrixChanged();

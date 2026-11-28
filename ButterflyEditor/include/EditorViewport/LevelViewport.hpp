@@ -7,7 +7,7 @@
 namespace Butterfly
 {
 
-	class SceneViewport : public IEditorViewportExtention
+	class LevelViewport : public IEditorViewportExtention
 	{
 	public:
 		enum class ObjectMovementSpace
@@ -16,7 +16,7 @@ namespace Butterfly
 			Local
 		};
 
-		SceneViewport();
+		LevelViewport();
 
 		virtual void OnTick() override;
 		virtual void OnRenderImGUI() override;
@@ -41,7 +41,7 @@ namespace Butterfly
 		ObjectMovementSpace m_objectMovementSpace = ObjectMovementSpace::World;
 		ImGuizmo::OPERATION m_currentOperation = ImGuizmo::OPERATION::TRANSLATE;
 		uint32_t m_selectedViewType = 0;
-		EventReceiver<Scene*> m_sceneChangedReceiver;
+		EventReceiver<Level*> m_levelChangedReceiver;
 
 		bool m_boundingBoxesVisible = true;
 		bool m_gridVisible = true;

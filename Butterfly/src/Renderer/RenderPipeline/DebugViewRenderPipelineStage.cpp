@@ -1,9 +1,9 @@
 #include "Renderer/RenderPipeline/DebugViewRenderPipelineStage.hpp"
 #include "Renderer/Renderer.hpp"
 
-#include "Scene/Scene.hpp"
-#include "Scene/Registry/MeshRendererComponent.hpp"
-#include "Scene/Registry/TransformComponent.hpp"
+#include "Level/Level.hpp"
+#include "Level/Registry/MeshRendererComponent.hpp"
+#include "Level/Registry/TransformComponent.hpp"
 #include "Asset/AssetManager.hpp"
 #include "Renderer/RenderData.hpp"
 #include "Renderer/RenderPipeline/SkyboxRenderPipelineStage.hpp"

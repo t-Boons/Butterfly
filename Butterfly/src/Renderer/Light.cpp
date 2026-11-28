@@ -1,6 +1,6 @@
 #include "Renderer/Light.hpp"
 #include "Core/Application.hpp"
-#include "Scene/Registry/TransformComponent.hpp"
+#include "Level/Registry/TransformComponent.hpp"
 #include "Renderer/RenderIncludes.hpp"
 #include "Renderer/Renderer.hpp"
 
@@ -47,7 +47,7 @@ namespace Butterfly
 
 		uint32_t entityIndex = 0;
 		m_numLights = 0;
-		for (const auto& [entity, lightComponent, transform] : Application::Get().GetScene().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
+		for (const auto& [entity, lightComponent, transform] : Application::Get().GetLevel().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
 		{
 			GPULight& light = m_lights[entityIndex];
 			light.Type = Utils::LightTypeToGPULightType(lightComponent.GetType());

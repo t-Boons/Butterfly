@@ -1,8 +1,8 @@
-#include "Scene/Registry/TransformComponent.hpp"
-#include "Scene/Registry/IDComponent.hpp"
-#include "Scene/Entity.hpp"
+#include "Level/Registry/TransformComponent.hpp"
+#include "Level/Registry/IDComponent.hpp"
+#include "Level/Entity.hpp"
 #include "Core/Application.hpp"
-#include "Scene/Scene.hpp"
+#include "Level/Level.hpp"
 
 namespace Butterfly
 {
@@ -186,12 +186,12 @@ namespace Butterfly
 		}
 	}
 
-	void TransformComponent::ValidateAfterDeserialization(Scene& scene)
+	void TransformComponent::ValidateAfterDeserialization(Level& level)
 	{
 		m_children.clear();
 		for (const UUID& uuid : m_childrenUUIDs)
 		{
-			for (const auto& [entity, idComp] : scene.GetRegistry().view<IDComponent>().each())
+			for (const auto& [entity, idComp] : level.GetRegistry().view<IDComponent>().each())
 			{
 				if (idComp.EntityUUID == uuid)
 				{
@@ -201,7 +201,7 @@ namespace Butterfly
 			}
 		}
 
-		for (const auto& [entity, idComp] : scene.GetRegistry().view<IDComponent>().each())
+		for (const auto& [entity, idComp] : level.GetRegistry().view<IDComponent>().each())
 		{
 			if (idComp.EntityUUID == m_parentUUID)
 			{

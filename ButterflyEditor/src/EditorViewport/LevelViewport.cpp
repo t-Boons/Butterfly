@@ -1,4 +1,4 @@
-#include "EditorViewport/SceneViewport.hpp"
+#include "EditorViewport/LevelViewport.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 #include "Core/EditorApplication.hpp"
@@ -105,24 +105,24 @@ namespace Butterfly
 		}
 
 	private:
-		friend class SceneViewport;
+		friend class LevelViewport;
 		std::array<RefPtr<TextureReadback>, NUM_RENDER_BUFFERS> m_objectPickerReadbacks;
 	};
 
 
-	SceneViewport::SceneViewport()
+	LevelViewport::LevelViewport()
 	{
-		m_viewport = Application::Get().GetRenderer().CreateViewport("SceneViewport");
+		m_viewport = Application::Get().GetRenderer().CreateViewport("LevelViewport");
 
 		m_viewport->GetRenderPipeline().RegisterStage<DebugRendererPipelineStage>();
 		m_viewport->GetRenderPipeline().RegisterStage<ObjectPickerRenderPipelineStage>();
 
-		m_viewportResizeReceiver.Subscribe(m_viewport->GetEvents().OnResize, BF_BIND_FUNC_PARAM(&SceneViewport::OnResize));
-		m_viewportPrerenderReceiver.Subscribe(m_viewport->GetEvents().OnPreRender, BF_BIND_FUNC_PARAM(&SceneViewport::OnPrerender));
-		m_viewportPostRenderReceiver.Subscribe(m_viewport->GetEvents().OnPostRender, BF_BIND_FUNC(&SceneViewport::OnPostRender));
+		m_viewportResizeReceiver.Subscribe(m_viewport->GetEvents().OnResize, BF_BIND_FUNC_PARAM(&LevelViewport::OnResize));
+		m_viewportPrerenderReceiver.Subscribe(m_viewport->GetEvents().OnPreRender, BF_BIND_FUNC_PARAM(&LevelViewport::OnPrerender));
+		m_viewportPostRenderReceiver.Subscribe(m_viewport->GetEvents().OnPostRender, BF_BIND_FUNC(&LevelViewport::OnPostRender));
 	}
 
-	void SceneViewport::OnPostRender()
+	void LevelViewport::OnPostRender()
 	{
 		BF_PROFILE_EVENT();
 
@@ -135,14 +135,14 @@ namespace Butterfly
 		objectPickerStage->m_objectPickerReadbacks[m_viewport->GetFrameIndex()]->SetFenceValue(Application::Get().GetRenderer().GetFrameData().GetFence().FenceValue());
 	}
 		
-	void SceneViewport::OnTick()
+	void LevelViewport::OnTick()
 	{
 		BF_PROFILE_EVENT()
 
 		m_spectatorCam.Tick(Application::Get().GetInput(), Application::Get().GetTime().DeltaTime());
 	}
 
-	void SceneViewport::RenderGrid()
+	void LevelViewport::RenderGrid()
 	{
 		if (m_gridVisible)
 		{
@@ -166,13 +166,13 @@ namespace Butterfly
 		}
 	}
 
-	void SceneViewport::RenderObjectBoundingBoxes()
+	void LevelViewport::RenderObjectBoundingBoxes()
 	{
 		if (m_boundingBoxesVisible)
 		{
-			auto v = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, CameraComponent>();
+			auto v = Application::Get().GetLevel().GetEntityRegistry().view<TransformComponent, CameraComponent>();
 
-			if (Application::Get().GetScene().GetEntityRegistry().view<CameraComponent>().size() == 0)
+			if (Application::Get().GetLevel().GetEntityRegistry().view<CameraComponent>().size() == 0)
 			{
 				return;
 			}
@@ -190,7 +190,7 @@ namespace Butterfly
 				Frustum frustum;
 				frustum.Projection = camera->GetViewprojectionMatrrix(cameraTransform.GetPosition(), cameraTransform.GetRotation());
 				frustum.UpdatePlanes();
-				auto view = Application::Get().GetScene().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
+				auto view = Application::Get().GetLevel().GetEntityRegistry().view<TransformComponent, MeshRendererComponent>();
 				for (auto [entity, transform, meshRenderer] : view.each())
 				{
 					if (!meshRenderer.GetMeshHandle())
@@ -226,14 +226,14 @@ namespace Butterfly
 		}
 	}
 
-	void SceneViewport::OnResize(const ViewportResizeEvent& event)
+	void LevelViewport::OnResize(const ViewportResizeEvent& event)
 	{
 		auto p = m_spectatorCam.GetCamera()->Projection();
 		p.AspectRatio = static_cast<float>(event.Size.x) / static_cast<float>(event.Size.y);
 		m_spectatorCam.GetCamera()->SetProjection(p);
 	}
 
-	void SceneViewport::OnPrerender(const ViewportPrerenderEvent& event)
+	void LevelViewport::OnPrerender(const ViewportPrerenderEvent& event)
 	{
 		BF_PROFILE_EVENT()
 
@@ -249,7 +249,7 @@ namespace Butterfly
 
 		if (SkyboxRenderPipelineStage* srps = event.Viewport.GetRenderPipeline().TryGetStage<SkyboxRenderPipelineStage>())
 		{
-			auto view = Application::Get().GetScene().GetEntityRegistry().view<SkyboxComponent>();
+			auto view = Application::Get().GetLevel().GetEntityRegistry().view<SkyboxComponent>();
 			auto first = view.begin();
 			if (first != view.end())
 			{
@@ -263,7 +263,7 @@ namespace Butterfly
 		}
 	}
 
-	void SceneViewport::OnRenderImGUI()
+	void LevelViewport::OnRenderImGUI()
 	{
 		BF_PROFILE_EVENT()
 
@@ -393,7 +393,7 @@ namespace Butterfly
 		}
 		ImGui::SameLine(0.0f, 10);
 		{
-			ImGui::Text("RENDERED OBJECTS: %d OUT OF %d", m_viewport->GetRenderData().CulledRenderObjects.size(), m_viewport->GetRenderData().MeshesInScene);
+			ImGui::Text("RENDERED OBJECTS: %d OUT OF %d", m_viewport->GetRenderData().CulledRenderObjects.size(), m_viewport->GetRenderData().MeshesInLevel);
 		}
 		ImGui::PopFont();
 		ImGui::PopStyleColor(3);
@@ -408,7 +408,7 @@ namespace Butterfly
 
 			ImGui::PushFont(font, iconSize);
 
-			for (const auto& [entity, camera, transform] : Application::Get().GetScene().GetEntityRegistry().view<CameraComponent, TransformComponent>().each())
+			for (const auto& [entity, camera, transform] : Application::Get().GetLevel().GetEntityRegistry().view<CameraComponent, TransformComponent>().each())
 			{
 				glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), m_viewport->Size());
 				screenPos += viewportOffset;
@@ -421,7 +421,7 @@ namespace Butterfly
 				ImGui::GetWindowDrawList()->AddText(iconPos, IM_COL32(255, 255, 255, 180), icon);
 			}
 
-			for (const auto& [entity, light, transform] : Application::Get().GetScene().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
+			for (const auto& [entity, light, transform] : Application::Get().GetLevel().GetEntityRegistry().view<LightComponent, TransformComponent>().each())
 			{
 				glm::ivec2 screenPos = WorldToViewport(transform.GetPosition(), m_spectatorCam.GetCamera()->ViewProjectionMatrix(), m_viewport->Size());
 				screenPos += viewportOffset;
@@ -473,10 +473,10 @@ namespace Butterfly
 				{
 					// We do -1 because the rendered readbackID increments the entity count by 1 for entity 0.
 					// Thus entity 0 is entity 1
-					const uint32_t sceneEntityID = readbackID - 1;
+					const uint32_t levelEntityID = readbackID - 1;
 
-					EditorApplication::Get().GetEditorViewport().m_selectedEntity = static_cast<entt::entity>(sceneEntityID);
-					BF_LOG_INFO("Selected entity: %u", sceneEntityID);
+					EditorApplication::Get().GetEditorViewport().m_selectedEntity = static_cast<entt::entity>(levelEntityID);
+					BF_LOG_INFO("Selected entity: %u", levelEntityID);
 				}
 				else
 				{

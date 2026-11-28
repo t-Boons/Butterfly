@@ -1,17 +1,17 @@
 #pragma once
 #include "Core/Common.hpp"
-#include "Scene/Registry/PendingDestroyComponent.hpp"
+#include "Level/Registry/PendingDestroyComponent.hpp"
 
 namespace Butterfly
 {
-	class Scene : public NonCopyableNonMoveable
+	class Level : public NonCopyableNonMoveable
 	{
 	public:
-		static std::string Serialize(const Scene& scene);
-		static RefPtr<Scene> Deserialize(const std::string& text);
-		static RefPtr<Scene> DeserializeFromFilePath(const std::filesystem::path& filePath);
+		static std::string Serialize(const Level& level);
+		static RefPtr<Level> Deserialize(const std::string& text);
+		static RefPtr<Level> DeserializeFromFilePath(const std::filesystem::path& filePath);
 
-		void CloneTo(Scene& destination) const;
+		void CloneTo(Level& destination) const;
 
 		template<typename T>
 		T& AddComponent(entt::entity entity)
@@ -78,28 +78,28 @@ namespace Butterfly
 		entt::entity m_rootEntity;
 	};
 
-	class SceneManager : public NonCopyable
+	class LevelManager : public NonCopyable
 	{
 	public:
-		SceneManager();
+		LevelManager();
 
 		void Tick();
 
 
-		void SaveCurrentScene();
-		void SetActiveScene(const RefPtr<Scene>& scene);
-		const Scene& GetActiveScene() const { return *m_activeScene; }
-		Scene& GetActiveScene() { return *m_activeScene; }
+		void SaveCurrentLevel();
+		void SetActiveLevel(const RefPtr<Level>& level);
+		const Level& GetActiveLevel() const { return *m_activeLevel; }
+		Level& GetActiveLevel() { return *m_activeLevel; }
 
 		void DestroyPendingEntities();
 		entt::entity CreateEntity(const std::string& name = "New GameObject");
-		entt::registry& GetEntityRegistry() { return m_activeScene->m_registry; }
-		const entt::registry& GetEntityRegistry() const { return m_activeScene->m_registry; }
-		const entt::entity& GetRootEntity() const { return m_activeScene->m_rootEntity; }
+		entt::registry& GetEntityRegistry() { return m_activeLevel->m_registry; }
+		const entt::registry& GetEntityRegistry() const { return m_activeLevel->m_registry; }
+		const entt::entity& GetRootEntity() const { return m_activeLevel->m_rootEntity; }
 
 	private:
 		void DestroyChildren(entt::entity entity);
 
-		RefPtr<Scene> m_activeScene;
+		RefPtr<Level> m_activeLevel;
 	};
 }

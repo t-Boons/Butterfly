@@ -151,11 +151,11 @@ void AssetLibrary::DrawFileCell(const LibraryIcon& icon, const std::string& name
 	{
 		m_renameID = UUID();
 
-		if (ext == ".bfscene")
+		if (ext == ".bflevel")
 		{
 			EditorApplication::Get().GetEditorViewport().RunBeforeImGuiRender([meta]()
 																			  {
-					Application::Get().GetScene().SetActiveScene(Scene::DeserializeFromFilePath(meta.Path));
+					Application::Get().GetLevel().SetActiveLevel(Level::DeserializeFromFilePath(meta.Path));
 					EditorApplication::Get().GetEditorViewport().m_selectedEntity = Entity(); });
 		}
 		else if (ext == ".gltf" || ext == ".glb")
@@ -166,18 +166,18 @@ void AssetLibrary::DrawFileCell(const LibraryIcon& icon, const std::string& name
 
 			std::function<void(ModelNode *, entt::entity)> traverse = [&](ModelNode *node, entt::entity parent)
 			{
-				entt::entity entity = Application::Get().GetScene().CreateEntity(node->Name);
-				auto &tr = Application::Get().GetScene().GetActiveScene().GetComponent<TransformComponent>(entity);
+				entt::entity entity = Application::Get().GetLevel().CreateEntity(node->Name);
+				auto &tr = Application::Get().GetLevel().GetActiveLevel().GetComponent<TransformComponent>(entity);
 				tr.SetWorldMatrix(node->ModelMatrix);
 
 				if (parent != entt::null)
 				{
-					Application::Get().GetScene().GetActiveScene().GetComponent<TransformComponent>(parent).Attach(tr);
+					Application::Get().GetLevel().GetActiveLevel().GetComponent<TransformComponent>(parent).Attach(tr);
 				}
 
 				if (node->Mesh)
 				{
-					MeshRendererComponent &mr = Application::Get().GetScene().GetActiveScene().AddComponent<MeshRendererComponent>(entity);
+					MeshRendererComponent &mr = Application::Get().GetLevel().GetActiveLevel().AddComponent<MeshRendererComponent>(entity);
 					mr.SetMeshHandle(node->Mesh);
 				}
 
@@ -290,7 +290,7 @@ void AssetLibrary::DrawFileCell(const LibraryIcon& icon, const std::string& name
 
 				LibraryIcon icon;
 				icon.IconCode = FontAwesome::File;
-				if (ext == ".bfscene")
+				if (ext == ".bflevel")
 					icon.IconCode = FontAwesome::CubeStack;
 				else if (ext == ".obj" || ext == ".gltf" || ext == ".glb")
 					icon.IconCode = FontAwesome::Cube;

@@ -5,7 +5,7 @@
 #include "Renderer/Graph/Blackboard.hpp"
 #include "Core/JobSystem.hpp"
 #include "Core/Time.hpp"
-#include "Scene/Scene.hpp"
+#include "Level/Level.hpp"
 #include "Asset/AssetManager.hpp"
 #include "Input/Input.hpp"
 
@@ -28,7 +28,7 @@ namespace Butterfly
 
 		m_renderer = new Renderer();
 		m_time = new Time();
-		m_scene = new SceneManager();
+		m_level = new LevelManager();
 		m_jobSystem = new JobSystem();
 		m_assetManager = new AssetManager();
 
@@ -52,7 +52,7 @@ namespace Butterfly
 		m_renderer->Render();
 
 		m_time->Tick();
-		m_scene->Tick();
+		m_level->Tick();
 		m_assetManager->Tick();
 
 		if (m_applicationExtention)
@@ -77,7 +77,7 @@ namespace Butterfly
 
 		delete m_applicationExtention;
 		delete m_jobSystem;
-		delete m_scene;
+		delete m_level;
 		delete m_time;
 		delete m_renderer;
 		delete m_window;
